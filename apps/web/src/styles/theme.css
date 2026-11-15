@@ -4,25 +4,35 @@
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 :root {
-  --paper: #f1f1ef;
-  --paper-sunk: #e8e8e5;
+  --paper: #e8e8eb;
+  --paper-sunk: #f4f4f5;
   --paper-raised: #ffffff;
-  --ink: #121212;
-  --ink-soft: #6c6c6a;
-  --ink-faint: #a6a6a3;
-  --rule: #eaeae7;
-  --primary: #121212;
+  --canvas: #f7f7f8;
+  --dot: #d4d4d9;
+  --ink: #18181b;
+  --ink-soft: #63636b;
+  --ink-faint: #a1a1a8;
+  --rule: #e6e6e9;
+  --wire: #c4c4cb;
+  --primary: #1f6feb;
   --primary-ink: #ffffff;
-  --positive: #1f9d55;
+  --positive: #16a34a;
   --caution: #c2410c;
-  --hl-green: #a8efc2;
-  --hl-violet: #d7caff;
-  --hl-yellow: #ffe48c;
-  --hl-orange: #ffd0a0;
-  --hl-blue: #c4e1ff;
-  --hl-ink: #121212;
-  --shadow-card: 0 1px 2px rgb(18 18 18 / 0.04), 0 10px 30px -14px rgb(18 18 18 / 0.14);
-  --shadow-pop: 0 2px 6px rgb(18 18 18 / 0.08), 0 24px 60px -18px rgb(18 18 18 / 0.35);
+  --hl-green: #d9f5e1;
+  --hl-violet: #ebe3ff;
+  --hl-yellow: #fff1bf;
+  --hl-orange: #ffe4cf;
+  --hl-blue: #dce8ff;
+  --hl-pink: #ffe0ee;
+  --tx-green: #177a3a;
+  --tx-violet: #6a3fd1;
+  --tx-yellow: #8a6500;
+  --tx-orange: #b04a0c;
+  --tx-blue: #1d5bd0;
+  --tx-pink: #b1235f;
+  --hl-ink: #18181b;
+  --shadow-card: 0 1px 2px rgb(24 24 27 / 0.05), 0 4px 14px -6px rgb(24 24 27 / 0.1);
+  --shadow-pop: 0 2px 6px rgb(24 24 27 / 0.08), 0 20px 50px -16px rgb(24 24 27 / 0.28);
 
   --shimmer-text-base: var(--ink-faint);
   --shimmer-text-highlight: var(--ink);
@@ -36,35 +46,67 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --paper: #0d0d0d;
-    --paper-sunk: #1d1d1c;
-    --paper-raised: #171716;
-    --ink: #f2f2f0;
-    --ink-soft: #a3a3a0;
-    --ink-faint: #676765;
-    --rule: #262625;
-    --primary: #f2f2f0;
-    --primary-ink: #121212;
+    --paper: #09090b;
+    --paper-sunk: #1b1b1f;
+    --paper-raised: #141417;
+    --canvas: #0e0e11;
+    --dot: #2a2a30;
+    --ink: #f4f4f5;
+    --ink-soft: #a1a1aa;
+    --ink-faint: #63636b;
+    --rule: #26262b;
+    --wire: #3f3f46;
+    --primary: #3b82f6;
+    --primary-ink: #ffffff;
     --positive: #4ade80;
-    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 10px 30px -14px rgb(0 0 0 / 0.6);
-    --shadow-pop: 0 2px 6px rgb(0 0 0 / 0.5), 0 24px 60px -18px rgb(0 0 0 / 0.8);
+    --hl-green: #12351f;
+    --hl-violet: #2a2045;
+    --hl-yellow: #3a3010;
+    --hl-orange: #3d2414;
+    --hl-blue: #172a4d;
+    --hl-pink: #3d1729;
+    --tx-green: #6ee7a0;
+    --tx-violet: #b9a2ff;
+    --tx-yellow: #f5d061;
+    --tx-orange: #fdac74;
+    --tx-blue: #8db6ff;
+    --tx-pink: #f59cc2;
+    --hl-ink: #f4f4f5;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 14px -6px rgb(0 0 0 / 0.6);
+    --shadow-pop: 0 2px 6px rgb(0 0 0 / 0.5), 0 20px 50px -16px rgb(0 0 0 / 0.8);
     color-scheme: dark;
   }
 }
 
 :root[data-theme="dark"] {
-  --paper: #0d0d0d;
-  --paper-sunk: #1d1d1c;
-  --paper-raised: #171716;
-  --ink: #f2f2f0;
-  --ink-soft: #a3a3a0;
-  --ink-faint: #676765;
-  --rule: #262625;
-  --primary: #f2f2f0;
-  --primary-ink: #121212;
+  --paper: #09090b;
+  --paper-sunk: #1b1b1f;
+  --paper-raised: #141417;
+  --canvas: #0e0e11;
+  --dot: #2a2a30;
+  --ink: #f4f4f5;
+  --ink-soft: #a1a1aa;
+  --ink-faint: #63636b;
+  --rule: #26262b;
+  --wire: #3f3f46;
+  --primary: #3b82f6;
+  --primary-ink: #ffffff;
   --positive: #4ade80;
-  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 10px 30px -14px rgb(0 0 0 / 0.6);
-  --shadow-pop: 0 2px 6px rgb(0 0 0 / 0.5), 0 24px 60px -18px rgb(0 0 0 / 0.8);
+  --hl-green: #12351f;
+  --hl-violet: #2a2045;
+  --hl-yellow: #3a3010;
+  --hl-orange: #3d2414;
+  --hl-blue: #172a4d;
+  --hl-pink: #3d1729;
+  --tx-green: #6ee7a0;
+  --tx-violet: #b9a2ff;
+  --tx-yellow: #f5d061;
+  --tx-orange: #fdac74;
+  --tx-blue: #8db6ff;
+  --tx-pink: #f59cc2;
+  --hl-ink: #f4f4f5;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 14px -6px rgb(0 0 0 / 0.6);
+  --shadow-pop: 0 2px 6px rgb(0 0 0 / 0.5), 0 20px 50px -16px rgb(0 0 0 / 0.8);
   color-scheme: dark;
 }
 
@@ -85,8 +127,18 @@
   --color-hl-yellow: var(--hl-yellow);
   --color-hl-orange: var(--hl-orange);
   --color-hl-blue: var(--hl-blue);
+  --color-hl-pink: var(--hl-pink);
   --color-hl-ink: var(--hl-ink);
-  --font-sans: "Urbanist", ui-sans-serif, system-ui, sans-serif;
+  --color-tx-green: var(--tx-green);
+  --color-tx-violet: var(--tx-violet);
+  --color-tx-yellow: var(--tx-yellow);
+  --color-tx-orange: var(--tx-orange);
+  --color-tx-blue: var(--tx-blue);
+  --color-tx-pink: var(--tx-pink);
+  --color-canvas: var(--canvas);
+  --color-wire: var(--wire);
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
   --shadow-card: var(--shadow-card);
   --shadow-pop: var(--shadow-pop);
 }
@@ -96,7 +148,6 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font-sans);
-  font-weight: 500;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -186,5 +237,41 @@ body {
   .hl-swipe,
   .row-in {
     animation: none !important;
+  }
+}
+
+.canvas-dots {
+  background-color: var(--canvas);
+  background-image: radial-gradient(var(--dot) 1px, transparent 1.3px);
+  background-size: 16px 16px;
+}
+
+/* A pulse travelling along a wire from one note to another. */
+.wire-pulse {
+  offset-rotate: 0deg;
+  animation: wire-pulse 900ms cubic-bezier(0.65, 0, 0.35, 1) both;
+  animation-delay: var(--pulse-delay, 0ms);
+}
+@keyframes wire-pulse {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wire-pulse {
+    animation: none !important;
+    opacity: 0;
   }
 }

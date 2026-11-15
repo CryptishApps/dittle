@@ -33,7 +33,7 @@ for (const theme of ["light", "dark"] as const) {
   }
 
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`${base}/dev/designs/editor`, { waitUntil: "networkidle" });
+  await page.goto(`${base}/dev/designs/document`, { waitUntil: "networkidle" });
   await page.addStyleTag({ content: "[data-dev-nav] { display: none !important; }" });
   await editGuestCount(page);
   await page.screenshot({ path: `${out}editor-${theme}.png` });
