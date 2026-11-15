@@ -1,92 +1,35 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { InferenceMeter } from "../../../ui/InferenceMeter";
 import { InsertButton } from "../../../ui/InsertButton";
-import { OptionsMenu, type Option } from "../../../ui/OptionsMenu";
 import { Popover } from "../../../ui/Popover";
 import { Reprint } from "../../../ui/Reprint";
-import { useStreamedWords, StreamedText } from "../../../ui/StreamIn";
+import { StreamedText, useStreamedWords } from "../../../ui/StreamIn";
 import { SyncBadge, type SyncState } from "../../../ui/SyncBadge";
-import { VarChip } from "../../../ui/VarChip";
+import { UpdateCard } from "../../../ui/UpdateCard";
 import { Wordmark } from "../../../ui/Wordmark";
+import { GUEST_MENTIONS, MEALS, money } from "./panels";
 
-type Spot = "detected" | "linked" | "text";
-type SpotId = "deposit" | "date";
-
-const MEALS = [
-  "Roast chicken with lemon and thyme",
-  "Mushroom and chestnut Wellington (v)",
-  "Slow-cooked lamb shoulder",
-  "Charred broccoli with chilli and almonds (vg)",
-  "Herby new potatoes",
-  "Burnt aubergine with yoghurt",
-  "Lemon posset with shortbread",
-];
-
-const NOTES = [
-  { title: "Catering quote", meta: "Edited now", active: true },
-  { title: "Hartley Barn", meta: "Venue · yesterday" },
-  { title: "Budget", meta: "Tue" },
-  { title: "Chair hire", meta: "Tue" },
-  { title: "Email to Sam", meta: "Draft · Mon" },
-  { title: "Readings", meta: "12 Nov" },
-];
-
-const OPTIONS: Record<SpotId, { quote: string; kind: string; options: Option[] }> = {
-  deposit: {
-    quote: "£500",
-    kind: "money",
-    options: [
-      { id: "new", mark: "〃", label: "New variable", detail: "catering_deposit" },
-      { id: "formula", mark: "=", label: "Use in a formula", hint: "e.g. food_total + catering_deposit" },
-      { id: "text", mark: "", label: "Keep as text" },
-    ],
-  },
-  date: {
-    quote: "the 14th of June",
-    kind: "date",
-    options: [
-      { id: "link", mark: "〃", label: "Link to", detail: "event_date", hint: "14 June · used in 3 notes" },
-      { id: "new", mark: "+", label: "New variable", detail: "menu_deadline" },
-      { id: "text", mark: "", label: "Keep as text" },
-    ],
-  },
-};
+const NOTES = ["Catering quote", "Hartley Barn", "Budget", "Chair hire", "Email to Sam", "Readings"];
+const LINKED = new Set(["Budget", "Chair hire", "Email to Sam"]);
 
 export function EditorMock() {
   const [guests, setGuests] = useState(80);
-  const perHead = 38;
-  const [spots, setSpots] = useState<Record<SpotId, Spot>>({ deposit: "detected", date: "detected" });
-  const [openSpot, setOpenSpot] = useState<SpotId | null>(null);
+  const [pending, setPending] = useState<{ from: number; to: number } | null>(null);
+  const [updatedNotes, setUpdatedNotes] = useState(0);
   const [reading, setReading] = useState(true);
   const [meals, setMeals] = useState<"request" | "inserted">("request");
   const [sync, setSync] = useState<SyncState>("synced");
   const [calls, setCalls] = useState({ local: 409, cloud: 6 });
-  const [status, setStatus] = useState<ReactNode>(null);
+  const [status, setStatus] = useState("");
   const syncTimer = useRef<number>(undefined);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setReading(false);
       setCalls((c) => ({ ...c, local: c.local + 1 }));
-      setStatus("Spotted 2 values and a request");
     }, 1500);
     return () => window.clearTimeout(timer);
   }, []);
-
-  useEffect(() => {
-    if (!openSpot) return;
-    const close = (event: KeyboardEvent | MouseEvent) => {
-      if (event instanceof KeyboardEvent && event.key !== "Escape") return;
-      if (event instanceof MouseEvent && (event.target as Element).closest("[data-spot]")) return;
-      setOpenSpot(null);
-    };
-    window.addEventListener("keydown", close);
-    window.addEventListener("mousedown", close);
-    return () => {
-      window.removeEventListener("keydown", close);
-      window.removeEventListener("mousedown", close);
-    };
-  }, [openSpot]);
 
   const save = () => {
     window.clearTimeout(syncTimer.current);
@@ -94,28 +37,18 @@ export function EditorMock() {
     syncTimer.current = window.setTimeout(() => setSync("synced"), 1100);
   };
 
-  const open = (id: SpotId) => {
-    if (openSpot !== id) setCalls((c) => ({ ...c, local: c.local + 1 }));
-    setOpenSpot(openSpot === id ? null : id);
+  const editGuests = (next: number) => {
+    if (next === guests) return;
+    setPending({ from: guests, to: next });
+    setGuests(next);
+    setCalls((c) => ({ ...c, local: c.local + 1 }));
+    save();
   };
 
-  const pick = (id: SpotId, choice: string) => {
-    setOpenSpot(null);
-    const next: Spot = choice === "text" ? "text" : "linked";
-    setSpots((s) => ({ ...s, [id]: next }));
-    if (next === "linked") {
-      setStatus(id === "date" ? "Linked to event_date" : "Created catering_deposit");
-      save();
-    }
-  };
-
-  const changeGuests = (value: number) => {
-    setGuests(value);
-    setStatus(
-      <>
-        <span className="font-mono">guest_count</span> is now {value} · 4 notes updated
-      </>,
-    );
+  const updateAll = () => {
+    setPending(null);
+    setUpdatedNotes((n) => n + 1);
+    setStatus("Updated 3 other notes");
     save();
   };
 
@@ -126,330 +59,277 @@ export function EditorMock() {
     save();
   };
 
-  const money = (n: number) => `£${n.toLocaleString("en-GB")}`;
-  const dateUses = spots.date === "linked" ? 4 : 3;
-
   return (
     <div className="flex h-dvh overflow-hidden bg-paper text-ink">
-      <aside className="hidden w-[272px] shrink-0 flex-col border-r border-rule bg-paper-sunk lg:flex">
-        <div className="flex items-center justify-between px-5 pt-5 pb-4">
-          <Wordmark className="text-[24px]" />
-          <button
-            type="button"
-            aria-label="New note"
-            className="grid size-7 place-items-center rounded-lg text-ink-soft transition hover:bg-paper-raised hover:text-ink"
-          >
-            <PlusIcon />
-          </button>
-        </div>
-        <div className="px-3">
-          <label className="flex items-center gap-2 rounded-lg border border-rule bg-paper-raised px-2.5 py-1.5 text-[13px] text-ink-faint">
-            <SearchIcon />
-            <input
-              placeholder="Search notes"
-              className="w-full bg-transparent text-ink outline-none placeholder:text-ink-faint"
-            />
-          </label>
+      <aside className="hidden w-[264px] shrink-0 flex-col px-4 pt-5 pb-4 lg:flex">
+        <div className="flex items-center justify-between px-2">
+          <Wordmark className="text-[22px]" />
+          <IconButton label="Collapse sidebar">
+            <SidebarIcon />
+          </IconButton>
         </div>
 
-        <nav aria-label="Notes" className="mt-5 px-3">
-          <SidebarHeading>Wedding weekend</SidebarHeading>
-          <ul>
-            {NOTES.map((note) => (
-              <li key={note.title}>
-                <a
-                  href="#"
-                  aria-current={note.active ? "page" : undefined}
-                  className="flex items-baseline justify-between gap-2 rounded-lg px-2.5 py-1.5 text-[14px] transition hover:bg-paper-raised aria-[current=page]:bg-paper-raised aria-[current=page]:shadow-[0_1px_0_var(--rule)]"
-                >
-                  <span className="truncate">{note.title}</span>
-                  <span className="shrink-0 text-[11px] text-ink-faint">{note.meta}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        <button
+          type="button"
+          className="mt-6 flex items-center justify-center gap-2 rounded-xl bg-accent py-2.5 text-[14px] font-semibold text-accent-ink transition hover:brightness-105"
+        >
+          <PlusIcon /> New note
+        </button>
+        <label className="mt-3 flex items-center gap-2 rounded-xl border border-rule bg-paper-raised px-3 py-2 text-[14px] text-ink-faint">
+          <SearchIcon />
+          <input placeholder="Search notes" className="w-full bg-transparent text-ink outline-none placeholder:text-ink-faint" />
+        </label>
 
-        <section aria-label="Variables" className="mt-6 px-3">
-          <SidebarHeading>Variables</SidebarHeading>
-          <ul className="space-y-px">
-            <VariableRow name="guest_count" uses={4}>
-              <EditableNumber value={guests} onChange={changeGuests} />
-            </VariableRow>
-            <VariableRow name="per_head" uses={2}>
-              {money(perHead)}
-            </VariableRow>
-            <VariableRow name="food_total" formula>
-              <Reprint value={money(guests * perHead)} />
-            </VariableRow>
-            <VariableRow name="event_date" uses={dateUses}>
-              14 June
-            </VariableRow>
-            {spots.deposit === "linked" && (
-              <VariableRow name="catering_deposit" uses={1} fresh>
-                £500
-              </VariableRow>
-            )}
-          </ul>
-        </section>
+        <SidebarSection title="Wedding weekend">
+          {NOTES.map((note, index) => (
+            <SidebarItem key={note} active={index === 0} icon={<NoteIcon />}>
+              <span className="flex-1 truncate">{note}</span>
+              {LINKED.has(note) && updatedNotes > 0 && (
+                <span key={updatedNotes} className="row-in text-[11px] font-medium text-accent-strong">
+                  Updated
+                </span>
+              )}
+            </SidebarItem>
+          ))}
+        </SidebarSection>
 
-        <section aria-label="Collections" className="mt-6 px-3">
-          <SidebarHeading>Collections</SidebarHeading>
-          <a href="#" className="flex items-baseline justify-between rounded-lg px-2.5 py-1.5 text-[14px] hover:bg-paper-raised">
-            Vendors <span className="text-[11px] text-ink-faint">3 notes</span>
-          </a>
-          <button
-            type="button"
-            className="mt-1 flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13px] text-ink-soft hover:bg-paper-raised hover:text-ink"
-          >
-            <span aria-hidden className="size-1.5 rounded-full border border-cloud" />
-            Find collections
-          </button>
-        </section>
+        <SidebarSection title="Collections">
+          <SidebarItem icon={<TableIcon />}>
+            <span className="flex-1">Vendors</span>
+            <span className="text-[12px] text-ink-faint">3</span>
+          </SidebarItem>
+        </SidebarSection>
 
-        <div className="mt-auto border-t border-rule px-5 py-3">
+        <div className="mt-auto rounded-2xl border border-rule bg-paper-raised p-4 shadow-card">
+          <p className="text-[13px] font-semibold">AI today</p>
+          <p className="mt-0.5 mb-3 text-[12px] text-ink-soft">Most of it ran on this computer.</p>
           <InferenceMeter local={calls.local} cloud={calls.cloud} />
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between gap-3 px-4 py-3 sm:px-8">
-          <p className="truncate text-[13px] text-ink-faint">
-            Wedding weekend <span className="px-1">/</span> <span className="text-ink-soft">Catering quote</span>
-          </p>
-          <SyncBadge state={sync} />
-        </header>
-
-        <main className="min-h-0 flex-1 overflow-y-auto">
-          <article className="mx-auto max-w-[680px] px-5 pt-8 pb-40 sm:px-8 sm:pt-14">
-            <h1 className="font-note text-[40px] leading-tight font-medium tracking-[-0.02em]">Catering quote</h1>
-            <p className="mt-1 text-[13px] text-ink-faint">Rosa's Kitchen · called on Tuesday</p>
-
-            <div className="mt-8 space-y-5 font-note text-[19px] leading-[1.7]">
-              <p>
-                Rosa's Kitchen can do a buffet for <VarChip name="guest_count" value={String(guests)} usedIn={4} />{" "}
-                guests at <VarChip name="per_head" value={money(perHead)} usedIn={2} /> a head, so roughly{" "}
-                <VarChip name="food_total" value={money(guests * perHead)} formula="guest_count × per_head" /> before
-                drinks.
-              </p>
-              <p>
-                They need a{" "}
-                <SpotValue
-                  id="deposit"
-                  text="£500"
-                  linkedValue="£500"
-                  linkedName="catering_deposit"
-                  state={spots.deposit}
-                  visible={!reading}
-                  delay={0}
-                  open={openSpot === "deposit"}
-                  onOpen={open}
-                  onPick={pick}
-                />{" "}
-                deposit to hold the date, and the menu has to be final two weeks before{" "}
-                <SpotValue
-                  id="date"
-                  text="the 14th of June"
-                  linkedValue="14 June"
-                  linkedName="event_date"
-                  state={spots.date}
-                  visible={!reading}
-                  delay={140}
-                  open={openSpot === "date"}
-                  onOpen={open}
-                  onPick={pick}
-                />
-                .
-              </p>
-              {meals === "request" ? (
-                <p className="text-ink-soft italic">
-                  add in a list of meals here
-                  {!reading && <InsertButton label="Add 7 meals" preview={MEALS} onInsert={insertMeals} />}
-                </p>
-              ) : (
-                <InsertedMeals guests={guests} />
-              )}
-              <p>Tastings are on Thursdays. Ask about a vegan cake.</p>
+      <div className="flex min-w-0 flex-1 flex-col py-2 pr-2 lg:pl-0">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-rule bg-paper-raised shadow-card">
+          <header className="flex items-center justify-between gap-3 border-b border-rule px-6 py-3">
+            <p className="truncate text-[14px] text-ink-faint">
+              Wedding weekend <span className="px-1">/</span>{" "}
+              <span className="font-medium text-ink">Catering quote</span>
+            </p>
+            <div className="flex items-center gap-2">
+              <SyncBadge state={sync} />
+              <button
+                type="button"
+                className="ml-2 inline-flex items-center gap-2 rounded-xl bg-accent px-3.5 py-2 text-[14px] font-semibold text-accent-ink transition hover:brightness-105"
+              >
+                <TableIcon /> Find collections
+              </button>
+              <IconButton label="Share">
+                <ShareIcon />
+              </IconButton>
             </div>
-          </article>
-        </main>
+          </header>
 
-        <footer className="flex items-center justify-between gap-4 border-t border-rule px-4 py-2.5 text-[12px] sm:px-8">
-          <span className="truncate text-ink-soft">
+          <main className="min-h-0 flex-1 overflow-y-auto">
+            <article className="mx-auto max-w-[700px] px-6 pt-12 pb-40">
+              <h1 className="text-[36px] leading-tight font-bold tracking-[-0.03em]">Catering quote</h1>
+              <p className="mt-1 text-[14px] text-ink-faint">Rosa's Kitchen · called on Tuesday</p>
+
+              <div className="mt-8 space-y-5 text-[17px] leading-[1.75]">
+                <p>
+                  Rosa's Kitchen can do a buffet for{" "}
+                  <span className="relative inline-block">
+                    <EditableNumber value={guests} onCommit={editGuests} />
+                    <Popover open={pending !== null} className="absolute top-full left-0 z-30 mt-2">
+                      {pending && (
+                        <UpdateCard
+                          change={`${pending.from} guests → ${pending.to} guests`}
+                          mentions={GUEST_MENTIONS(pending.from, pending.to)}
+                          onUpdateAll={updateAll}
+                          onSkip={() => setPending(null)}
+                        />
+                      )}
+                    </Popover>
+                  </span>{" "}
+                  guests at £38 a head, so roughly <Reprint value={money(guests * 38)} highlight /> before drinks.
+                </p>
+                <p>
+                  They need a £500 deposit to hold the date, and the menu has to be final two weeks before the 14th
+                  of June.
+                </p>
+                {meals === "request" ? (
+                  <p className="text-ink-soft">
+                    add in a list of meals here
+                    {!reading && <InsertButton label="Add 7 meals" preview={MEALS} onInsert={insertMeals} />}
+                  </p>
+                ) : (
+                  <InsertedMeals />
+                )}
+                <p>Tastings are on Thursdays. Ask about a vegan cake.</p>
+              </div>
+            </article>
+          </main>
+
+          <footer className="flex h-10 items-center border-t border-rule px-6 text-[13px] text-ink-soft">
             {reading ? (
-              <span className="t-shimmer-text" data-text="Reading this paragraph">
-                Reading this paragraph
+              <span className="t-shimmer-text" data-text="Reading your note">
+                Reading your note
               </span>
             ) : (
-              status
+              <span key={status} className="row-in">
+                {status}
+              </span>
             )}
-          </span>
-          <span className="lg:hidden">
-            <InferenceMeter local={calls.local} cloud={calls.cloud} />
-          </span>
-          <span className="hidden text-ink-faint lg:inline">Gemini Nano in Chrome · Gemini Flash in the cloud</span>
-        </footer>
+          </footer>
+        </div>
       </div>
     </div>
   );
 }
 
-function SpotValue({
-  id,
-  text,
-  linkedValue,
-  linkedName,
-  state,
-  visible,
-  delay,
-  open,
-  onOpen,
-  onPick,
-}: {
-  id: SpotId;
-  text: string;
-  linkedValue: string;
-  linkedName: string;
-  state: Spot;
-  visible: boolean;
-  delay: number;
-  open: boolean;
-  onOpen: (id: SpotId) => void;
-  onPick: (id: SpotId, choice: string) => void;
-}) {
-  if (state === "linked") return <VarChip name={linkedName} value={linkedValue} />;
-  if (state === "text" || !visible) return <>{text}</>;
-  const menu = OPTIONS[id];
+function EditableNumber({ value, onCommit }: { value: number; onCommit: (value: number) => void }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const commit = () => {
+    const text = ref.current?.textContent?.trim() ?? "";
+    const parsed = Number(text);
+    if (Number.isInteger(parsed) && parsed > 0) onCommit(parsed);
+    else if (ref.current) ref.current.textContent = String(value);
+  };
   return (
-    <span data-spot className="relative inline-block">
-      <button
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        data-open={open}
-        onClick={() => onOpen(id)}
-        className="ink-detected"
-        style={{ "--ink-delay": `${delay}ms` } as CSSProperties}
-      >
-        {text}
-      </button>
-      <Popover open={open} origin="top-left" className="absolute top-full left-0 z-30 mt-2">
-        <OptionsMenu quote={menu.quote} kind={menu.kind} options={menu.options} onPick={(choice) => onPick(id, choice)} />
-      </Popover>
+    <span
+      ref={ref}
+      role="textbox"
+      aria-label="Guest count"
+      contentEditable
+      suppressContentEditableWarning
+      spellCheck={false}
+      onBlur={commit}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          event.currentTarget.blur();
+        }
+      }}
+      className="rounded-[3px] outline-none focus:bg-accent-wash"
+    >
+      {value}
     </span>
   );
 }
 
-function InsertedMeals({ guests }: { guests: number }) {
+function InsertedMeals() {
   const words = MEALS.map((meal) => meal.split(" "));
   const total = words.reduce((sum, w) => sum + w.length, 0);
   const shown = useStreamedWords(total, true);
   let offset = 0;
   return (
-    <div>
-      <h3 className="font-note text-[21px] font-semibold tracking-[-0.01em]">
-        Meals for <VarChip name="guest_count" value={String(guests)} usedIn={4} /> guests
-      </h3>
-      <ul className="mt-2 list-disc space-y-1 pl-6 marker:text-ditto">
-        {words.map((meal, index) => {
-          const start = offset;
-          offset += meal.length;
-          return (
-            <li key={index}>
+    <ul className="space-y-1">
+      {words.map((meal, index) => {
+        const start = offset;
+        offset += meal.length;
+        return (
+          <li key={index} className="flex gap-2.5">
+            <span aria-hidden className={start < shown ? "text-accent-strong" : "text-transparent"}>
+              •
+            </span>
+            <span>
               <StreamedText words={meal} offset={start} shown={shown} />
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+            </span>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
-function SidebarHeading({ children }: { children: ReactNode }) {
-  return <h2 className="mb-1 px-2.5 text-[11px] font-medium tracking-[0.02em] text-ink-faint">{children}</h2>;
+function SidebarSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="mt-7">
+      <h2 className="mb-1.5 px-2 text-[11px] font-semibold tracking-[0.06em] text-ink-faint uppercase">{title}</h2>
+      <ul className="space-y-0.5">{children}</ul>
+    </section>
+  );
 }
 
-function VariableRow({
-  name,
-  uses,
-  formula,
-  fresh,
-  children,
-}: {
-  name: string;
-  uses?: number;
-  formula?: boolean;
-  fresh?: boolean;
-  children: ReactNode;
-}) {
+function SidebarItem({ active, icon, children }: { active?: boolean; icon: ReactNode; children: ReactNode }) {
   return (
-    <li
-      className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] hover:bg-paper-raised ${fresh ? "row-in" : ""}`}
-    >
-      <span className="min-w-0 flex-1 truncate font-mono text-[12px] text-ink-soft">{name}</span>
-      <span className="font-note text-[15px] tabular-nums">{children}</span>
-      <span className="w-6 text-right font-mono text-[10px] text-ink-faint">
-        {formula ? "=" : <Reprint value={`×${uses}`} />}
-      </span>
+    <li>
+      <a
+        href="#"
+        aria-current={active ? "page" : undefined}
+        className="flex items-center gap-3 rounded-xl px-2.5 py-2 text-[15px] text-ink transition hover:bg-paper-sunk aria-[current=page]:bg-paper-raised aria-[current=page]:font-medium aria-[current=page]:shadow-card"
+      >
+        <span className="text-ink-soft">{icon}</span>
+        {children}
+      </a>
     </li>
   );
 }
 
-function EditableNumber({ value, onChange }: { value: number; onChange: (value: number) => void }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(String(value));
-
-  const commit = () => {
-    setEditing(false);
-    const parsed = Number(draft);
-    if (Number.isFinite(parsed) && parsed !== value) onChange(parsed);
-    else setDraft(String(value));
-  };
-
-  if (editing) {
-    return (
-      <input
-        autoFocus
-        inputMode="numeric"
-        value={draft}
-        onChange={(event) => setDraft(event.target.value)}
-        onBlur={commit}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") commit();
-          if (event.key === "Escape") {
-            setDraft(String(value));
-            setEditing(false);
-          }
-        }}
-        className="w-12 rounded border border-ditto bg-paper-raised px-1 text-right outline-none"
-      />
-    );
-  }
+function IconButton({ label, children }: { label: string; children: ReactNode }) {
   return (
     <button
       type="button"
-      onClick={() => setEditing(true)}
-      title="Change everywhere"
-      className="rounded px-1 underline decoration-ditto decoration-dotted underline-offset-4 hover:bg-ditto-wash"
+      aria-label={label}
+      className="grid size-9 place-items-center rounded-xl text-ink-soft transition hover:bg-paper-sunk hover:text-ink"
     >
-      <Reprint value={String(value)} />
+      {children}
     </button>
   );
 }
 
+const iconProps = {
+  "aria-hidden": true,
+  viewBox: "0 0 20 20",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.6,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+  className: "size-[18px]",
+};
+
 function PlusIcon() {
   return (
-    <svg aria-hidden viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-      <path d="M8 3v10M3 8h10" />
+    <svg {...iconProps}>
+      <path d="M10 4.5v11M4.5 10h11" />
     </svg>
   );
 }
-
 function SearchIcon() {
   return (
-    <svg aria-hidden viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-      <circle cx="7" cy="7" r="4.5" />
-      <path d="m10.5 10.5 3 3" />
+    <svg {...iconProps}>
+      <circle cx="9" cy="9" r="5" />
+      <path d="m13 13 3.5 3.5" />
+    </svg>
+  );
+}
+function NoteIcon() {
+  return (
+    <svg {...iconProps}>
+      <path d="M5.5 3h6l3.5 3.5V16a1 1 0 0 1-1 1h-8.5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+      <path d="M11.5 3v3.5H15M7.5 10.5h5M7.5 13.5h3.5" />
+    </svg>
+  );
+}
+function TableIcon() {
+  return (
+    <svg {...iconProps}>
+      <rect x="3" y="4" width="14" height="12" rx="2" />
+      <path d="M3 8h14M8 8v8" />
+    </svg>
+  );
+}
+function SidebarIcon() {
+  return (
+    <svg {...iconProps}>
+      <rect x="3" y="3.5" width="14" height="13" rx="2.5" />
+      <path d="M8 3.5v13M12.5 8.5 11 10l1.5 1.5" />
+    </svg>
+  );
+}
+function ShareIcon() {
+  return (
+    <svg {...iconProps}>
+      <path d="M17 3 9 11M17 3l-5 14-3-6-6-3 14-5z" />
     </svg>
   );
 }

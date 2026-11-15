@@ -5,39 +5,46 @@ export function InsertButton({
   label,
   preview,
   onInsert,
+  peek = false,
 }: {
   label: string;
   preview: string[];
   onInsert: () => void;
+  peek?: boolean;
 }) {
-  const [peeking, setPeeking] = useState(false);
+  const [hovering, setHovering] = useState(false);
+  const open = peek || hovering;
   return (
     <>
       <button
         type="button"
         onClick={onInsert}
-        onMouseEnter={() => setPeeking(true)}
-        onMouseLeave={() => setPeeking(false)}
-        onFocus={() => setPeeking(true)}
-        onBlur={() => setPeeking(false)}
-        className="ml-2 inline-flex translate-y-[-2px] items-center gap-1 rounded-full bg-ditto px-2.5 py-0.5 align-middle font-ui text-[12px] font-medium text-white not-italic shadow-[0_1px_0_rgb(0_0_0/0.08)] transition hover:brightness-110"
+        onMouseEnter={() => setHovering(true)}
+        onMouseLeave={() => setHovering(false)}
+        onFocus={() => setHovering(true)}
+        onBlur={() => setHovering(false)}
+        className="ml-2 inline-flex -translate-y-px items-center gap-1 rounded-full bg-accent px-3 py-0.5 align-middle text-[13px] font-semibold text-accent-ink not-italic transition hover:brightness-105"
       >
         <span aria-hidden>+</span> {label}
       </button>
       <span
-        aria-hidden={!peeking}
-        className={`mt-2 block overflow-hidden border-l-2 border-dashed border-ditto pl-4 transition-[opacity,max-height,filter] duration-300 ease-out ${
-          peeking ? "max-h-80 opacity-100 blur-0" : "max-h-0 opacity-0 blur-[2px]"
+        aria-hidden={!open}
+        className={`mt-3 block overflow-hidden rounded-xl border border-rule bg-paper not-italic transition-[opacity,max-height,filter] duration-300 ease-out ${
+          open ? "max-h-96 opacity-100 blur-0" : "max-h-0 border-transparent opacity-0 blur-[2px]"
         }`}
       >
-        <span className="mb-1 flex items-center gap-2 font-ui text-[11px] text-ink-faint not-italic">
-          Preview <SourceTag source="device" />
+        <span className="flex items-center justify-between gap-2 border-b border-rule px-4 py-2 text-[12px] text-ink-faint">
+          Preview
+          <SourceTag source="device" />
         </span>
-        {preview.map((line) => (
-          <span key={line} className="block text-ink-soft not-italic opacity-70">
-            {line}
-          </span>
-        ))}
+        <span className="block px-4 py-3">
+          {preview.map((line) => (
+            <span key={line} className="flex gap-2 text-ink-soft">
+              <span aria-hidden className="text-ink-faint">•</span>
+              {line}
+            </span>
+          ))}
+        </span>
       </span>
     </>
   );

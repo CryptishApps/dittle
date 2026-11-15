@@ -13,7 +13,7 @@ function RootError({ error, reset }: ErrorComponentProps) {
   const setup = error instanceof FirebaseNotConfigured;
   return (
     <Centered>
-      <h1 className="font-note text-[28px] font-medium">{setup ? "Firebase isn't set up yet" : "Something went wrong"}</h1>
+      <h1 className="text-[28px] font-bold tracking-[-0.03em]">{setup ? "Firebase isn't set up yet" : "Something went wrong"}</h1>
       <p className="mt-3 text-ink-soft">{error instanceof Error ? error.message : String(error)}</p>
       {!setup && (
         <button type="button" onClick={reset} className="mt-6 rounded-full bg-ink px-4 py-2 text-paper">
@@ -27,7 +27,7 @@ function RootError({ error, reset }: ErrorComponentProps) {
 function NotFound() {
   return (
     <Centered>
-      <h1 className="font-note text-[28px] font-medium">There's no page here</h1>
+      <h1 className="text-[28px] font-bold tracking-[-0.03em]">There's no page here</h1>
       <Link to="/" className="mt-6 inline-block rounded-full bg-ink px-4 py-2 text-paper">
         Go to your notes
       </Link>

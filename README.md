@@ -1,6 +1,6 @@
 # Dittle
 
-Notes that link the numbers you repeat. Change one and every note follows.
+Change it once. Every note follows.
 
 You write "80 guests" in the catering quote, the budget, the chair order and an email. Then it's 95. Dittle spots values like these as you type, links the ones that mean the same thing, and updates every note when one changes. Spotting runs on your device, so it's instant, private and works offline. The cloud only steps in for jobs that span all your notes.
 
@@ -8,12 +8,13 @@ Built for [#BuildHybridAI 2026](https://firebasehybridaihackathon.devpost.com). 
 
 ## What it does
 
-- **Spot.** On every typing pause, a local model marks values that look like variables: amounts, counts, dates, names. Each one gets a dotted underline.
-- **Link.** Hover or tap an underline to link it to an existing variable, create a new one, or leave it as text. Nothing changes until you pick.
-- **Formulas.** "3 nights × £140" becomes `nights × nightly_rate`, and stays right when either value changes.
-- **Insert.** Write a request in the note, like "add in a list of meals here". A button appears with the result ready to preview and add.
+- **Change it once.** Change "80 guests" to 95 and Dittle shows the other notes that mention it. One click updates them all.
+- **Ask inside the note.** Write a request like "add in a list of meals here". A button appears with the result already written. Hover to preview, click to add.
+- **Sums that keep up.** Totals such as "95 × £38" work themselves out again when a number changes. Code does the maths, not the model.
 - **Collections.** The cloud looks across every note's extracted values and suggests tables, like "Vendors: price, deposit, contact".
-- **Offline.** Notes save to the device first and sync when you're back online.
+- **Offline.** Notes save to the device first, the on-device model keeps working, and everything syncs when you're back online.
+
+Linking happens in the background. While you type, the on-device model reads each paragraph and records which values mean the same thing across notes. You only see it when it's useful: when a value changes, or when it finds a collection.
 
 ## Where each model runs
 
@@ -60,6 +61,8 @@ bun run dev                                    # http://localhost:5180
 In development, App Check uses a debug token. Leave `VITE_APPCHECK_DEBUG_TOKEN` empty the first time, copy the token the browser console prints, and add it in the Firebase console under App Check > Manage debug tokens.
 
 Design work lives at `http://localhost:5180/dev/designs`. Those pages exist only in development and are left out of production builds.
+
+The homepage screenshots in `apps/web/public/shots` come from those design pages. To retake them, keep `bun run dev` running and run `CHROME_PATH=/path/to/chrome bun run --filter @dittle/web shots`.
 
 Deploy to Firebase Hosting with the Firebase CLI:
 

@@ -4,26 +4,26 @@
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 :root {
-  --paper: #fdfcff;
-  --paper-sunk: #f5f3fb;
+  --paper: #f6f5f1;
+  --paper-sunk: #eeede8;
   --paper-raised: #ffffff;
-  --ink: #1c1830;
-  --ink-soft: #625b84;
-  --ink-faint: #a29cbc;
-  --rule: #e7e3f2;
-  --ditto: #5b34d6;
-  --ditto-wash: #efe9ff;
-  --ditto-ghost: rgb(91 52 214 / 0.42);
-  --cloud: #0b7a75;
-  --cloud-wash: #dcf3f0;
+  --ink: #191c1a;
+  --ink-soft: #5d625e;
+  --ink-faint: #9a9e99;
+  --rule: #e7e6e0;
+  --accent: #5ee38c;
+  --accent-ink: #0f2a1b;
+  --accent-wash: #e3f9ea;
+  --accent-strong: #23894c;
   --caution: #b4501a;
-  --caution-wash: #fdeee4;
-  --shadow-pop: 0 1px 0 rgb(28 24 48 / 0.04), 0 12px 32px -8px rgb(40 22 110 / 0.22);
+  --shadow-card: 0 1px 2px rgb(25 28 26 / 0.04), 0 8px 24px -12px rgb(25 28 26 / 0.12);
+  --shadow-pop: 0 1px 2px rgb(25 28 26 / 0.06), 0 16px 40px -12px rgb(25 28 26 / 0.22);
+  --dot: rgb(25 28 26 / 0.09);
 
   --shimmer-text-base: var(--ink-faint);
-  --shimmer-text-highlight: var(--ditto);
+  --shimmer-text-highlight: var(--ink);
   --shimmer-text-dur: 1600ms;
-  --check-green: var(--ditto);
+  --check-green: var(--accent-strong);
   --digit-distance: 6px;
   --stream-gap: 45ms;
 
@@ -32,41 +32,37 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --paper: #13111b;
-    --paper-sunk: #1a1724;
-    --paper-raised: #211d2e;
-    --ink: #eeebf7;
-    --ink-soft: #a7a0c8;
-    --ink-faint: #6b6589;
-    --rule: #2c2839;
-    --ditto: #a58fff;
-    --ditto-wash: #2a2251;
-    --ditto-ghost: rgb(165 143 255 / 0.45);
-    --cloud: #52cfc5;
-    --cloud-wash: #123432;
+    --paper: #121413;
+    --paper-sunk: #1d201e;
+    --paper-raised: #191c1a;
+    --ink: #ecedea;
+    --ink-soft: #a5aaa5;
+    --ink-faint: #6c716c;
+    --rule: #2a2e2b;
+    --accent-wash: #173323;
+    --accent-strong: #6fe69a;
     --caution: #f08a4b;
-    --caution-wash: #3a2214;
-    --shadow-pop: 0 1px 0 rgb(0 0 0 / 0.3), 0 16px 40px -10px rgb(0 0 0 / 0.6);
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.5);
+    --shadow-pop: 0 1px 2px rgb(0 0 0 / 0.4), 0 16px 40px -12px rgb(0 0 0 / 0.7);
+    --dot: rgb(236 237 234 / 0.07);
     color-scheme: dark;
   }
 }
 
 :root[data-theme="dark"] {
-  --paper: #13111b;
-  --paper-sunk: #1a1724;
-  --paper-raised: #211d2e;
-  --ink: #eeebf7;
-  --ink-soft: #a7a0c8;
-  --ink-faint: #6b6589;
-  --rule: #2c2839;
-  --ditto: #a58fff;
-  --ditto-wash: #2a2251;
-  --ditto-ghost: rgb(165 143 255 / 0.45);
-  --cloud: #52cfc5;
-  --cloud-wash: #123432;
+  --paper: #121413;
+  --paper-sunk: #1d201e;
+  --paper-raised: #191c1a;
+  --ink: #ecedea;
+  --ink-soft: #a5aaa5;
+  --ink-faint: #6c716c;
+  --rule: #2a2e2b;
+  --accent-wash: #173323;
+  --accent-strong: #6fe69a;
   --caution: #f08a4b;
-  --caution-wash: #3a2214;
-  --shadow-pop: 0 1px 0 rgb(0 0 0 / 0.3), 0 16px 40px -10px rgb(0 0 0 / 0.6);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.5);
+  --shadow-pop: 0 1px 2px rgb(0 0 0 / 0.4), 0 16px 40px -12px rgb(0 0 0 / 0.7);
+  --dot: rgb(236 237 234 / 0.07);
   color-scheme: dark;
 }
 
@@ -78,15 +74,13 @@
   --color-ink-soft: var(--ink-soft);
   --color-ink-faint: var(--ink-faint);
   --color-rule: var(--rule);
-  --color-ditto: var(--ditto);
-  --color-ditto-wash: var(--ditto-wash);
-  --color-cloud: var(--cloud);
-  --color-cloud-wash: var(--cloud-wash);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-wash: var(--accent-wash);
+  --color-accent-strong: var(--accent-strong);
   --color-caution: var(--caution);
-  --color-caution-wash: var(--caution-wash);
-  --font-note: "Newsreader", ui-serif, Georgia, serif;
-  --font-ui: "Schibsted Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Spline Sans Mono", ui-monospace, monospace;
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --shadow-card: var(--shadow-card);
   --shadow-pop: var(--shadow-pop);
 }
 
@@ -94,58 +88,27 @@ html,
 body {
   background: var(--paper);
   color: var(--ink);
-  font-family: var(--font-ui);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01";
   -webkit-font-smoothing: antialiased;
 }
 
 :focus-visible {
-  outline: 2px solid var(--ditto);
+  outline: 2px solid var(--accent-strong);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
 ::selection {
-  background: var(--ditto-wash);
+  background: var(--accent-wash);
 }
 
-/* Detected value: a dotted ink line that prints left to right. */
-.ink-detected {
-  position: relative;
-  line-height: 1.2;
-  cursor: pointer;
-  border-radius: 3px;
-  transition: background-color 160ms ease;
-}
-.ink-detected::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -0.12em;
-  height: 3px;
-  background: radial-gradient(circle, var(--ditto) 0.95px, transparent 1.25px) 0 50% / 5px 3px repeat-x;
-  clip-path: inset(0 0 0 0);
-  animation: ink-print 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: var(--ink-delay, 0ms);
-}
-.ink-detected:hover,
-.ink-detected[data-open="true"] {
-  background: var(--ditto-wash);
-}
-@keyframes ink-print {
-  from {
-    clip-path: inset(0 100% 0 0);
-    opacity: 0.2;
-    filter: blur(1px);
-  }
-  to {
-    clip-path: inset(0 0 0 0);
-    opacity: 1;
-    filter: blur(0);
-  }
+.dot-grid {
+  background-image: radial-gradient(var(--dot) 1px, transparent 1.2px);
+  background-size: 18px 18px;
 }
 
-/* Reprint: a changed value lands with a violet copy slipping into register. */
+/* A value the AI just updated: the new number lands with a soft copy slipping into place. */
 .reprint {
   position: relative;
   display: inline-block;
@@ -154,18 +117,15 @@ body {
   content: attr(data-value);
   position: absolute;
   inset: 0;
-  color: var(--ditto-ghost);
+  color: var(--accent-strong);
   pointer-events: none;
-  animation: ditto-register 760ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: reprint-register 760ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-@keyframes ditto-register {
+@keyframes reprint-register {
   0% {
-    transform: translate(3px, -3px);
-    opacity: 1;
+    transform: translate(2px, -3px);
+    opacity: 0.8;
     filter: blur(0.4px);
-  }
-  70% {
-    opacity: 0.6;
   }
   100% {
     transform: translate(0, 0);
@@ -174,7 +134,23 @@ body {
   }
 }
 
-/* A row of a just-revealed list. */
+/* Text the AI changed for you glows, then settles back to plain text. */
+.flash-update {
+  border-radius: 4px;
+  animation: flash-update 2400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes flash-update {
+  0%,
+  35% {
+    background-color: var(--accent-wash);
+    box-shadow: 0 0 0 2px var(--accent-wash);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: 0 0 0 2px transparent;
+  }
+}
+
 .row-in {
   animation: row-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
   animation-delay: calc(var(--row, 0) * 55ms);
@@ -193,8 +169,8 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ink-detected::after,
   .reprint[data-printing="true"]::after,
+  .flash-update,
   .row-in {
     animation: none !important;
   }

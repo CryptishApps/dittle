@@ -32,7 +32,7 @@ function NotesRoute() {
         <Wordmark className="text-[22px]" />
         <div className="flex items-center gap-2 text-[14px]">
           {session.kind === "guest" && (
-            <button type="button" onClick={upgrade} className="rounded-full bg-ditto px-3 py-1.5 font-medium text-white">
+            <button type="button" onClick={upgrade} className="rounded-full bg-accent px-3 py-1.5 font-semibold text-accent-ink">
               Keep notes with Google
             </button>
           )}
@@ -46,7 +46,7 @@ function NotesRoute() {
       </header>
       {error && <p role="alert" className="px-6 pt-3 text-caution">{error}</p>}
       <main className="mx-auto max-w-2xl px-4 py-24 text-center">
-        <h1 className="font-note text-[28px] font-medium">Your first note goes here</h1>
+        <h1 className="text-[28px] font-bold tracking-[-0.03em]">Your first note goes here</h1>
         <p className="mt-2 text-ink-soft">The editor is next on the build list.</p>
       </main>
     </div>

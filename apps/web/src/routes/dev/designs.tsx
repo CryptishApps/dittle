@@ -18,8 +18,8 @@ function DesignsLayout() {
   const tab = "rounded-full px-3 py-1 transition hover:text-ink [&.active]:bg-ink [&.active]:text-paper";
   return (
     <div className="min-h-dvh bg-paper">
-      <nav className="fixed right-3 bottom-3 z-50 flex items-center gap-1 rounded-full border border-rule bg-paper-raised/90 p-1 text-[12px] text-ink-soft shadow-pop backdrop-blur">
-        <span className="px-2 font-mono text-[10px] text-ink-faint">designs</span>
+      <nav data-dev-nav className="fixed right-3 bottom-3 z-50 flex items-center gap-1 rounded-full border border-rule bg-paper-raised/90 p-1 text-[12px] text-ink-soft shadow-pop backdrop-blur">
+        <span className="px-2 text-[11px] text-ink-faint">designs</span>
         <Link to="/dev/designs/editor" className={tab}>
           Editor
         </Link>

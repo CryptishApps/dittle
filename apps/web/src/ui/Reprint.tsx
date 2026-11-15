@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export function Reprint({ value }: { value: string }) {
+export function Reprint({ value, highlight = false }: { value: string; highlight?: boolean }) {
   const [shown, setShown] = useState(value);
   const [printCount, setPrintCount] = useState(0);
   if (value !== shown) {
@@ -11,11 +11,16 @@ export function Reprint({ value }: { value: string }) {
   const printing = printCount > 0;
   const chars = [...value];
   return (
-    <span key={printCount} className="reprint" data-value={value} data-printing={printing}>
+    <span
+      key={printCount}
+      className={printing && highlight ? "reprint flash-update" : "reprint"}
+      data-value={value}
+      data-printing={printing}
+    >
       <span className={printing ? "t-digit-group is-animating" : "t-digit-group"}>
         {chars.map((char, index) => (
           <span key={index} className="t-digit" data-stagger={staggerFor(index, chars.length)}>
-            {char}
+            {char === " " ? " " : char}
           </span>
         ))}
       </span>
