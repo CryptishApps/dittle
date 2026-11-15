@@ -20,6 +20,9 @@ function DesignsLayout() {
     <div className="min-h-dvh bg-paper">
       <nav data-dev-nav className="fixed right-3 bottom-3 z-50 flex items-center gap-1 rounded-full border border-rule bg-paper-raised/90 p-1 text-[12px] text-ink-soft shadow-pop backdrop-blur">
         <span className="px-2 text-[11px] text-ink-faint">designs</span>
+        <Link to="/dev/designs/mono" className={tab}>
+          D · Mono
+        </Link>
         <Link to="/dev/designs/board" className={tab}>
           A · Board
         </Link>
