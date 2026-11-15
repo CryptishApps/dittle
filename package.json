@@ -1,0 +1,14 @@
+{
+  "name": "dittle",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "bun --filter @dittle/web dev",
+    "build": "bun --filter @dittle/web build",
+    "typecheck": "bun --filter '*' typecheck",
+    "deploy": "bun run build && firebase deploy --only hosting,firestore"
+  },
+  "devDependencies": {
+    "firebase-tools": "^15.36.0"
+  }
+}

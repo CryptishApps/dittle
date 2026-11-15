@@ -1,0 +1,618 @@
+/* Motion recipes from transitions.dev, licensed under https://transitions.dev/terms, not this repository's Apache 2.0 licence. */
+
+/* shimmer-text */
+:root {
+  --shimmer-text-dur: 2000ms;
+  --shimmer-text-base: #7c7c7c;
+  --shimmer-text-highlight: #0d0d0d;
+  --shimmer-text-band: 400%;
+  --shimmer-text-ease: linear;
+}
+
+/* Two-layer construction:
+   1. The base text renders normally in --shimmer-text-base.
+   2. ::before duplicates it via content: attr(data-text),
+      paints a transparent → highlight → transparent gradient
+      onto it, and clips that gradient to the glyphs via
+      background-clip: text. Animating background-position
+      sweeps the band across the text. */
+.t-shimmer-text {
+  position: relative;
+  display: inline-block;
+  color: var(--shimmer-text-base);
+}
+.t-shimmer-text::before {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(
+    90deg,
+    transparent          0%,
+    transparent         40%,
+    var(--shimmer-text-highlight) 50%,
+    transparent         60%,
+    transparent        100%
+  );
+  background-size: var(--shimmer-text-band) 100%;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: t-shimmer-text var(--shimmer-text-dur) var(--shimmer-text-ease) infinite;
+}
+@keyframes t-shimmer-text {
+  0%   { background-position: 100% 0; }
+  100% { background-position: 0% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-shimmer-text::before { animation: none !important; }
+}
+
+/* number-pop-in */
+:root {
+  --digit-dur: 500ms;
+  --digit-distance: 8px;
+  --digit-stagger: 70ms;
+  --digit-blur: 2px;
+  --digit-ease: cubic-bezier(0.34, 1.45, 0.64, 1);
+  --digit-dir-x: 0;
+  --digit-dir-y: 1;
+}
+
+@keyframes t-digit-pop-in {
+  0%   {
+    transform: translate(
+      calc(var(--digit-distance) * var(--digit-dir-x)),
+      calc(var(--digit-distance) * var(--digit-dir-y))
+    );
+    opacity: 0;
+    filter: blur(var(--digit-blur));
+  }
+  100% { transform: translate(0, 0); opacity: 1; filter: blur(0); }
+}
+
+.t-digit-group {
+  display: inline-flex;
+  align-items: baseline;
+}
+.t-digit {
+  display: inline-block;
+  will-change: transform, opacity, filter;
+}
+.t-digit-group.is-animating .t-digit {
+  animation: t-digit-pop-in var(--digit-dur) var(--digit-ease) both;
+}
+.t-digit-group.is-animating .t-digit[data-stagger="1"] {
+  animation-delay: var(--digit-stagger);
+}
+.t-digit-group.is-animating .t-digit[data-stagger="2"] {
+  animation-delay: calc(var(--digit-stagger) * 2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-digit-group .t-digit { animation: none !important; }
+}
+
+/* menu-dropdown */
+:root {
+  --dropdown-open-dur: 250ms;
+  --dropdown-close-dur: 150ms;
+  --dropdown-pre-scale: 0.97;
+  --dropdown-closing-scale: 0.99;
+  --dropdown-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.t-dropdown {
+  transform-origin: top left;
+  transform: scale(var(--dropdown-pre-scale));
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--dropdown-open-dur) var(--dropdown-ease),
+    opacity   var(--dropdown-open-dur) var(--dropdown-ease);
+  will-change: transform, opacity;
+}
+.t-dropdown[data-origin="top-right"]     { transform-origin: top right; }
+.t-dropdown[data-origin="top-center"]    { transform-origin: top center; }
+.t-dropdown[data-origin="bottom-left"]   { transform-origin: bottom left; }
+.t-dropdown[data-origin="bottom-center"] { transform-origin: bottom center; }
+.t-dropdown[data-origin="bottom-right"]  { transform-origin: bottom right; }
+
+.t-dropdown.is-open {
+  transform: scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+.t-dropdown.is-closing {
+  transform: scale(var(--dropdown-closing-scale));
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--dropdown-close-dur) var(--dropdown-ease),
+    opacity   var(--dropdown-close-dur) var(--dropdown-ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-dropdown { transition: none !important; }
+}
+
+/* streaming-text */
+:root {
+  --stream-gap: 60ms;
+  --stream-fade: 350ms;
+  --stream-blur: 1px;
+  --stream-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.t-stream-w {
+  opacity: 0;
+  filter: blur(var(--stream-blur));
+  transition:
+    opacity var(--stream-fade) var(--stream-ease),
+    filter var(--stream-fade) var(--stream-ease);
+}
+.t-stream-w.is-in {
+  opacity: 1;
+  filter: blur(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-stream-w { transition: none !important; filter: none !important; opacity: 1 !important; }
+}
+
+/* spinner-check-morph (Pro) */
+:root {
+  --check-spin-dur:    900ms;
+  --check-pop-dur:     350ms;
+  --check-pop-ease:    cubic-bezier(0.34, 1.96, 0.94, 1);
+  --check-fill-dur:    350ms;  /* green disc fade-in */
+  --check-fill-ease:   cubic-bezier(0.34, 1.35, 0.64, 1);
+  --check-draw-dur:    600ms;
+  --check-draw-delay:  80ms;
+  --check-draw-ease:   cubic-bezier(0.22, 1, 0.36, 1);
+  --check-hold:        2000ms; /* time on the check before reverting */
+  --check-revert-dur:  250ms;
+  --check-revert-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --check-hop:         3px;    /* how far the badge rises on the morph */
+  --check-up-dur:      250ms;  /* hop UP: the rise */
+  --check-up-ease:     cubic-bezier(0.34, 1.35, 0.64, 1);
+  --check-down-dur:    300ms;  /* hop DOWN: the fall back */
+  --check-down-ease:   cubic-bezier(0.14, 2.56, 0.94, 1);
+  --check-pop-scale:   1.09;   /* done size (22 -> 24px disc) */
+  --check-blur:        0.5px;  /* cross-blur while morphing */
+  --check-ring-w:      2.5px;  /* spinner track + arc stroke weight */
+  --check-mark-w:      2;      /* check draw stroke weight */
+  --check-green:       #35ba00;
+}
+
+/* Cross-blur wrapper: blurs the badge as ONE surface, so every layer
+   softens together through the morph and resolves crisp — a genuine
+   cross-blur, not a one-way blur on a single layer. It must be a
+   SEPARATE element: CSS `filter` is applied BEFORE `mask`/clipping, so
+   blurring a masked layer does nothing, and filtering the badge itself
+   would also blur its own scale/translate compositing. */
+.t-check-blur-wrap {
+  display: inline-flex;
+  filter: blur(0);
+  transition: filter var(--check-revert-dur) var(--check-revert-ease);
+  will-change: filter;
+}
+.t-check-blur-wrap.is-crossing {
+  filter: blur(var(--check-blur));
+  transition: filter calc(var(--check-fill-dur) * 0.45) var(--check-fill-ease);
+}
+
+/* The badge scales 22 → 24 (the done size) with the pop ease and hops
+   vertically. Both live here so the ring, fill and check compose
+   underneath as one object. */
+.t-check-badge {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  scale: 1;
+  transition: scale var(--check-revert-dur) var(--check-revert-ease);
+  will-change: scale, transform;
+}
+.t-check-badge[data-state="done"] {
+  scale: var(--check-pop-scale);   /* 22 → 24, the done size */
+  transition: scale var(--check-pop-dur) var(--check-pop-ease);
+  /* TWO-PHASE HOP, independently controllable: up, then down, as two
+     animations where the second is DELAYED by the first's duration.
+     fill-mode is `forwards` (NOT `both`) — with `both` the delayed
+     down-animation would apply its `from` state immediately and yank
+     the badge up before the rise had a chance to play.
+     Longhands, not the `animation` shorthand: WebKit mis-parses
+     `var()` inside the shorthand and falls back to 0s. */
+  animation-name: t-check-pop-up, t-check-pop-down;
+  animation-duration: var(--check-up-dur), var(--check-down-dur);
+  animation-timing-function: var(--check-up-ease), var(--check-down-ease);
+  animation-delay: 0ms, var(--check-up-dur);
+  animation-fill-mode: forwards, forwards;
+}
+/* Classic `transform` keyframes, NOT the individual `translate:`
+   property — WebKit's support for individual transform properties
+   inside @keyframes is recent and inconsistent, and the hop felt wrong
+   in Safari. The `scale` property composes with `transform`, so the
+   badge's scale transition above is unaffected. */
+@keyframes t-check-pop-up {
+  from { transform: translateY(0); }
+  to   { transform: translateY(calc(var(--check-hop, 3px) * -1)); }
+}
+@keyframes t-check-pop-down {
+  from { transform: translateY(calc(var(--check-hop, 3px) * -1)); }
+  to   { transform: translateY(0); }
+}
+
+/* Track ring — the light circle. It never morphs; the green disc
+   simply fades in over it while it fades out. */
+.t-check-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: var(--check-ring-w) solid rgba(0, 0, 0, 0.1);
+  transition: opacity var(--check-revert-dur) ease,
+              filter var(--check-revert-dur) ease;
+}
+.t-check-badge[data-state="done"] .t-check-ring {
+  opacity: 0;
+  transition: opacity calc(var(--check-fill-dur) * 0.7) ease;
+}
+
+/* Green disc — it fades IN (opacity) rather than growing a stroke or
+   flooding through a mask. Same read, far less machinery, and the fade
+   is trivially tunable. */
+.t-check-fill {
+  position: absolute;
+  inset: -1px;
+  border-radius: 50%;
+  background: var(--check-green);
+  /* Two declarations on purpose: p3-capable browsers take the second,
+     everyone else keeps the sRGB rgba() fallback above it. */
+  box-shadow:
+    0 0 0 0.504px rgba(0, 0, 0, 0.05) inset,
+    0 0.504px 0.504px 0 rgba(0, 0, 0, 0.10),
+    0 0.504px 2.016px 0 rgba(0, 0, 0, 0.08),
+    0 -0.504px 0.504px 0 rgba(0, 0, 0, 0.09) inset;
+  box-shadow:
+    0 0 0 0.504px color(display-p3 0 0 0 / 0.05) inset,
+    0 0.504px 0.504px 0 color(display-p3 0 0 0 / 0.10),
+    0 0.504px 2.016px 0 color(display-p3 0 0 0 / 0.08),
+    0 -0.504px 0.504px 0 color(display-p3 0 0 0 / 0.09) inset;
+  opacity: 0;
+  transition: opacity var(--check-revert-dur) var(--check-revert-ease);
+  will-change: opacity;
+}
+.t-check-badge[data-state="done"] .t-check-fill {
+  opacity: 1;
+  transition: opacity var(--check-fill-dur) var(--check-fill-ease);
+}
+
+/* Lead arc — the dark highlight, on its own layer so the morph never
+   TRANSFORMS it: when the fill starts, the spin simply pauses in place
+   and the arc fades out. (Transforming it — scaling or rotating it into
+   the check — fought the morph and read as two things happening.) */
+.t-check-arc {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: var(--check-ring-w) solid transparent;
+  border-top-color: #7a7a7a;
+  animation-name: t-check-spin;
+  animation-duration: var(--check-spin-dur);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  transition: opacity var(--check-revert-dur) var(--check-revert-ease);
+  will-change: transform;
+}
+@keyframes t-check-spin {
+  to { transform: rotate(360deg); }
+}
+.t-check-badge[data-state="done"] .t-check-arc {
+  opacity: 0;
+  animation-play-state: paused;
+  transition: opacity calc(var(--check-fill-dur) * 0.5) ease;
+}
+
+/* Check overlay — the svg fills the badge box (22 × 1.09 = the 24px
+   done disc), so the 24-viewBox check renders at exactly design size. */
+.t-check-disc {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.t-check-disc svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Check path — a stroke-dashoffset draw. The dash length is calibrated
+   from the real path length in JS (getTotalLength), so the draw never
+   over- or under-shoots; the 20 fallback only covers the first frame. */
+.t-check-mark {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: var(--check-mark-w);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: var(--check-mark-len, 20);
+  stroke-dashoffset: var(--check-mark-len, 20);
+  transition: stroke-dashoffset var(--check-revert-dur) var(--check-revert-ease);
+}
+.t-check-badge[data-state="done"] .t-check-mark {
+  stroke-dashoffset: 0;
+  /* Sequenced, not queued: the draw takes over while the green is still
+     arriving — 200ms BEFORE the fill completes, plus the draw delay. It
+     reads as one connected gesture instead of two steps. */
+  transition: stroke-dashoffset var(--check-draw-dur) var(--check-draw-ease)
+    calc(var(--check-fill-dur) + var(--check-draw-delay) - 200ms);
+}
+
+/* Row chrome — optional, matches the demo layout. */
+.t-check-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.t-check-texts {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.t-check-title {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 13px;
+}
+.t-check-sub {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 13px;
+  opacity: 0.5;
+}
+
+/* Reduced motion: no spin, no hop, no blur — the badge jumps straight
+   to the drawn check. */
+@media (prefers-reduced-motion: reduce) {
+  .t-check-arc { animation: none !important; }
+  .t-check-blur-wrap,
+  .t-check-blur-wrap.is-crossing {
+    filter: none !important;
+    transition: none !important;
+  }
+  .t-check-ring, .t-check-arc, .t-check-fill { transition: none !important; }
+  .t-check-badge, .t-check-mark {
+    transition: none !important;
+    animation: none !important;
+  }
+  .t-check-badge[data-state="done"] .t-check-mark { stroke-dashoffset: 0; }
+}
+
+/* organic-shimmer (Pro) */
+:root {
+  --shimmer-dur: 3000ms;
+  --shimmer-ease: ease-out;
+  --shimmer-band-span: 26%;
+  --shimmer-opacity: 1;
+  --shimmer-glow-blur: 20px;
+  --shimmer-glow-strength: 0.7;
+  --shimmer-ring-strength: 1;
+  --shimmer-scale: 1;
+}
+
+.t-shimmer-tile {
+  position: relative;
+  width: 142px;
+  height: 142px;
+  border-radius: 12px;
+  background: #eeeeee;
+  overflow: hidden;
+  isolation: isolate;
+  flex-shrink: 0;
+}
+[data-theme="dark"] .t-shimmer-tile { background: #222226; }
+/* Play/Stop toggle: both layers share the t-shimmer-sweep clock,
+   so pausing/resuming the container's data attribute freezes or
+   resumes them in lockstep. */
+.t-shimmer-tile[data-playing="false"] .t-shimmer-band,
+.t-shimmer-tile[data-playing="false"] .t-shimmer-edge {
+  animation-play-state: paused;
+}
+/* Shimmer split into wrapper + inner band: the inner band carries
+   the colourful blobs (sized in % of the layer, so they scale with
+   the tile) + traveling mask; the wrapper warps + blurs
+   the already-masked result so the band boundary undulates (filter
+   applies before mask on a single element, hence the split). */
+.t-shimmer {
+  position: absolute;
+  inset: calc(-20px * var(--shimmer-scale));
+  filter: url(#t-shimmer-warp) blur(calc(5px * var(--shimmer-scale)));
+  opacity: var(--shimmer-opacity);
+  pointer-events: none;
+}
+.t-shimmer-band {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 49.45% 38.46% at 20% 15%, rgba(40, 140, 255, 0.14), transparent),
+    radial-gradient(ellipse 43.96% 32.97% at 65% 25%, rgba(255, 50, 100, 0.13), transparent),
+    radial-gradient(ellipse 38.46% 43.96% at 30% 55%, rgba(50, 200, 80, 0.12), transparent),
+    radial-gradient(ellipse 49.45% 38.46% at 75% 65%, rgba(180, 40, 240, 0.13), transparent),
+    radial-gradient(ellipse 38.46% 32.97% at 45% 85%, rgba(255, 120, 40, 0.12), transparent),
+    radial-gradient(ellipse 32.97% 32.97% at 10% 85%, rgba(30, 185, 170, 0.11), transparent),
+    linear-gradient(rgba(90, 90, 100, 0.05), rgba(90, 90, 100, 0.05));
+  -webkit-mask-image: linear-gradient(
+    135deg,
+    transparent 0%,
+    transparent calc(50% - var(--shimmer-band-span) * 0.8),
+    rgba(255, 255, 255, 0.25) calc(50% - var(--shimmer-band-span) * 0.45),
+    rgba(255, 255, 255, 0.7) calc(50% - var(--shimmer-band-span) * 0.18),
+    white 50%,
+    rgba(255, 255, 255, 0.7) calc(50% + var(--shimmer-band-span) * 0.18),
+    rgba(255, 255, 255, 0.25) calc(50% + var(--shimmer-band-span) * 0.45),
+    transparent calc(50% + var(--shimmer-band-span) * 0.8),
+    transparent 100%
+  );
+  -webkit-mask-size: 280% 280%;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: 100% 100%;
+  mask-image: linear-gradient(
+    135deg,
+    transparent 0%,
+    transparent calc(50% - var(--shimmer-band-span) * 0.8),
+    rgba(255, 255, 255, 0.25) calc(50% - var(--shimmer-band-span) * 0.45),
+    rgba(255, 255, 255, 0.7) calc(50% - var(--shimmer-band-span) * 0.18),
+    white 50%,
+    rgba(255, 255, 255, 0.7) calc(50% + var(--shimmer-band-span) * 0.18),
+    rgba(255, 255, 255, 0.25) calc(50% + var(--shimmer-band-span) * 0.45),
+    transparent calc(50% + var(--shimmer-band-span) * 0.8),
+    transparent 100%
+  );
+  mask-size: 280% 280%;
+  mask-repeat: no-repeat;
+  mask-position: 100% 100%;
+  animation: t-shimmer-sweep var(--shimmer-dur) var(--shimmer-ease) infinite;
+  pointer-events: none;
+}
+/* Edge beam: a uniform ink ring + glow + bloom underneath, shaped
+   only by a comet-profiled 135° mask window phase-locked to the
+   shimmer's clock — the lit segment brightens and fades smoothly as
+   it glides along the border. */
+.t-shimmer-edge {
+  position: absolute;
+  inset: calc(-20px * var(--shimmer-scale));
+  z-index: 1;
+  opacity: var(--shimmer-glow-strength);
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(
+    135deg,
+    transparent 0%,
+    transparent calc(50% - var(--shimmer-band-span) * 1.4),
+    rgba(255, 255, 255, 0.06) calc(50% - var(--shimmer-band-span) * 1),
+    rgba(255, 255, 255, 0.18) calc(50% - var(--shimmer-band-span) * 0.6),
+    rgba(255, 255, 255, 0.45) calc(50% - var(--shimmer-band-span) * 0.25),
+    white 50%,
+    rgba(255, 255, 255, 0.5) calc(50% + var(--shimmer-band-span) * 0.18),
+    transparent calc(50% + var(--shimmer-band-span) * 0.35),
+    transparent 100%
+  );
+  -webkit-mask-size: 280% 280%;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: 100% 100%;
+  mask-image: linear-gradient(
+    135deg,
+    transparent 0%,
+    transparent calc(50% - var(--shimmer-band-span) * 1.4),
+    rgba(255, 255, 255, 0.06) calc(50% - var(--shimmer-band-span) * 1),
+    rgba(255, 255, 255, 0.18) calc(50% - var(--shimmer-band-span) * 0.6),
+    rgba(255, 255, 255, 0.45) calc(50% - var(--shimmer-band-span) * 0.25),
+    white 50%,
+    rgba(255, 255, 255, 0.5) calc(50% + var(--shimmer-band-span) * 0.18),
+    transparent calc(50% + var(--shimmer-band-span) * 0.35),
+    transparent 100%
+  );
+  mask-size: 280% 280%;
+  mask-repeat: no-repeat;
+  mask-position: 100% 100%;
+  animation: t-shimmer-sweep var(--shimmer-dur) var(--shimmer-ease) infinite;
+}
+@keyframes t-shimmer-sweep {
+  0%   { -webkit-mask-position: 100% 100%; mask-position: 100% 100%; }
+  100% { -webkit-mask-position: 0% 0%;     mask-position: 0% 0%; }
+}
+.t-shimmer-edge-ring,
+.t-shimmer-edge-glow,
+.t-shimmer-edge-bloom {
+  position: absolute;
+  inset: calc(20px * var(--shimmer-scale));
+  border-radius: 12px;
+  pointer-events: none;
+}
+/* Ring stroke: the border-beam library's 9 border-palette blobs
+   (colorPalettes.colorful, positions/sizes ×0.6) painted into a
+   1px ring over a faint neutral base that keeps the stroke from
+   vanishing between blobs as the comet window travels. */
+.t-shimmer-edge-ring {
+  padding: calc(1px * var(--shimmer-scale));
+  opacity: var(--shimmer-ring-strength);
+  background:
+    radial-gradient(ellipse 29.58% 16.90% at 33% -7.4%, rgba(255, 50, 100, 0.62), transparent),
+    radial-gradient(ellipse 25.35% 14.79% at 12% -5%, rgba(40, 140, 255, 0.48), transparent),
+    radial-gradient(ellipse 16.90% 29.58% at 2.1% 68.3%, rgba(50, 200, 80, 0.55), transparent),
+    radial-gradient(ellipse 8.45% 14.79% at 2.1% 68.3%, rgba(30, 185, 170, 0.44), transparent),
+    radial-gradient(ellipse 76.06% 13.38% at 74.4% 100%, rgba(100, 70, 255, 0.58), transparent),
+    radial-gradient(ellipse 35.92% 11.27% at 55% 100%, rgba(40, 140, 255, 0.51), transparent),
+    radial-gradient(ellipse 30.99% 13.38% at 93.9% 0%, rgba(255, 120, 40, 0.65), transparent),
+    radial-gradient(ellipse 11.27% 17.61% at 100% 27.1%, rgba(240, 50, 180, 0.5), transparent),
+    radial-gradient(ellipse 21.83% 20.42% at 100% 27.1%, rgba(180, 40, 240, 0.56), transparent),
+    linear-gradient(rgba(90, 90, 100, 0.22), rgba(90, 90, 100, 0.22));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+/* Inner glow: the library's PULSE_INNER blob set (×0.6) in real
+   colors + four neutral corner accents, belt-masked with a 44px
+   fade and softened 2px so the coloured lumps melt together. */
+.t-shimmer-edge-glow {
+  background:
+    radial-gradient(ellipse 27.46% 14.79% at 33% -7.4%, rgba(255, 50, 100, 0.34), transparent),
+    radial-gradient(ellipse 23.24% 12.68% at 12% -5%, rgba(40, 140, 255, 0.28), transparent),
+    radial-gradient(ellipse 14.79% 27.46% at 2.1% 68.3%, rgba(50, 200, 80, 0.3), transparent),
+    radial-gradient(ellipse 6.34% 12.68% at 2.1% 68.3%, rgba(30, 185, 170, 0.25), transparent),
+    radial-gradient(ellipse 73.24% 11.97% at 74.4% 100%, rgba(100, 70, 255, 0.32), transparent),
+    radial-gradient(ellipse 33.80% 9.15% at 55% 100%, rgba(40, 140, 255, 0.28), transparent),
+    radial-gradient(ellipse 28.87% 11.97% at 93.9% 0%, rgba(255, 120, 40, 0.35), transparent),
+    radial-gradient(ellipse 9.15% 16.20% at 100% 27.1%, rgba(240, 50, 180, 0.28), transparent),
+    radial-gradient(ellipse 19.72% 18.31% at 100% 27.1%, rgba(180, 40, 240, 0.3), transparent),
+    radial-gradient(ellipse 25.35% 25.35% at 0% 0%, rgba(90, 90, 100, 0.14), transparent 70%),
+    radial-gradient(ellipse 25.35% 25.35% at 100% 0%, rgba(90, 90, 100, 0.14), transparent 70%),
+    radial-gradient(ellipse 25.35% 25.35% at 0% 100%, rgba(90, 90, 100, 0.14), transparent 70%),
+    radial-gradient(ellipse 25.35% 25.35% at 100% 100%, rgba(90, 90, 100, 0.14), transparent 70%);
+  box-shadow: inset 0 0 calc(14px * var(--shimmer-scale)) calc(1px * var(--shimmer-scale)) rgba(90, 90, 100, 0.12);
+  filter: blur(calc(2px * var(--shimmer-scale)));
+  -webkit-mask-image:
+    linear-gradient(white, transparent calc(44px * var(--shimmer-scale)), transparent calc(100% - 44px * var(--shimmer-scale)), white),
+    linear-gradient(to right, white, transparent calc(44px * var(--shimmer-scale)), transparent calc(100% - 44px * var(--shimmer-scale)), white);
+  -webkit-mask-composite: source-over;
+  mask-image:
+    linear-gradient(white, transparent calc(44px * var(--shimmer-scale)), transparent calc(100% - 44px * var(--shimmer-scale)), white),
+    linear-gradient(to right, white, transparent calc(44px * var(--shimmer-scale)), transparent calc(100% - 44px * var(--shimmer-scale)), white);
+  mask-composite: add;
+}
+/* Bloom: the library's PULSE_INNER_BLOOM table — 7 expanded blobs
+   (×0.65) in real colors, heavily blurred over a faint neutral
+   wash, in a soft edge belt (not ring-clipped, so the blur can
+   radiate). The big organic coloured glow pouring off the stroke. */
+.t-shimmer-edge-bloom {
+  background:
+    radial-gradient(ellipse 38.73% 21.83% at 33% -7.4%, rgba(255, 50, 100, 0.4), transparent),
+    radial-gradient(ellipse 33.10% 19.01% at 12% -5%, rgba(40, 140, 255, 0.34), transparent),
+    radial-gradient(ellipse 21.83% 38.73% at 2.1% 68.3%, rgba(50, 200, 80, 0.38), transparent),
+    radial-gradient(ellipse 98.59% 17.61% at 74.4% 100%, rgba(100, 70, 255, 0.4), transparent),
+    radial-gradient(ellipse 46.48% 14.08% at 55% 100%, rgba(40, 140, 255, 0.35), transparent),
+    radial-gradient(ellipse 40.85% 17.61% at 93.9% 0%, rgba(255, 120, 40, 0.44), transparent),
+    radial-gradient(ellipse 28.17% 26.76% at 100% 27.1%, rgba(180, 40, 240, 0.38), transparent);
+  box-shadow:
+    inset 0 0 calc(var(--shimmer-glow-blur) * 3 * var(--shimmer-scale)) calc(var(--shimmer-glow-blur) / 2 * var(--shimmer-scale))
+      rgba(90, 90, 100, 0.1);
+  filter: blur(calc(var(--shimmer-glow-blur) * var(--shimmer-scale)));
+  -webkit-mask-image:
+    linear-gradient(white, transparent calc(26px * var(--shimmer-scale)), transparent calc(100% - 26px * var(--shimmer-scale)), white),
+    linear-gradient(to right, white, transparent calc(26px * var(--shimmer-scale)), transparent calc(100% - 26px * var(--shimmer-scale)), white);
+  -webkit-mask-composite: source-over;
+  mask-image:
+    linear-gradient(white, transparent calc(26px * var(--shimmer-scale)), transparent calc(100% - 26px * var(--shimmer-scale)), white),
+    linear-gradient(to right, white, transparent calc(26px * var(--shimmer-scale)), transparent calc(100% - 26px * var(--shimmer-scale)), white);
+  mask-composite: add;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-shimmer-band,
+  .t-shimmer-edge { animation: none; }
+}

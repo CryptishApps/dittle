@@ -1,0 +1,12 @@
+/// <reference types="vite/client" />
+
+interface ImportMetaEnv {
+  readonly VITE_FIREBASE_API_KEY?: string;
+  readonly VITE_FIREBASE_AUTH_DOMAIN?: string;
+  readonly VITE_FIREBASE_PROJECT_ID?: string;
+  readonly VITE_FIREBASE_APP_ID?: string;
+  readonly VITE_RECAPTCHA_ENTERPRISE_SITE_KEY?: string;
+  readonly VITE_APPCHECK_DEBUG_TOKEN?: string;
+}
+
+declare var FIREBASE_APPCHECK_DEBUG_TOKEN: boolean | string | undefined;
