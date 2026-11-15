@@ -10,6 +10,7 @@ Built for [#BuildHybridAI 2026](https://firebasehybridaihackathon.devpost.com). 
 
 - **Change it once.** Change "80 guests" to 95 and Dittle shows the other notes that mention it. One click updates them all.
 - **Ask inside the note.** Write a request like "add in a list of meals here". A button appears with the result already written. Hover to preview, click to add.
+- **Buckets.** Each new note is sorted into a bucket, like Wedding, Work or Lisbon trip, from what it says. The sorting runs on the device.
 - **Sums that keep up.** Totals such as "95 × £38" work themselves out again when a number changes. Code does the maths, not the model.
 - **Collections.** The cloud looks across every note's extracted values and suggests tables, like "Vendors: price, deposit, contact".
 - **Offline.** Notes save to the device first, the on-device model keeps working, and everything syncs when you're back online.
@@ -20,7 +21,7 @@ Linking happens in the background. While you type, the on-device model reads eac
 
 | Job | Web (desktop Chrome) | Android |
 |---|---|---|
-| Spot values, suggest links, write formulas, short inserts | Gemini Nano through Chrome's Prompt API | Gemini Nano through ML Kit and AICore |
+| Read notes, link values, sort into buckets, short inserts | Gemini Nano through Chrome's Prompt API | Gemini Nano through ML Kit and AICore |
 | Fallback when the on-device model is missing or fails | Gemini Flash in the cloud | Gemini Flash in the cloud |
 | Collections and long inserts | Gemini Flash in the cloud | Gemini Flash in the cloud |
 
@@ -75,7 +76,7 @@ bun run deploy
 ## Repository
 
 ```
-apps/web          Web app: React, Vite, TanStack Router, Tailwind CSS
+apps/web          Web app: React, Vite, TanStack Router, Tailwind CSS, Motion, Lenis
 firestore.rules   Each user can read and write only their own notes
 firebase.json     Hosting and Firestore settings
 ```

@@ -1,11 +1,12 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { CollectionsPanel, InsertPanel, MeterPanel, OfflinePanel, RecalcPanel, UpdatePanel } from "./-designs/panels";
+import { BucketsPanel, CollectionsPanel, InsertPanel, MeterPanel, OfflinePanel, RecalcPanel, UpdatePanel } from "./-designs/panels";
 
 const SHOTS: Record<string, () => ReactNode> = {
   update: () => <UpdatePanel />,
   insert: () => <InsertPanel peek />,
   recalc: () => <RecalcPanel />,
+  buckets: () => <BucketsPanel />,
   collections: () => <CollectionsPanel />,
   offline: () => <OfflinePanel />,
   activity: () => <MeterPanel />,

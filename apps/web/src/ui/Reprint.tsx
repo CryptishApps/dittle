@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Mark } from "./Mark";
 
 export function Reprint({ value, highlight = false }: { value: string; highlight?: boolean }) {
   const [shown, setShown] = useState(value);
@@ -10,13 +11,8 @@ export function Reprint({ value, highlight = false }: { value: string; highlight
 
   const printing = printCount > 0;
   const chars = [...value];
-  return (
-    <span
-      key={printCount}
-      className={printing && highlight ? "reprint flash-update" : "reprint"}
-      data-value={value}
-      data-printing={printing}
-    >
+  const digits = (
+    <span key={printCount} className="reprint" data-value={value} data-printing={printing}>
       <span className={printing ? "t-digit-group is-animating" : "t-digit-group"}>
         {chars.map((char, index) => (
           <span key={index} className="t-digit" data-stagger={staggerFor(index, chars.length)}>
@@ -25,6 +21,13 @@ export function Reprint({ value, highlight = false }: { value: string; highlight
         ))}
       </span>
     </span>
+  );
+  return printing && highlight ? (
+    <Mark key={printCount} swipe>
+      {digits}
+    </Mark>
+  ) : (
+    digits
   );
 }
 

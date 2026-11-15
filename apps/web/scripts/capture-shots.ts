@@ -9,6 +9,7 @@ const panels: Record<string, number> = {
   update: 1600,
   insert: 800,
   recalc: 3200,
+  buckets: 2600,
   collections: 3600,
   offline: 800,
   activity: 1600,
@@ -31,7 +32,7 @@ for (const theme of ["light", "dark"] as const) {
     await page.locator("[data-shot]").screenshot({ path: `${out}${name}-${theme}.png`, omitBackground: true });
   }
 
-  await page.setViewportSize({ width: 1200, height: 760 });
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${base}/dev/designs/editor`, { waitUntil: "networkidle" });
   await page.addStyleTag({ content: "[data-dev-nav] { display: none !important; }" });
   await editGuestCount(page);

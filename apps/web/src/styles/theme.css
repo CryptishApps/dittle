@@ -4,26 +4,30 @@
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 :root {
-  --paper: #f6f5f1;
-  --paper-sunk: #eeede8;
+  --paper: #f1f1ef;
+  --paper-sunk: #e8e8e5;
   --paper-raised: #ffffff;
-  --ink: #191c1a;
-  --ink-soft: #5d625e;
-  --ink-faint: #9a9e99;
-  --rule: #e7e6e0;
-  --accent: #5ee38c;
-  --accent-ink: #0f2a1b;
-  --accent-wash: #e3f9ea;
-  --accent-strong: #23894c;
-  --caution: #b4501a;
-  --shadow-card: 0 1px 2px rgb(25 28 26 / 0.04), 0 8px 24px -12px rgb(25 28 26 / 0.12);
-  --shadow-pop: 0 1px 2px rgb(25 28 26 / 0.06), 0 16px 40px -12px rgb(25 28 26 / 0.22);
-  --dot: rgb(25 28 26 / 0.09);
+  --ink: #121212;
+  --ink-soft: #6c6c6a;
+  --ink-faint: #a6a6a3;
+  --rule: #eaeae7;
+  --primary: #121212;
+  --primary-ink: #ffffff;
+  --positive: #1f9d55;
+  --caution: #c2410c;
+  --hl-green: #a8efc2;
+  --hl-violet: #d7caff;
+  --hl-yellow: #ffe48c;
+  --hl-orange: #ffd0a0;
+  --hl-blue: #c4e1ff;
+  --hl-ink: #121212;
+  --shadow-card: 0 1px 2px rgb(18 18 18 / 0.04), 0 10px 30px -14px rgb(18 18 18 / 0.14);
+  --shadow-pop: 0 2px 6px rgb(18 18 18 / 0.08), 0 24px 60px -18px rgb(18 18 18 / 0.35);
 
   --shimmer-text-base: var(--ink-faint);
   --shimmer-text-highlight: var(--ink);
   --shimmer-text-dur: 1600ms;
-  --check-green: var(--accent-strong);
+  --check-green: var(--positive);
   --digit-distance: 6px;
   --stream-gap: 45ms;
 
@@ -32,37 +36,35 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --paper: #121413;
-    --paper-sunk: #1d201e;
-    --paper-raised: #191c1a;
-    --ink: #ecedea;
-    --ink-soft: #a5aaa5;
-    --ink-faint: #6c716c;
-    --rule: #2a2e2b;
-    --accent-wash: #173323;
-    --accent-strong: #6fe69a;
-    --caution: #f08a4b;
-    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.5);
-    --shadow-pop: 0 1px 2px rgb(0 0 0 / 0.4), 0 16px 40px -12px rgb(0 0 0 / 0.7);
-    --dot: rgb(236 237 234 / 0.07);
+    --paper: #0d0d0d;
+    --paper-sunk: #1d1d1c;
+    --paper-raised: #171716;
+    --ink: #f2f2f0;
+    --ink-soft: #a3a3a0;
+    --ink-faint: #676765;
+    --rule: #262625;
+    --primary: #f2f2f0;
+    --primary-ink: #121212;
+    --positive: #4ade80;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 10px 30px -14px rgb(0 0 0 / 0.6);
+    --shadow-pop: 0 2px 6px rgb(0 0 0 / 0.5), 0 24px 60px -18px rgb(0 0 0 / 0.8);
     color-scheme: dark;
   }
 }
 
 :root[data-theme="dark"] {
-  --paper: #121413;
-  --paper-sunk: #1d201e;
-  --paper-raised: #191c1a;
-  --ink: #ecedea;
-  --ink-soft: #a5aaa5;
-  --ink-faint: #6c716c;
-  --rule: #2a2e2b;
-  --accent-wash: #173323;
-  --accent-strong: #6fe69a;
-  --caution: #f08a4b;
-  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.5);
-  --shadow-pop: 0 1px 2px rgb(0 0 0 / 0.4), 0 16px 40px -12px rgb(0 0 0 / 0.7);
-  --dot: rgb(236 237 234 / 0.07);
+  --paper: #0d0d0d;
+  --paper-sunk: #1d1d1c;
+  --paper-raised: #171716;
+  --ink: #f2f2f0;
+  --ink-soft: #a3a3a0;
+  --ink-faint: #676765;
+  --rule: #262625;
+  --primary: #f2f2f0;
+  --primary-ink: #121212;
+  --positive: #4ade80;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 10px 30px -14px rgb(0 0 0 / 0.6);
+  --shadow-pop: 0 2px 6px rgb(0 0 0 / 0.5), 0 24px 60px -18px rgb(0 0 0 / 0.8);
   color-scheme: dark;
 }
 
@@ -74,12 +76,17 @@
   --color-ink-soft: var(--ink-soft);
   --color-ink-faint: var(--ink-faint);
   --color-rule: var(--rule);
-  --color-accent: var(--accent);
-  --color-accent-ink: var(--accent-ink);
-  --color-accent-wash: var(--accent-wash);
-  --color-accent-strong: var(--accent-strong);
+  --color-primary: var(--primary);
+  --color-primary-ink: var(--primary-ink);
+  --color-positive: var(--positive);
   --color-caution: var(--caution);
-  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --color-hl-green: var(--hl-green);
+  --color-hl-violet: var(--hl-violet);
+  --color-hl-yellow: var(--hl-yellow);
+  --color-hl-orange: var(--hl-orange);
+  --color-hl-blue: var(--hl-blue);
+  --color-hl-ink: var(--hl-ink);
+  --font-sans: "Urbanist", ui-sans-serif, system-ui, sans-serif;
   --shadow-card: var(--shadow-card);
   --shadow-pop: var(--shadow-pop);
 }
@@ -89,26 +96,49 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font-sans);
-  font-feature-settings: "ss01";
+  font-weight: 500;
   -webkit-font-smoothing: antialiased;
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent-strong);
+  outline: 2px solid var(--ink);
   outline-offset: 2px;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 ::selection {
-  background: var(--accent-wash);
+  background: var(--hl-yellow);
+  color: var(--hl-ink);
 }
 
-.dot-grid {
-  background-image: radial-gradient(var(--dot) 1px, transparent 1.2px);
-  background-size: 18px 18px;
+/* Highlighter mark: the AI marks what it touched, swiping left to right like a pen. */
+.hl {
+  --hl: var(--hl-green);
+  color: var(--hl-ink);
+  border-radius: 5px;
+  padding: 0 0.18em;
+  margin: 0 -0.06em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  background-image: linear-gradient(var(--hl), var(--hl));
+  background-repeat: no-repeat;
+  background-position: 0 50%;
+  background-size: 100% 88%;
+}
+.hl-swipe {
+  animation: hl-swipe 700ms cubic-bezier(0.65, 0, 0.35, 1) both;
+  animation-delay: var(--hl-delay, 0ms);
+}
+@keyframes hl-swipe {
+  from {
+    background-size: 0% 88%;
+  }
+  to {
+    background-size: 100% 88%;
+  }
 }
 
-/* A value the AI just updated: the new number lands with a soft copy slipping into place. */
+/* A changed value lands with a soft copy slipping into place. */
 .reprint {
   position: relative;
   display: inline-block;
@@ -117,7 +147,7 @@ body {
   content: attr(data-value);
   position: absolute;
   inset: 0;
-  color: var(--accent-strong);
+  color: var(--positive);
   pointer-events: none;
   animation: reprint-register 760ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -131,23 +161,6 @@ body {
     transform: translate(0, 0);
     opacity: 0;
     filter: blur(0);
-  }
-}
-
-/* Text the AI changed for you glows, then settles back to plain text. */
-.flash-update {
-  border-radius: 4px;
-  animation: flash-update 2400ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-@keyframes flash-update {
-  0%,
-  35% {
-    background-color: var(--accent-wash);
-    box-shadow: 0 0 0 2px var(--accent-wash);
-  }
-  100% {
-    background-color: transparent;
-    box-shadow: 0 0 0 2px transparent;
   }
 }
 
@@ -170,7 +183,7 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .reprint[data-printing="true"]::after,
-  .flash-update,
+  .hl-swipe,
   .row-in {
     animation: none !important;
   }

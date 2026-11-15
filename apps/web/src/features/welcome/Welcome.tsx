@@ -1,5 +1,10 @@
-import type { ReactNode } from "react";
+import { useScroll } from "motion/react";
+import { useRef, type ReactNode } from "react";
+import { BucketTag } from "../../ui/BucketPill";
+import { SourceTag } from "../../ui/InferenceMeter";
+import { Mark } from "../../ui/Mark";
 import { Wordmark } from "../../ui/Wordmark";
+import { Floating, Rise, ScrollWords, Shot, StickySteps, TiltedShot, useSmoothScroll, type Step } from "./motion";
 
 type WelcomeProps = {
   onStart: () => void;
@@ -10,152 +15,262 @@ type WelcomeProps = {
 
 const REPO_URL = "https://github.com/CryptishApps/dittle";
 
-const FEATURES = [
+const STEPS: Step[] = [
   {
     shot: "update",
+    alt: "A note where 80 guests became 95, with a dark card offering to update Budget, Chair hire and Email to Sam.",
+    tag: <SourceTag source="device" />,
     title: "Change it once",
-    body: "Change 80 guests to 95 and Dittle finds the other notes that mention it. One click updates them all.",
-    alt: "A note where 80 guests was changed to 95, with a card offering to update the same number in Budget, Chair hire and Email to Sam.",
+    body: "Change 80 guests to 95 and Dittle already knows the other notes that mention it. One tap updates them all.",
   },
   {
     shot: "insert",
+    alt: "A request line in a note with an Add 7 meals button and a preview of the meals.",
+    tag: <SourceTag source="device" />,
     title: "Ask inside the note",
-    body: "Write \"add in a list of meals here\". A button appears with the list already written. Hover to preview, click to add.",
-    alt: "A request line in a note with an Add 7 meals button and a preview of seven meals.",
+    body: "Write \"add in a list of meals here\". A button appears with the list already written. Hover to preview, tap to add.",
+  },
+  {
+    shot: "buckets",
+    alt: "A new note called Pick up the rings being sorted into the Wedding bucket.",
+    tag: <SourceTag source="device" />,
+    title: "Buckets sort themselves",
+    body: "Every new note lands in the right bucket from what it says. Wedding, work, the Lisbon trip. No folders to pick.",
   },
   {
     shot: "recalc",
+    alt: "A budget where food, chairs and the total were worked out again for 95 guests.",
+    tag: <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-bold text-white/70">Plain maths</span>,
     title: "Sums that keep up",
-    body: "Totals work themselves out again when a number changes. Code does the maths, so it's never guessed.",
-    alt: "A budget table where food, chairs and the total have just been recalculated for 95 guests.",
+    body: "When a number changes, totals that use it are worked out again. Code does the maths, so nothing is guessed.",
   },
   {
     shot: "collections",
+    alt: "A Vendors table built from three notes with price, deposit and contact.",
+    tag: <SourceTag source="cloud" />,
     title: "Collections, found for you",
-    body: "Notes about the same kind of thing become a table, like vendors with price, deposit and contact.",
-    alt: "A Vendors table built from three notes, with price, deposit and contact columns.",
+    body: "Notes about the same kind of thing become a table, like vendors with price, deposit and contact. The cloud only sees the values, never the notes.",
   },
   {
     shot: "offline",
+    alt: "A note being written offline, saved on the device.",
+    tag: <SourceTag source="device" />,
     title: "Works offline",
-    body: "Notes save to your device first and the AI runs there too. Everything syncs when you're back online.",
-    alt: "A note being written while offline, marked Saved on this device.",
-  },
-  {
-    shot: "activity",
-    title: "Your device does the work",
-    body: "Most AI runs on your computer with Gemini Nano. The cloud steps in for big jobs, and you can see which did what.",
-    alt: "An activity panel showing 412 AI calls on device and 6 in the cloud today.",
+    body: "Notes save to your device first, and the AI runs there too. Everything syncs when you're back online.",
   },
 ];
 
 export function Welcome({ onStart, onGoogle, busy = false, error }: WelcomeProps) {
+  useSmoothScroll();
+  const heroRef = useRef<HTMLElement>(null);
+  const { scrollYProgress: heroProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
+
   return (
-    <div className="dot-grid min-h-dvh bg-paper">
-      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5 sm:px-8">
-        <Wordmark className="text-[24px]" />
-        <div className="flex items-center gap-1 text-[15px]">
-          <a href={REPO_URL} className="rounded-xl px-3 py-2 text-ink-soft transition hover:bg-paper-sunk hover:text-ink">
+    <div className="min-h-dvh overflow-x-clip bg-paper">
+      <nav className="fixed inset-x-0 top-4 z-50 flex justify-center px-4">
+        <div className="flex items-center gap-1 rounded-full bg-paper-raised/90 p-1.5 pl-4 shadow-card backdrop-blur">
+          <Wordmark className="mr-3 text-[19px]" />
+          <a href="#how" className="hidden rounded-full px-3.5 py-2 text-[14px] font-bold text-ink-soft hover:text-ink sm:block">
+            How it works
+          </a>
+          <a href={REPO_URL} className="hidden rounded-full px-3.5 py-2 text-[14px] font-bold text-ink-soft hover:text-ink sm:block">
             GitHub
           </a>
           <button
             type="button"
-            onClick={onGoogle}
+            onClick={onStart}
             disabled={busy}
-            className="rounded-xl px-3 py-2 font-medium text-ink transition hover:bg-paper-sunk disabled:opacity-50"
+            className="rounded-full bg-primary px-4 py-2 text-[14px] font-bold text-primary-ink transition active:scale-95 disabled:opacity-60"
           >
-            Sign in
+            Start writing
           </button>
         </div>
-      </header>
+      </nav>
 
       <main>
-        <section className="mx-auto max-w-4xl px-4 pt-14 text-center sm:px-8 sm:pt-20">
-          <h1 className="text-[42px] leading-[1.05] font-bold tracking-[-0.035em] text-balance sm:text-[68px]">
-            Change it once. <span className="text-accent-strong">Every note follows.</span>
-          </h1>
-          <p className="mx-auto mt-5 max-w-[46ch] text-[18px] leading-relaxed text-ink-soft sm:text-[21px]">
-            Write notes the way you always do. Dittle's AI notices the numbers, dates and names you repeat, and keeps
-            every note in step when one changes.
-          </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <button
-              type="button"
-              onClick={onStart}
-              disabled={busy}
-              className="rounded-xl bg-accent px-6 py-3.5 text-[16px] font-semibold text-accent-ink shadow-card transition hover:brightness-105 disabled:opacity-60"
-            >
-              Start writing
-            </button>
-            <button
-              type="button"
-              onClick={onGoogle}
-              disabled={busy}
-              className="inline-flex items-center gap-2.5 rounded-xl border border-rule bg-paper-raised px-6 py-3.5 text-[16px] font-semibold shadow-card transition hover:border-ink-faint disabled:opacity-60"
-            >
-              <GoogleMark />
-              Continue with Google
-            </button>
+        <section ref={heroRef} className="relative px-4 pt-36 sm:px-8 sm:pt-44">
+          <div className="mx-auto max-w-5xl text-center">
+            <Rise>
+              <span className="inline-flex items-center gap-2 rounded-full bg-paper-raised px-3.5 py-1.5 text-[13px] font-bold text-ink-soft shadow-card">
+                <span aria-hidden className="size-2 rounded-full bg-hl-green ring-2 ring-hl-green/40" />
+                Notes with AI that runs on your device
+              </span>
+            </Rise>
+            <Rise delay={0.08}>
+              <h1 className="mt-7 text-[52px] leading-[0.98] font-extrabold tracking-[-0.055em] text-balance sm:text-[96px]">
+                Change it once.
+                <br />
+                Every note{" "}
+                <Mark swipe delay={900}>
+                  follows.
+                </Mark>
+              </h1>
+            </Rise>
+            <Rise delay={0.16}>
+              <p className="mx-auto mt-7 max-w-[44ch] text-[18px] leading-relaxed font-medium text-ink-soft sm:text-[21px]">
+                Write notes the way you always do. Dittle notices the numbers, dates and names you repeat, and keeps every
+                note in step when one changes.
+              </p>
+            </Rise>
+            <Rise delay={0.24} className="mt-9 flex flex-wrap items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={onStart}
+                disabled={busy}
+                className="rounded-full bg-primary px-7 py-4 text-[16px] font-bold text-primary-ink transition active:scale-[0.97] disabled:opacity-60"
+              >
+                Start writing
+              </button>
+              <button
+                type="button"
+                onClick={onGoogle}
+                disabled={busy}
+                className="inline-flex items-center gap-2.5 rounded-full bg-paper-raised px-7 py-4 text-[16px] font-bold shadow-card transition active:scale-[0.97] disabled:opacity-60"
+              >
+                <GoogleMark />
+                Continue with Google
+              </button>
+            </Rise>
+            <Rise delay={0.3}>
+              <p className="mt-4 text-[14px] font-semibold text-ink-faint">No account needed · Works offline · Free</p>
+              {error && (
+                <p role="alert" className="mt-3 text-[14px] font-semibold text-caution">
+                  {error}
+                </p>
+              )}
+            </Rise>
           </div>
-          <p className="mt-4 text-[14px] text-ink-faint">No account needed · Works offline · Free</p>
-          {error && (
-            <p role="alert" className="mt-3 text-[14px] text-caution">
-              {error}
-            </p>
-          )}
-        </section>
 
-        <section aria-label="Dittle editor" className="mx-auto mt-14 max-w-6xl px-4 sm:mt-20 sm:px-8">
-          <BrowserFrame>
-            <Shot
-              name="editor"
-              alt="The Dittle editor. Guests changed from 80 to 95 in a catering note, and a card offers to update three other notes."
-            />
-          </BrowserFrame>
-        </section>
-
-        <section className="mx-auto max-w-6xl px-4 py-20 sm:px-8 sm:py-28">
-          <h2 className="max-w-[20ch] text-[32px] leading-tight font-bold tracking-[-0.03em] sm:text-[44px]">
-            The busywork, <span className="text-accent-strong">done quietly.</span>
-          </h2>
-          <div className="mt-12 grid gap-x-6 gap-y-12 md:grid-cols-2">
-            {FEATURES.map((feature) => (
-              <article key={feature.shot}>
-                <div className="rounded-3xl border border-rule bg-paper-sunk/70 p-3 sm:p-5">
-                  <Shot name={feature.shot} alt={feature.alt} />
+          <div className="mx-auto mt-20 max-w-6xl">
+            <TiltedShot
+              floating={
+                <>
+                  <Floating progress={heroProgress} distance={180} className="top-[18%] -left-6 hidden lg:block">
+                    <Chip>
+                      <SourceTag source="device" /> Read your note · 180 ms
+                    </Chip>
+                  </Floating>
+                  <Floating progress={heroProgress} distance={320} className="top-[46%] -right-8 hidden lg:block">
+                    <Chip>
+                      <Mark>Updated</Mark> Budget, Chair hire, Email to Sam
+                    </Chip>
+                  </Floating>
+                  <Floating progress={heroProgress} distance={250} className="bottom-[16%] -left-10 hidden lg:block">
+                    <Chip>
+                      Sorted into <BucketTag bucket={{ name: "Wedding", color: "green" }} />
+                    </Chip>
+                  </Floating>
+                  <Floating progress={heroProgress} distance={140} className="-top-6 right-[12%] hidden lg:block">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2.5 text-[14px] font-bold text-primary-ink shadow-pop">
+                      + Add 7 meals
+                    </span>
+                  </Floating>
+                </>
+              }
+            >
+              <div className="overflow-hidden rounded-[28px] bg-paper-raised p-2 shadow-pop sm:rounded-[36px] sm:p-3">
+                <div className="overflow-hidden rounded-[22px] sm:rounded-[28px]">
+                  <Shot
+                    name="editor"
+                    alt="The Dittle app: a grid of notes sorted into buckets, and a catering note where 80 guests became 95 with a card offering to update three other notes."
+                  />
                 </div>
-                <h3 className="mt-5 text-[20px] font-semibold tracking-[-0.02em]">{feature.title}</h3>
-                <p className="mt-1.5 max-w-[48ch] text-[16px] leading-relaxed text-ink-soft">{feature.body}</p>
-              </article>
-            ))}
+              </div>
+            </TiltedShot>
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-4 pb-24 sm:px-8">
-          <div className="grid gap-4 rounded-3xl border border-rule bg-paper-raised p-6 shadow-card sm:p-10 md:grid-cols-[1.2fr_1fr_1fr]">
-            <div>
-              <h2 className="text-[26px] leading-tight font-bold tracking-[-0.03em]">On your device first. Cloud when it helps.</h2>
-              <p className="mt-2 text-ink-soft">Both run through Firebase AI Logic.</p>
+        <section className="mx-auto max-w-5xl px-4 py-36 sm:px-8 sm:py-52">
+          <ScrollWords
+            text="Your notes repeat the same numbers, dates and names. Dittle notices them as you write, right on your device, and keeps every note in step."
+            marked="right on your device"
+          />
+        </section>
+
+        <section id="how" className="rounded-t-[40px] bg-[#0d0d0d] px-4 py-24 text-white sm:rounded-t-[64px] sm:px-8 sm:py-32">
+          <div className="mx-auto max-w-6xl">
+            <p className="text-[15px] font-bold text-white/50">How it works</p>
+            <h2 className="mt-3 max-w-[16ch] text-[40px] leading-[1.02] font-extrabold tracking-[-0.045em] sm:text-[68px]">
+              The busywork, done quietly.
+            </h2>
+            <div className="mt-10">
+              <StickySteps steps={STEPS} />
             </div>
-            <Where
-              dot={<span aria-hidden className="size-2.5 rounded-full bg-accent" />}
-              title="On your device"
-              model="Gemini Nano"
-              items={["Reading your notes as you type", "Finding the notes a change affects", "Writing short lists"]}
-            />
-            <Where
-              dot={<span aria-hidden className="size-2.5 rounded-full border-2 border-ink-faint" />}
-              title="In the cloud"
-              model="Gemini Flash"
-              items={["Finding collections across all notes", "Longer writing", "Backup when your device can't"]}
-            />
+          </div>
+        </section>
+
+        <section className="bg-[#0d0d0d]">
+          <div className="rounded-t-[40px] bg-paper px-4 py-24 sm:rounded-t-[64px] sm:px-8 sm:py-32">
+            <div className="mx-auto max-w-6xl">
+              <h2 className="max-w-[18ch] text-[40px] leading-[1.02] font-extrabold tracking-[-0.045em] sm:text-[68px]">
+                On your device first. <span className="text-ink-faint">Cloud when it helps.</span>
+              </h2>
+              <div className="mt-14 grid gap-4 lg:grid-cols-[1.15fr_1fr]">
+                <div className="rounded-[36px] bg-paper-raised p-7 shadow-card sm:p-10">
+                  <SourceTag source="device" />
+                  <h3 className="mt-4 text-[30px] font-extrabold tracking-[-0.04em]">Gemini Nano</h3>
+                  <p className="mt-2 max-w-[40ch] text-[17px] text-ink-soft">
+                    Runs inside Chrome on your computer. Fast, private, free, and it works on a plane.
+                  </p>
+                  <List items={["Reading your notes as you type", "Finding the notes a change affects", "Sorting notes into buckets", "Writing short lists"]} />
+                </div>
+                <div className="flex flex-col gap-4">
+                  <div className="rounded-[36px] bg-primary p-7 text-primary-ink sm:p-10">
+                    <SourceTag source="cloud" />
+                    <h3 className="mt-4 text-[30px] font-extrabold tracking-[-0.04em]">Gemini Flash</h3>
+                    <p className="mt-2 max-w-[40ch] text-[17px] opacity-70">
+                      For jobs that span every note, or that are too big for your device.
+                    </p>
+                    <List items={["Finding collections", "Longer writing", "Backup when your device can't"]} invert />
+                  </div>
+                  <div className="rounded-[36px] bg-paper-sunk/70 p-3">
+                    <Shot name="activity" alt="AI activity today: 412 calls on device and 6 in the cloud." />
+                  </div>
+                </div>
+              </div>
+              <p className="mt-6 text-[15px] font-semibold text-ink-faint">
+                Both run through Firebase AI Logic. If your browser can't run Gemini Nano, everything still works in the cloud.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="px-4 pb-6 sm:px-8">
+          <div className="mx-auto max-w-6xl overflow-hidden rounded-[40px] bg-primary px-6 pt-16 text-center text-primary-ink sm:rounded-[56px] sm:pt-24">
+            <h2 className="mx-auto max-w-[14ch] text-[44px] leading-[1] font-extrabold tracking-[-0.05em] sm:text-[80px]">
+              Write it down. Dittle keeps up.
+            </h2>
+            <div className="mt-9 flex flex-wrap justify-center gap-3">
+              <button
+                type="button"
+                onClick={onStart}
+                disabled={busy}
+                className="rounded-full bg-primary-ink px-7 py-4 text-[16px] font-bold text-primary transition active:scale-[0.97]"
+              >
+                Start writing
+              </button>
+              <button
+                type="button"
+                onClick={onGoogle}
+                disabled={busy}
+                className="rounded-full px-7 py-4 text-[16px] font-bold opacity-70 ring-1 ring-current transition hover:opacity-100"
+              >
+                Continue with Google
+              </button>
+            </div>
+            <div className="mx-auto mt-16 max-w-4xl translate-y-6 [perspective:1600px]">
+              <div className="overflow-hidden rounded-t-[28px] p-2 pb-0 [transform:rotateX(18deg)] [transform-origin:50%_100%]">
+                <Shot name="editor" alt="" />
+              </div>
+            </div>
           </div>
         </section>
       </main>
 
-      <footer className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-2 border-t border-rule px-4 py-6 text-[14px] text-ink-faint sm:px-8">
+      <footer className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-8 text-[14px] font-semibold text-ink-faint sm:px-8">
+        <Wordmark className="text-[18px]" />
         <span>On-device AI needs desktop Chrome. Other browsers use the cloud.</span>
-        <a href={REPO_URL} className="underline-offset-4 hover:text-ink hover:underline">
+        <a href={REPO_URL} className="hover:text-ink">
           Open source on GitHub
         </a>
       </footer>
@@ -163,48 +278,27 @@ export function Welcome({ onStart, onGoogle, busy = false, error }: WelcomeProps
   );
 }
 
-function Shot({ name, alt }: { name: string; alt: string }) {
+function Chip({ children }: { children: ReactNode }) {
   return (
-    <picture>
-      <source srcSet={`/shots/${name}-dark.png`} media="(prefers-color-scheme: dark)" />
-      <img src={`/shots/${name}-light.png`} alt={alt} loading="lazy" className="block h-auto w-full" />
-    </picture>
+    <span className="inline-flex items-center gap-2 rounded-2xl bg-paper-raised px-4 py-3 text-[14px] font-bold whitespace-nowrap shadow-pop">
+      {children}
+    </span>
   );
 }
 
-function BrowserFrame({ children }: { children: ReactNode }) {
+function List({ items, invert = false }: { items: string[]; invert?: boolean }) {
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-rule bg-paper-raised shadow-pop">
-      <div className="flex items-center gap-3 border-b border-rule px-4 py-3">
-        <span className="flex gap-1.5" aria-hidden>
-          <span className="size-3 rounded-full bg-[#ff5f57]" />
-          <span className="size-3 rounded-full bg-[#febc2e]" />
-          <span className="size-3 rounded-full bg-[#28c840]" />
-        </span>
-        <span className="mx-auto rounded-lg bg-paper px-16 py-1 text-[13px] text-ink-soft">dittle.app</span>
-        <span className="w-[54px]" aria-hidden />
-      </div>
-      <div className="max-h-[640px] overflow-hidden [mask-image:linear-gradient(to_bottom,black_80%,transparent)]">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function Where({ dot, title, model, items }: { dot: ReactNode; title: string; model: string; items: string[] }) {
-  return (
-    <div className="rounded-2xl bg-paper p-5">
-      <p className="flex items-center gap-2 font-semibold">
-        {dot}
-        {title}
-      </p>
-      <p className="mt-0.5 text-[13px] text-ink-faint">{model}</p>
-      <ul className="mt-3 space-y-1.5 text-[15px] text-ink-soft">
-        {items.map((item) => (
-          <li key={item}>{item}</li>
-        ))}
-      </ul>
-    </div>
+    <ul className="mt-6 space-y-0">
+      {items.map((item) => (
+        <li
+          key={item}
+          className={`flex items-center gap-3 border-t py-3 text-[16px] font-semibold ${invert ? "border-current/15" : "border-rule"}`}
+        >
+          <span aria-hidden className={`size-2 rounded-full ${invert ? "bg-hl-blue" : "bg-hl-green"}`} />
+          {item}
+        </li>
+      ))}
+    </ul>
   );
 }
 

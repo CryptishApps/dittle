@@ -1,11 +1,11 @@
 import { useState, type ReactNode } from "react";
 import { SourceTag } from "../../../ui/InferenceMeter";
-import { CollectionsPanel, InsertPanel, MeterPanel, OfflinePanel, RecalcPanel, SavingPanel, UpdatePanel } from "./panels";
+import { BucketsPanel, CollectionsPanel, InsertPanel, MeterPanel, OfflinePanel, RecalcPanel, SavingPanel, UpdatePanel } from "./panels";
 
 export function Moments() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-8">
-      <h1 className="text-[34px] font-bold tracking-[-0.03em]">Where the AI shows its work</h1>
+      <h1 className="text-[40px] font-extrabold tracking-[-0.04em]">Where the AI shows its work</h1>
       <p className="mt-2 max-w-[60ch] text-ink-soft">
         Linking happens quietly in the background. These are the moments it surfaces. Replay any card.
       </p>
@@ -15,6 +15,9 @@ export function Moments() {
         </Moment>
         <Moment title="Ask inside the note" source="device" note="The list is written before you click. Hover to preview.">
           <InsertPanel />
+        </Moment>
+        <Moment title="Buckets sort themselves" source="device" note="A new note gets a bucket from what it says. No folders to pick.">
+          <BucketsPanel />
         </Moment>
         <Moment title="Sums that keep up" source="none" note="Code does the maths. The AI only worked out which numbers were linked.">
           <RecalcPanel />
@@ -49,10 +52,10 @@ function Moment({
 }) {
   const [run, setRun] = useState(0);
   return (
-    <section className="rounded-3xl border border-rule bg-paper-sunk/60 p-2">
+    <section className="rounded-[32px] bg-paper-sunk/60 p-2">
       <header className="flex items-center justify-between gap-3 px-3 pt-2 pb-3">
         <div className="flex items-center gap-2">
-          <h2 className="text-[15px] font-semibold">{title}</h2>
+          <h2 className="text-[16px] font-extrabold tracking-[-0.02em]">{title}</h2>
           {source === "none" ? <span className="text-[11px] text-ink-faint">No AI</span> : <SourceTag source={source} />}
         </div>
         <button
