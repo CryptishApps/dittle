@@ -27,27 +27,27 @@ function NotesRoute() {
   };
 
   return (
-    <div className="min-h-dvh bg-paper">
-      <header className="flex items-center justify-between border-b border-rule px-4 py-3 sm:px-6">
-        <Wordmark className="text-[22px]" />
-        <div className="flex items-center gap-2 text-[14px]">
+    <div className="min-h-dvh bg-page">
+      <header className="flex items-center justify-between border-b border-line px-4 py-3 sm:px-6">
+        <Wordmark className="text-[15px]" />
+        <div className="flex items-center gap-2 text-[12px]">
           {session.kind === "guest" && (
-            <button type="button" onClick={upgrade} className="rounded-full bg-accent px-3 py-1.5 font-semibold text-accent-ink">
+            <button type="button" onClick={upgrade} className="h-8 bg-ink px-3 tracking-[0.04em] text-page uppercase">
               Keep notes with Google
             </button>
           )}
-          {session.kind === "member" && <span className="text-ink-soft">{session.user.email}</span>}
+          {session.kind === "member" && <span className="text-soft">{session.user.email}</span>}
           {session.kind !== "guest" && (
-            <button type="button" onClick={leave} className="rounded-full px-3 py-1.5 text-ink-soft hover:bg-paper-sunk">
+            <button type="button" onClick={leave} className="h-8 border border-line-strong px-3 tracking-[0.04em] text-ink uppercase hover:border-ink">
               Sign out
             </button>
           )}
         </div>
       </header>
-      {error && <p role="alert" className="px-6 pt-3 text-caution">{error}</p>}
+      {error && <p role="alert" className="px-6 pt-3 text-[13px] text-accent-ink">{error}</p>}
       <main className="mx-auto max-w-2xl px-4 py-24 text-center">
-        <h1 className="text-[28px] font-bold tracking-[-0.03em]">Your first note goes here</h1>
-        <p className="mt-2 text-ink-soft">The editor is next on the build list.</p>
+        <h1 className="text-[24px] font-medium tracking-[-0.02em]">Your first note goes here</h1>
+        <p className="mt-2 text-[13px] text-soft">The editor is next on the build list.</p>
       </main>
     </div>
   );

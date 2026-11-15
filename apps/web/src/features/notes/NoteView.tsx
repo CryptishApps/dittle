@@ -1,9 +1,9 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { Reprint } from "../../../../ui/Reprint";
-import { StreamedText, useStreamedWords } from "../../../../ui/StreamIn";
+import { Reprint } from "../../ui/Reprint";
+import { StreamedText, useStreamedWords } from "../../ui/StreamIn";
 import { bodyFor, MEALS, NOTES, PATHS, VARIABLES, type NoteId, type Part, type Token, type VarId } from "./data";
-import { Btn, ease, MIcon, Path, Scramble } from "./ui";
+import { Btn, ease, MIcon, Path, Scramble } from "../../ui/kit";
 
 export type Change = { from: number; to: number } | null;
 
@@ -64,7 +64,7 @@ export function NoteView({ noteId, ctx, firstRead }: { noteId: NoteId; ctx: Note
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.15, duration: 0.4 }}
-        className="mt-3 flex flex-wrap gap-x-4 text-[11px] tracking-[0.02em] text-(--m-faint) uppercase"
+        className="mt-3 flex flex-wrap gap-x-4 text-[11px] tracking-[0.02em] text-faint uppercase"
       >
         <span>{note.subtitle}</span>
         <span>Edited {note.edited} ago</span>
@@ -83,7 +83,7 @@ export function NoteView({ noteId, ctx, firstRead }: { noteId: NoteId; ctx: Note
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.12, duration: 0.5, ease }}
-        className="mt-10 border-t border-(--m-line) pt-8 text-[15px] leading-[1.95]"
+        className="mt-10 border-t border-line pt-8 text-[15px] leading-[1.95]"
       >
         {body.map((paragraph, index) => (
           <div key={index}>
@@ -110,11 +110,11 @@ function Para({ n, reading, children }: { n: number; reading: boolean; children:
     <p className="relative mt-5">
       <span
         aria-hidden
-        className={`absolute top-0 -left-10 text-[10px] tabular-nums transition-colors duration-300 ${reading ? "text-(--m-accent)" : "text-(--m-faint)/60"}`}
+        className={`absolute top-0 -left-10 text-[10px] tabular-nums transition-colors duration-300 ${reading ? "text-accent" : "text-faint/60"}`}
       >
         {String(n).padStart(2, "0")}
       </span>
-      <span className={reading ? "m-caret" : undefined}>{children}</span>
+      <span className={reading ? "caret" : undefined}>{children}</span>
     </p>
   );
 }
@@ -137,12 +137,12 @@ function TokenView({ token, noteId, ctx, found, delay }: { token: Token; noteId:
   };
 
   const common = {
-    className: "m-token",
+    className: "token",
     "data-found": found,
     "data-open": open && !editing,
     "data-state": state,
     "data-kind": VARIABLES[token.v].derived ? "derived" : "value",
-    style: { "--m-delay": `${delay}ms` } as CSSProperties,
+    style: { "--token-delay": `${delay}ms` } as CSSProperties,
   };
 
   return (
@@ -208,24 +208,24 @@ function ValueCard({ token, noteId, ctx }: { token: Token; noteId: NoteId; ctx: 
   const selfStale = staleIn(ctx, noteId, token.v);
 
   return (
-    <span className="block w-[400px] border border-(--m-line-strong) bg-(--m-card) text-[12px] leading-[1.6] tracking-normal text-(--m-ink) shadow-(--m-shadow)">
-      <span className="flex items-center justify-between border-b border-(--m-line) px-3 py-2 text-[10.5px] tracking-[0.04em] uppercase">
+    <span className="block w-[400px] border border-line-strong bg-card text-[12px] leading-[1.6] tracking-normal text-ink shadow-pop">
+      <span className="flex items-center justify-between border-b border-line px-3 py-2 text-[10.5px] tracking-[0.04em] uppercase">
         <span className="font-medium">{variable.label}</span>
-        <span className="text-(--m-faint)">Found on device · 180 ms</span>
+        <span className="text-faint">Found on device · 180 ms</span>
       </span>
       <span className="flex items-baseline gap-3 px-3 pt-3">
         <span className="text-[22px] leading-none font-medium tracking-[-0.02em]">{token.text(g)}</span>
-        {variable.derived && <span className="text-(--m-soft)">= {variable.derived(g)}</span>}
+        {variable.derived && <span className="text-soft">= {variable.derived(g)}</span>}
       </span>
       {selfStale && (
-        <span className="mx-3 mt-3 flex items-center justify-between gap-3 border-l-2 border-(--m-accent) bg-(--m-accent-tint) px-2.5 py-2">
-          <span className="text-(--m-accent-ink)">Catering quote now says {ctx.current}</span>
+        <span className="mx-3 mt-3 flex items-center justify-between gap-3 border-l-2 border-accent bg-accent-tint px-2.5 py-2">
+          <span className="text-accent-ink">Catering quote now says {ctx.current}</span>
           <Btn primary onClick={() => ctx.onUpdate([noteId])}>
             Use {ctx.current}
           </Btn>
         </span>
       )}
-      <span className="mt-3 block px-3 text-[10.5px] tracking-[0.04em] text-(--m-faint) uppercase">
+      <span className="mt-3 block px-3 text-[10.5px] tracking-[0.04em] text-faint uppercase">
         {others.length ? `Also in ${others.length} ${others.length === 1 ? "note" : "notes"}` : "Only in this note"}
       </span>
       <span className="block px-1.5 pt-1 pb-1.5">
@@ -234,23 +234,23 @@ function ValueCard({ token, noteId, ctx }: { token: Token; noteId: NoteId; ctx: 
             key={id}
             type="button"
             onClick={() => ctx.onOpen(id)}
-            className="block w-full px-1.5 py-1.5 text-left transition-colors hover:bg-(--m-panel)"
+            className="block w-full px-1.5 py-1.5 text-left transition-colors hover:bg-panel"
           >
             <span className="flex items-center justify-between gap-2">
-              <span className="m-link">{NOTES[id].title}</span>
+              <span className="link">{NOTES[id].title}</span>
               {staleIn(ctx, id, token.v) && (
-                <span className="text-[10px] tracking-[0.04em] text-(--m-accent-ink) uppercase">Says {ctx.valueFor(id)}</span>
+                <span className="text-[10px] tracking-[0.04em] text-accent-ink uppercase">Says {ctx.valueFor(id)}</span>
               )}
             </span>
-            <span className="mt-0.5 line-clamp-2 block text-(--m-soft)">
+            <span className="mt-0.5 line-clamp-2 block text-soft">
               <Snippet noteId={id} v={token.v} g={ctx.valueFor(id)} />
             </span>
           </button>
         ))}
       </span>
       {(stale.length > 0 && !selfStale) || token.editable ? (
-        <span className="flex items-center justify-between gap-3 border-t border-(--m-line) px-3 py-2">
-          <span className="text-[10.5px] tracking-[0.04em] text-(--m-faint) uppercase">{token.editable ? "Click the value to edit" : ""}</span>
+        <span className="flex items-center justify-between gap-3 border-t border-line px-3 py-2">
+          <span className="text-[10.5px] tracking-[0.04em] text-faint uppercase">{token.editable ? "Click the value to edit" : ""}</span>
           {stale.length > 0 && !selfStale && (
             <Btn primary onClick={() => ctx.onUpdate(stale)}>
               Update {stale.length}
@@ -270,7 +270,7 @@ function Snippet({ noteId, v, g }: { noteId: NoteId; v: VarId; g: number }) {
         typeof part === "string" ? (
           <span key={index}>{part}</span>
         ) : (
-          <span key={index} className={part.v === v ? "bg-(--m-chip) px-0.5 text-(--m-ink)" : undefined}>
+          <span key={index} className={part.v === v ? "bg-chip px-0.5 text-ink" : undefined}>
             {part.text(g)}
           </span>
         ),
@@ -292,11 +292,11 @@ function ChangeBlock({ ctx }: { ctx: NoteContext }) {
           transition={{ duration: 0.4, ease }}
           className="overflow-hidden"
         >
-          <div className="mt-4 border-l-2 border-(--m-accent) bg-(--m-panel) px-4 py-3 text-[13px] leading-[1.6]">
+          <div className="mt-4 border-l-2 border-accent bg-panel px-4 py-3 text-[13px] leading-[1.6]">
             {ctx.done ? (
               <div className="flex items-center justify-between gap-4">
                 <span className="flex items-center gap-2">
-                  <MIcon name="check" className="size-4 text-(--m-accent)" />
+                  <MIcon name="check" className="size-4 text-accent" />
                   <Scramble text={ctx.done} duration={500} />
                 </span>
                 <Btn>Undo</Btn>
@@ -307,17 +307,17 @@ function ChangeBlock({ ctx }: { ctx: NoteContext }) {
                   <div className="flex items-center justify-between gap-4 text-[10.5px] tracking-[0.04em] uppercase">
                     <span className="flex items-center gap-2">
                       <span className="font-medium">Guest count</span>
-                      <span className="bg-(--m-chip) px-1.5 py-0.5 text-(--m-soft)">
-                        {ctx.change.from} → <span className="text-(--m-accent-ink)">{ctx.change.to}</span>
+                      <span className="bg-chip px-1.5 py-0.5 text-soft">
+                        {ctx.change.from} → <span className="text-accent-ink">{ctx.change.to}</span>
                       </span>
                     </span>
-                    <span className="text-(--m-faint)">On device · 240 ms</span>
+                    <span className="text-faint">On device · 240 ms</span>
                   </div>
-                  <p className="mt-2 text-(--m-soft)">
+                  <p className="mt-2 text-soft">
                     {stale.length} {stale.length === 1 ? "note still says" : "notes still say"} {ctx.change.from}:{" "}
                     {stale.map((id, index) => (
                       <span key={id}>
-                        <button type="button" onClick={() => ctx.onOpen(id)} className="m-link">
+                        <button type="button" onClick={() => ctx.onOpen(id)} className="link">
                           {NOTES[id].title}
                         </button>
                         {index < stale.length - 1 ? ", " : ""}
@@ -345,10 +345,10 @@ function MealsRequest({ ready }: { ready: boolean }) {
   if (state === "inserted") return <InsertedMeals />;
   return (
     <div className="relative mt-5">
-      <span aria-hidden className="absolute top-0 -left-10 text-[10px] text-(--m-faint)/60 tabular-nums">
+      <span aria-hidden className="absolute top-0 -left-10 text-[10px] text-faint/60 tabular-nums">
         03
       </span>
-      <span className="text-(--m-faint) underline decoration-(--m-line-strong) decoration-dashed underline-offset-4">add in a list of meals here</span>
+      <span className="text-faint underline decoration-line-strong decoration-dashed underline-offset-4">add in a list of meals here</span>
       <AnimatePresence>
         {ready && (
           <motion.span initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5, duration: 0.35, ease }} className="ml-3 inline-block align-middle">
@@ -370,8 +370,8 @@ function MealsRequest({ ready }: { ready: boolean }) {
             transition={{ duration: 0.25, ease }}
             className="overflow-hidden"
           >
-            <div className="mt-3 border border-dashed border-(--m-line-strong) px-4 py-3 text-[13px] leading-[1.8] text-(--m-soft)">
-              <span className="mb-1 block text-[10.5px] tracking-[0.04em] text-(--m-faint) uppercase">Preview · on device · 1.9 s · 188 tokens</span>
+            <div className="mt-3 border border-dashed border-line-strong px-4 py-3 text-[13px] leading-[1.8] text-soft">
+              <span className="mb-1 block text-[10.5px] tracking-[0.04em] text-faint uppercase">Preview · on device · 1.9 s · 188 tokens</span>
               {MEALS.map((meal) => (
                 <span key={meal} className="block">
                   – {meal}
@@ -392,7 +392,7 @@ function InsertedMeals() {
   let offset = 0;
   return (
     <div className="relative mt-5">
-      <span aria-hidden className="absolute top-0 -left-10 text-[10px] text-(--m-faint)/60 tabular-nums">
+      <span aria-hidden className="absolute top-0 -left-10 text-[10px] text-faint/60 tabular-nums">
         03
       </span>
       <ul>
@@ -401,7 +401,7 @@ function InsertedMeals() {
           offset += meal.length;
           return (
             <li key={index} className="flex gap-3">
-              <span aria-hidden className={start < shown ? "text-(--m-faint)" : "text-transparent"}>
+              <span aria-hidden className={start < shown ? "text-faint" : "text-transparent"}>
                 –
               </span>
               <span>
@@ -411,7 +411,7 @@ function InsertedMeals() {
           );
         })}
       </ul>
-      <span className="mt-1 block text-[10.5px] tracking-[0.04em] text-(--m-faint) uppercase">
+      <span className="mt-1 block text-[10.5px] tracking-[0.04em] text-faint uppercase">
         {shown < total ? <Scramble text="Writing on device" /> : "Written on device · 1.9 s · 188 tokens"}
       </span>
     </div>

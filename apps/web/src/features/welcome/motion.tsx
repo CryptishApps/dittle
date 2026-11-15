@@ -1,21 +1,13 @@
 import Lenis from "lenis";
-import {
-  AnimatePresence,
-  motion,
-  useInView,
-  useReducedMotion,
-  useScroll,
-  useTransform,
-  type MotionValue,
-} from "motion/react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Mark } from "../../ui/Mark";
+import { AnimatePresence, motion, useInView, useReducedMotion, useScroll, useTransform, type MotionValue } from "motion/react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { ease } from "../../ui/kit";
 
 export function useSmoothScroll() {
   const reduce = useReducedMotion();
   useEffect(() => {
     if (reduce) return;
-    const lenis = new Lenis({ lerp: 0.09 });
+    const lenis = new Lenis({ lerp: 0.09, anchors: true });
     let frame = requestAnimationFrame(function loop(time) {
       lenis.raf(time);
       frame = requestAnimationFrame(loop);
@@ -27,25 +19,27 @@ export function useSmoothScroll() {
   }, [reduce]);
 }
 
-export function Shot({ name, alt, theme }: { name: string; alt: string; theme?: "light" | "dark" }) {
-  if (theme) {
-    return <img src={`/shots/${name}-${theme}.png`} alt={alt} className="block h-auto w-full" />;
-  }
+export type Focus = { x: number; y: number; zoom: number };
+
+export function Shot({ name, alt, theme, focus }: { name: string; alt: string; theme?: "light" | "dark"; focus?: Focus }) {
+  const style: CSSProperties | undefined = focus
+    ? { width: `${focus.zoom * 100}%`, maxWidth: "none", transform: `translate(-${focus.x}%, -${focus.y}%)` }
+    : undefined;
+  const img = (src: string) => <img src={src} alt={alt} className="block h-auto w-full" style={style} loading="lazy" />;
+  if (theme) return img(`/shots/${name}-${theme}.png`);
   return (
     <picture>
       <source srcSet={`/shots/${name}-dark.png`} media="(prefers-color-scheme: dark)" />
-      <img src={`/shots/${name}-light.png`} alt={alt} className="block h-auto w-full" />
+      {img(`/shots/${name}-light.png`)}
     </picture>
   );
 }
-
-const ease = [0.22, 1, 0.36, 1] as const;
 
 export function Rise({ delay = 0, children, className }: { delay?: number; children: ReactNode; className?: string }) {
   return (
     <motion.div
       className={className}
-      initial={{ opacity: 0, y: 18, filter: "blur(6px)" }}
+      initial={{ opacity: 0, y: 16, filter: "blur(6px)" }}
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       transition={{ duration: 0.8, delay, ease }}
     >
@@ -54,122 +48,146 @@ export function Rise({ delay = 0, children, className }: { delay?: number; child
   );
 }
 
-export function TiltedShot({ children, floating }: { children: ReactNode; floating?: ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const reduce = useReducedMotion();
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "start 0.12"] });
-  const rotateX = useTransform(scrollYProgress, [0, 1], reduce ? [0, 0] : [26, 0]);
-  const scale = useTransform(scrollYProgress, [0, 1], reduce ? [1, 1] : [0.84, 1]);
-  const y = useTransform(scrollYProgress, [0, 1], reduce ? [0, 0] : [60, 0]);
+export function Reveal({ children, className, delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
   return (
-    <div ref={ref} className="relative [perspective:1800px]">
-      <motion.div style={{ rotateX, scale, y, transformOrigin: "50% 0%" }} className="relative">
-        {children}
-      </motion.div>
-      {floating}
-    </div>
-  );
-}
-
-export function Floating({
-  progress,
-  distance,
-  className,
-  children,
-}: {
-  progress: MotionValue<number>;
-  distance: number;
-  className: string;
-  children: ReactNode;
-}) {
-  const reduce = useReducedMotion();
-  const y = useTransform(progress, [0, 1], reduce ? [0, 0] : [0, -distance]);
-  return (
-    <motion.div style={{ y }} className={`absolute ${className}`}>
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-12% 0px" }}
+      transition={{ duration: 0.7, delay, ease }}
+    >
       {children}
     </motion.div>
   );
 }
 
-export function ScrollWords({ text, marked }: { text: string; marked: string }) {
+export function TiltedShot({ children, floating }: { children: ReactNode; floating?: (progress: MotionValue<number>) => ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const reduce = useReducedMotion();
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "start 0.1"] });
+  const rotateX = useTransform(scrollYProgress, [0, 1], reduce ? [0, 0] : [24, 0]);
+  const scale = useTransform(scrollYProgress, [0, 1], reduce ? [1, 1] : [0.86, 1]);
+  const y = useTransform(scrollYProgress, [0, 1], reduce ? [0, 0] : [50, 0]);
+  return (
+    <div ref={ref} className="relative [perspective:1800px]">
+      <motion.div style={{ rotateX, scale, y, transformOrigin: "50% 0%" }} className="relative">
+        {children}
+      </motion.div>
+      {floating?.(scrollYProgress)}
+    </div>
+  );
+}
+
+export function Floating({ progress, distance, className, children }: { progress: MotionValue<number>; distance: number; className: string; children: ReactNode }) {
+  const reduce = useReducedMotion();
+  const y = useTransform(progress, [0, 1], reduce ? [0, 0] : [distance, 0]);
+  const opacity = useTransform(progress, [0.35, 0.8], reduce ? [1, 1] : [0, 1]);
+  return (
+    <motion.div style={{ y, opacity }} className={`absolute ${className}`}>
+      {children}
+    </motion.div>
+  );
+}
+
+type Unit = { text: string; token: boolean; trail: string };
+
+function units(text: string): Unit[] {
+  const list: Unit[] = [];
+  for (const chunk of text.split(/(\[[^\]]+\])/)) {
+    if (chunk.startsWith("[")) {
+      list.push({ text: chunk.slice(1, -1), token: true, trail: "" });
+      continue;
+    }
+    const words = chunk.split(" ");
+    const last = list[list.length - 1];
+    if (last?.token && words[0]) last.trail = words.shift()!;
+    for (const word of words.filter(Boolean)) list.push({ text: word, token: false, trail: "" });
+  }
+  return list;
+}
+
+export function ScrollWords({ text }: { text: string }) {
   const ref = useRef<HTMLParagraphElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start 0.85", "end 0.45"] });
-  const [before = "", after = ""] = text.split(marked);
-  const tokens = [
-    ...before.trim().split(" ").map((word) => ({ word, marked: false })),
-    { word: marked, marked: true },
-    ...after.trim().split(" ").filter(Boolean).map((word) => ({ word, marked: false })),
-  ];
+  const list = units(text);
   return (
-    <p ref={ref} className="text-[32px] leading-[1.18] font-extrabold tracking-[-0.035em] sm:text-[52px]">
-      {tokens.map((token, index) => {
-        const from = index / tokens.length;
-        const to = (index + 1) / tokens.length;
-        return (
-          <Word key={index} progress={scrollYProgress} from={from} to={to}>
-            {token.marked ? (
-              <MarkWhenReached progress={scrollYProgress} at={to}>
-                {token.word}
-              </MarkWhenReached>
-            ) : (
-              token.word
-            )}
-          </Word>
-        );
-      })}
+    <p ref={ref} className="text-[28px] leading-[1.3] font-medium tracking-[-0.04em] sm:text-[46px]">
+      {list.map((unit, index) => (
+        <Word key={index} progress={scrollYProgress} from={index / list.length} to={(index + 1) / list.length} unit={unit} />
+      ))}
     </p>
   );
 }
 
-function Word({ progress, from, to, children }: { progress: MotionValue<number>; from: number; to: number; children: ReactNode }) {
+function Word({ progress, from, to, unit }: { progress: MotionValue<number>; from: number; to: number; unit: Unit }) {
   const reduce = useReducedMotion();
-  const opacity = useTransform(progress, [from, to], reduce ? [1, 1] : [0.14, 1]);
+  const opacity = useTransform(progress, [from, to], reduce ? [1, 1] : [0.12, 1]);
+  const [reached, setReached] = useState(false);
+  useEffect(() => progress.on("change", (value) => setReached(value >= to)), [progress, to]);
   return (
     <>
-      <motion.span style={{ opacity }}>{children}</motion.span>{" "}
+      <motion.span style={{ opacity }}>
+        {unit.token ? (
+          <span className="whitespace-nowrap">
+            <span className="token" data-found={reached || reduce ? "true" : "false"}>
+              {unit.text}
+            </span>
+            {unit.trail}
+          </span>
+        ) : (
+          unit.text
+        )}
+      </motion.span>{" "}
     </>
   );
 }
 
-function MarkWhenReached({ progress, at, children }: { progress: MotionValue<number>; at: number; children: ReactNode }) {
-  const [reached, setReached] = useState(false);
-  useEffect(() => progress.on("change", (value) => setReached(value >= at)), [progress, at]);
-  return reached ? <Mark swipe>{children}</Mark> : <span className="px-[0.12em]">{children}</span>;
-}
-
-export type Step = { shot: string; alt: string; tag: ReactNode; title: string; body: string };
+export type Step = { key: string; label: string; title: string; body: string; visual: ReactNode };
 
 export function StickySteps({ steps }: { steps: Step[] }) {
   const [active, setActive] = useState(0);
   const current = steps[active]!;
   return (
-    <div className="grid gap-10 lg:grid-cols-[1fr_1.1fr] lg:gap-16">
+    <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
       <div>
         {steps.map((step, index) => (
-          <StepText key={step.shot} step={step} onActive={() => setActive(index)} active={index === active} />
+          <StepText key={step.key} step={step} index={index} total={steps.length} onActive={() => setActive(index)} active={index === active} />
         ))}
       </div>
       <div className="hidden lg:block">
-        <div className="sticky top-[14vh] flex h-[72vh] items-center justify-center">
-          <AnimatePresence mode="popLayout" initial={false}>
-            <motion.div
-              key={current.shot}
-              className="w-full max-w-[600px]"
-              initial={{ opacity: 0, y: 40, scale: 0.96, filter: "blur(8px)" }}
-              animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-              exit={{ opacity: 0, y: -30, scale: 0.98, filter: "blur(6px)" }}
-              transition={{ duration: 0.6, ease }}
-            >
-              <Shot name={current.shot} alt={current.alt} theme="dark" />
-            </motion.div>
-          </AnimatePresence>
+        <div className="sticky top-[14vh] flex h-[72vh] flex-col justify-center">
+          <div className="mb-3 flex items-center justify-between text-[11px] tracking-[0.06em] text-faint uppercase">
+            <span>Fig. {String(active + 1).padStart(2, "0")}</span>
+            <span className="flex gap-1">
+              {steps.map((step, index) => (
+                <span key={step.key} className={`h-[3px] w-6 transition-colors duration-500 ${index <= active ? "bg-accent" : "bg-line-strong"}`} />
+              ))}
+            </span>
+          </div>
+          <div className="brackets [--bracket-inset:-7px] [--bracket-size:12px]">
+          <div className="relative aspect-[16/11] overflow-hidden border border-line-strong bg-card">
+            <AnimatePresence mode="popLayout" initial={false}>
+              <motion.div
+                key={current.key}
+                className="absolute inset-0 overflow-hidden"
+                initial={{ opacity: 0, y: 30, filter: "blur(8px)" }}
+                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                exit={{ opacity: 0, y: -20, filter: "blur(6px)" }}
+                transition={{ duration: 0.55, ease }}
+              >
+                {current.visual}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function StepText({ step, onActive, active }: { step: Step; onActive: () => void; active: boolean }) {
+function StepText({ step, index, total, onActive, active }: { step: Step; index: number; total: number; onActive: () => void; active: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { margin: "-45% 0px -45% 0px" });
   useEffect(() => {
@@ -177,12 +195,17 @@ function StepText({ step, onActive, active }: { step: Step; onActive: () => void
   }, [inView, onActive]);
   return (
     <div ref={ref} className="flex min-h-[72vh] flex-col justify-center py-10 lg:py-0">
-      <div className={`transition-opacity duration-500 ${active ? "opacity-100" : "lg:opacity-30"}`}>
-        {step.tag}
-        <h3 className="mt-5 text-[36px] leading-[1.05] font-extrabold tracking-[-0.04em] sm:text-[52px]">{step.title}</h3>
-        <p className="mt-4 max-w-[38ch] text-[18px] leading-relaxed text-white/60">{step.body}</p>
-        <div className="mt-8 lg:hidden">
-          <Shot name={step.shot} alt={step.alt} theme="dark" />
+      <div className={`transition-opacity duration-500 ${active ? "opacity-100" : "lg:opacity-25"}`}>
+        <p className="flex items-center gap-3 text-[11px] tracking-[0.06em] text-faint uppercase">
+          <span className="text-accent">
+            {String(index + 1).padStart(2, "0")}/{String(total).padStart(2, "0")}
+          </span>
+          {step.label}
+        </p>
+        <h3 className="mt-5 text-[32px] leading-[1.08] font-medium tracking-[-0.045em] sm:text-[44px]">{step.title}</h3>
+        <p className="mt-5 max-w-[42ch] text-[15px] leading-[1.75] text-soft">{step.body}</p>
+        <div className="brackets mt-8 [--bracket-inset:-6px] lg:hidden">
+          <div className="relative aspect-[16/11] overflow-hidden border border-line-strong bg-card">{step.visual}</div>
         </div>
       </div>
     </div>

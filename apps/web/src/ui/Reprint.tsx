@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Mark } from "./Mark";
 
-export function Reprint({ value, highlight = false }: { value: string; highlight?: boolean }) {
+export function Reprint({ value }: { value: string }) {
   const [shown, setShown] = useState(value);
   const [printCount, setPrintCount] = useState(0);
   if (value !== shown) {
@@ -11,7 +10,7 @@ export function Reprint({ value, highlight = false }: { value: string; highlight
 
   const printing = printCount > 0;
   const chars = [...value];
-  const digits = (
+  return (
     <span key={printCount} className="reprint" data-value={value} data-printing={printing}>
       <span className={printing ? "t-digit-group is-animating" : "t-digit-group"}>
         {chars.map((char, index) => (
@@ -21,13 +20,6 @@ export function Reprint({ value, highlight = false }: { value: string; highlight
         ))}
       </span>
     </span>
-  );
-  return printing && highlight ? (
-    <Mark key={printCount} swipe>
-      {digits}
-    </Mark>
-  ) : (
-    digits
   );
 }
 

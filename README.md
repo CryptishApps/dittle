@@ -61,9 +61,9 @@ bun run dev                                    # http://localhost:5180
 
 In development, App Check uses a debug token. Leave `VITE_APPCHECK_DEBUG_TOKEN` empty the first time, copy the token the browser console prints, and add it in the Firebase console under App Check > Manage debug tokens.
 
-Design work lives at `http://localhost:5180/dev/designs`. Those pages exist only in development and are left out of production builds.
+Design previews live at `http://localhost:5180/dev/designs`: the notes app filled with sample notes, and the homepage. They exist only in development and are left out of production builds.
 
-The homepage screenshots in `apps/web/public/shots` come from those design pages. To retake them, keep `bun run dev` running and run `CHROME_PATH=/path/to/chrome bun run --filter @dittle/web shots`.
+The homepage screenshots in `apps/web/public/shots` come from the notes app preview. To retake them, keep `bun run dev` running and run `CHROME_PATH=/path/to/chrome bun run --filter @dittle/web shots`.
 
 Deploy to Firebase Hosting with the Firebase CLI:
 

@@ -1,10 +1,9 @@
-import { useScroll } from "motion/react";
-import { useRef, type ReactNode } from "react";
-import { BucketTag } from "../../ui/BucketPill";
-import { SourceTag } from "../../ui/InferenceMeter";
-import { Mark } from "../../ui/Mark";
+import { motion } from "motion/react";
+import { useEffect, useState, type ReactNode } from "react";
+import { Code, MIcon, Scramble } from "../../ui/kit";
 import { Wordmark } from "../../ui/Wordmark";
-import { Floating, Rise, ScrollWords, Shot, StickySteps, TiltedShot, useSmoothScroll, type Step } from "./motion";
+import { Demo } from "./Demo";
+import { Floating, Reveal, Rise, ScrollWords, Shot, StickySteps, TiltedShot, useSmoothScroll, type Step } from "./motion";
 
 type WelcomeProps = {
   onStart: () => void;
@@ -17,298 +16,355 @@ const REPO_URL = "https://github.com/CryptishApps/dittle";
 
 const STEPS: Step[] = [
   {
-    shot: "update",
-    alt: "A note where 80 guests became 95, with a dark card offering to update Budget, Chair hire and Email to Sam.",
-    tag: <SourceTag source="device" />,
+    key: "found",
+    label: "On device",
+    title: "It spots the details that matter",
+    body: "As you type, Gemini Nano reads each paragraph and marks the counts, dates and prices. Hover one to see how it was worked out and which other notes mention it.",
+    visual: <Shot name="hover" theme="dark" alt="A note with values marked in grey and a card showing the food total and the other note that uses it." focus={{ x: 30, y: 9, zoom: 1.75 }} />,
+  },
+  {
+    key: "change",
+    label: "On device",
     title: "Change it once",
-    body: "Change 80 guests to 95 and Dittle already knows the other notes that mention it. One tap updates them all.",
+    body: "Edit a value and Dittle lists the notes that still have the old one. Update them all in one go, or keep the change to this note.",
+    visual: <Shot name="change" theme="dark" alt="The guest count changed from 80 to 95, with three notes listed as still saying 80." focus={{ x: 32, y: 13, zoom: 1.7 }} />,
   },
   {
-    shot: "insert",
-    alt: "A request line in a note with an Add 7 meals button and a preview of the meals.",
-    tag: <SourceTag source="device" />,
-    title: "Ask inside the note",
-    body: "Write \"add in a list of meals here\". A button appears with the list already written. Hover to preview, tap to add.",
+    key: "stale",
+    label: "On device",
+    title: "Old values stand out",
+    body: "Open a note you skipped and the old value is marked in orange, with the new one a click away. Nothing changes without you seeing it.",
+    visual: <Shot name="stale" theme="dark" alt="The budget note with 80 marked in orange and a button to use 95 instead." focus={{ x: 34, y: 14, zoom: 1.55 }} />,
   },
   {
-    shot: "buckets",
-    alt: "A new note called Pick up the rings being sorted into the Wedding bucket.",
-    tag: <SourceTag source="device" />,
-    title: "Buckets sort themselves",
-    body: "Every new note lands in the right bucket from what it says. Wedding, work, the Lisbon trip. No folders to pick.",
+    key: "inbox",
+    label: "Background",
+    title: "An inbox for the quiet work",
+    body: "Notes it sorted into buckets, totals it added up and notes that disagree with each other all land in one list, with a link back to each note.",
+    visual: <Shot name="inbox" theme="dark" alt="An inbox listing notes Dittle updated, sorted and added up." focus={{ x: 17, y: 0, zoom: 1.45 }} />,
   },
   {
-    shot: "recalc",
-    alt: "A budget where food, chairs and the total were worked out again for 95 guests.",
-    tag: <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-bold text-white/70">Plain maths</span>,
-    title: "Sums that keep up",
-    body: "When a number changes, totals that use it are worked out again. Code does the maths, so nothing is guessed.",
-  },
-  {
-    shot: "collections",
-    alt: "A Vendors table built from three notes with price, deposit and contact.",
-    tag: <SourceTag source="cloud" />,
-    title: "Collections, found for you",
-    body: "Notes about the same kind of thing become a table, like vendors with price, deposit and contact. The cloud only sees the values, never the notes.",
-  },
-  {
-    shot: "offline",
-    alt: "A note being written offline, saved on the device.",
-    tag: <SourceTag source="device" />,
-    title: "Works offline",
-    body: "Notes save to your device first, and the AI runs there too. Everything syncs when you're back online.",
+    key: "write",
+    label: "On device, cloud for long jobs",
+    title: "Ask in the note itself",
+    body: "Write “add in a list of meals here” and a button appears with the list already drafted. Hover to preview it, click to add it.",
+    visual: <Shot name="write" theme="dark" alt="A note offering to insert a list of seven meals, with a preview." focus={{ x: 31, y: 24, zoom: 1.75 }} />,
   },
 ];
 
+const MODELS: { job: string; model: string; where: string; how: string }[] = [
+  {
+    job: "Read notes, find values, sort into buckets, short inserts",
+    model: "Gemini Nano",
+    where: "On device",
+    how: "Chrome's Prompt API on the web, ML Kit on Android",
+  },
+  { job: "Fallback when the device has no model", model: "Gemini Flash", where: "Cloud", how: "Firebase AI Logic, hybrid mode" },
+  { job: "Collections and long inserts", model: "Gemini Flash", where: "Cloud", how: "Only extracted values and titles are sent" },
+];
+
+const FIREBASE = ["AI Logic", "Firestore", "Authentication", "App Check", "Remote Config", "Hosting"];
+
 export function Welcome({ onStart, onGoogle, busy = false, error }: WelcomeProps) {
   useSmoothScroll();
-  const heroRef = useRef<HTMLElement>(null);
-  const { scrollYProgress: heroProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
+  const navDark = useNavOverDark();
+  const [found, setFound] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setFound(true), 1100);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   return (
-    <div className="min-h-dvh overflow-x-clip bg-paper">
-      <nav className="fixed inset-x-0 top-4 z-50 flex justify-center px-4">
-        <div className="flex items-center gap-1 rounded-full bg-paper-raised/90 p-1.5 pl-4 shadow-card backdrop-blur">
-          <Wordmark className="mr-3 text-[19px]" />
-          <a href="#how" className="hidden rounded-full px-3.5 py-2 text-[14px] font-bold text-ink-soft hover:text-ink sm:block">
-            How it works
-          </a>
-          <a href={REPO_URL} className="hidden rounded-full px-3.5 py-2 text-[14px] font-bold text-ink-soft hover:text-ink sm:block">
-            GitHub
-          </a>
+    <div className="guides min-h-dvh overflow-x-clip bg-page text-ink">
+      <nav className={`fixed inset-x-0 top-3 z-50 px-3 ${navDark ? "theme-dark" : ""}`}>
+        <div className="mx-auto flex h-12 max-w-[1200px] items-center justify-between border border-line-strong bg-page/85 pr-1.5 pl-4 text-ink backdrop-blur-md transition-colors duration-300">
+          <Wordmark className="text-[14px]" />
+          <div className="hidden items-center gap-7 text-[11px] tracking-[0.06em] text-soft uppercase md:flex">
+            <a href="#try" className="hover:text-ink">
+              Try it
+            </a>
+            <a href="#how" className="hover:text-ink">
+              How it works
+            </a>
+            <a href="#models" className="hover:text-ink">
+              Models
+            </a>
+            <a href={REPO_URL} className="hover:text-ink">
+              GitHub
+            </a>
+          </div>
           <button
             type="button"
             onClick={onStart}
             disabled={busy}
-            className="rounded-full bg-primary px-4 py-2 text-[14px] font-bold text-primary-ink transition active:scale-95 disabled:opacity-60"
+            className="inline-flex h-9 items-center gap-2 bg-ink px-4 text-[11px] tracking-[0.06em] text-page uppercase transition-opacity hover:opacity-90 disabled:opacity-60"
           >
-            Start writing
+            Open Dittle
+            <MIcon name="right" className="size-3.5" />
           </button>
         </div>
       </nav>
 
-      <main>
-        <section ref={heroRef} className="relative px-4 pt-36 sm:px-8 sm:pt-44">
-          <div className="mx-auto max-w-5xl text-center">
-            <Rise>
-              <span className="inline-flex items-center gap-2 rounded-full bg-paper-raised px-3.5 py-1.5 text-[13px] font-bold text-ink-soft shadow-card">
-                <span aria-hidden className="size-2 rounded-full bg-hl-green ring-2 ring-hl-green/40" />
-                Notes with AI that runs on your device
+      <header className="relative mx-auto max-w-[1200px] px-4 pt-36 sm:px-8 sm:pt-44">
+        <Rise>
+          <span className="inline-flex items-center gap-2.5 border border-line-strong bg-card px-2.5 py-1.5 text-[11px] tracking-[0.06em] text-soft uppercase">
+            <span aria-hidden className="size-1.5 animate-pulse bg-accent" />
+            Gemini Nano · runs on your device
+          </span>
+        </Rise>
+        <Rise delay={0.08}>
+          <h1 className="mt-8 text-[40px] leading-[1.06] font-medium tracking-[-0.06em] [--caret-w:0.32em] sm:text-[60px] lg:text-[76px]">
+            Notes that keep <br className="hidden sm:block" />
+            themselves{" "}
+            <span className="whitespace-nowrap">
+              <span className="token" data-found={found}>
+                up to date
               </span>
-            </Rise>
-            <Rise delay={0.08}>
-              <h1 className="mt-7 text-[52px] leading-[0.98] font-extrabold tracking-[-0.055em] text-balance sm:text-[96px]">
-                Change it once.
-                <br />
-                Every note{" "}
-                <Mark swipe delay={900}>
-                  follows.
-                </Mark>
-              </h1>
-            </Rise>
-            <Rise delay={0.16}>
-              <p className="mx-auto mt-7 max-w-[44ch] text-[18px] leading-relaxed font-medium text-ink-soft sm:text-[21px]">
-                Write notes the way you always do. Dittle notices the numbers, dates and names you repeat, and keeps every
-                note in step when one changes.
-              </p>
-            </Rise>
-            <Rise delay={0.24} className="mt-9 flex flex-wrap items-center justify-center gap-3">
+              <span className="caret" aria-hidden />
+            </span>
+          </h1>
+        </Rise>
+        <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
+          <Rise delay={0.16}>
+            <p className="max-w-[50ch] text-[16px] leading-[1.75] text-soft sm:text-[17px]">
+              Change a date, price or headcount in one note, and Dittle updates every other note that mentions it.{" "}
+              <span className="text-ink">Private, instant, works offline.</span>
+            </p>
+          </Rise>
+          <Rise delay={0.24}>
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={onStart}
                 disabled={busy}
-                className="rounded-full bg-primary px-7 py-4 text-[16px] font-bold text-primary-ink transition active:scale-[0.97] disabled:opacity-60"
+                className="inline-flex h-11 items-center gap-2 bg-ink px-5 text-[12px] tracking-[0.06em] text-page uppercase transition-opacity hover:opacity-90 disabled:opacity-60"
               >
                 Start writing
+                <MIcon name="right" className="size-3.5" />
               </button>
               <button
                 type="button"
                 onClick={onGoogle}
                 disabled={busy}
-                className="inline-flex items-center gap-2.5 rounded-full bg-paper-raised px-7 py-4 text-[16px] font-bold shadow-card transition active:scale-[0.97] disabled:opacity-60"
+                className="inline-flex h-11 items-center border border-line-strong bg-card px-5 text-[12px] tracking-[0.06em] uppercase transition-colors hover:border-ink disabled:opacity-60"
               >
-                <GoogleMark />
                 Continue with Google
               </button>
-            </Rise>
-            <Rise delay={0.3}>
-              <p className="mt-4 text-[14px] font-semibold text-ink-faint">No account needed · Works offline · Free</p>
-              {error && (
-                <p role="alert" className="mt-3 text-[14px] font-semibold text-caution">
-                  {error}
-                </p>
-              )}
-            </Rise>
-          </div>
+            </div>
+            <p className="mt-3 text-[11px] tracking-[0.06em] text-faint uppercase">No account needed · Free · Apache 2.0</p>
+            {error && (
+              <p role="alert" className="mt-3 text-[13px] text-accent-ink">
+                {error}
+              </p>
+            )}
+          </Rise>
+        </div>
 
-          <div className="mx-auto mt-20 max-w-6xl">
-            <TiltedShot
-              floating={
-                <>
-                  <Floating progress={heroProgress} distance={180} className="top-[18%] -left-6 hidden lg:block">
-                    <Chip>
-                      <SourceTag source="device" /> Read your note · 180 ms
-                    </Chip>
-                  </Floating>
-                  <Floating progress={heroProgress} distance={320} className="top-[46%] -right-8 hidden lg:block">
-                    <Chip>
-                      <Mark>Updated</Mark> Budget, Chair hire, Email to Sam
-                    </Chip>
-                  </Floating>
-                  <Floating progress={heroProgress} distance={250} className="bottom-[16%] -left-10 hidden lg:block">
-                    <Chip>
-                      Sorted into <BucketTag bucket={{ name: "Wedding", color: "green" }} />
-                    </Chip>
-                  </Floating>
-                  <Floating progress={heroProgress} distance={140} className="-top-6 right-[12%] hidden lg:block">
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2.5 text-[14px] font-bold text-primary-ink shadow-pop">
-                      + Add 7 meals
+        <Rise delay={0.3} className="mt-20 sm:mt-28">
+          <div className="mb-3 flex items-center justify-between text-[11px] tracking-[0.06em] text-faint uppercase">
+            <span>Fig. 00 — A catering quote, read on device</span>
+            <span className="hidden sm:inline">1440 × 900</span>
+          </div>
+          <TiltedShot
+            floating={(progress) => (
+              <>
+                <Floating progress={progress} distance={60} className="top-[30%] -left-3 hidden md:block lg:-left-10">
+                  <Note code="VF" title="Value found" detail="Guest count · 180 ms" />
+                </Floating>
+                <Floating progress={progress} distance={110} className="top-[48%] -right-3 hidden md:block lg:-right-10">
+                  <Note code="UP" title="3 notes still say 80" detail="Budget, Chair hire, Email" accent />
+                </Floating>
+                <Floating progress={progress} distance={80} className="-bottom-6 left-[38%] hidden md:block">
+                  <Note code="ND" title="Read on this device" detail="Gemini Nano · Prompt API" />
+                </Floating>
+              </>
+            )}
+          >
+            <div className="brackets border border-line-strong bg-card p-1.5 shadow-pop [--bracket-inset:-9px] [--bracket-size:16px]">
+              <Shot name="hero" alt="Dittle showing a catering quote where the guest count changed from 80 to 95, with three other notes marked as out of date." />
+            </div>
+          </TiltedShot>
+        </Rise>
+      </header>
+
+      <Section id="try" index="01" label="Try it">
+        <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr] lg:items-end">
+          <Reveal>
+            <h2 className="text-[34px] leading-[1.05] font-medium tracking-[-0.05em] sm:text-[52px]">Change it once.</h2>
+          </Reveal>
+          <Reveal delay={0.08}>
+            <p className="max-w-[46ch] text-[15px] leading-[1.75] text-soft lg:justify-self-end">
+              Change the guest count in the catering quote. The other three notes mention the same number, so Dittle offers to bring them along.
+            </p>
+          </Reveal>
+        </div>
+        <Reveal delay={0.1} className="mt-12">
+          <Demo />
+        </Reveal>
+      </Section>
+
+      <section className="mx-auto max-w-[1200px] px-4 py-32 sm:px-8 sm:py-44">
+        <ScrollWords text="Your notes repeat the same details: [a guest count], [a date], [a price]. Dittle notices them on your device and keeps every copy in step, so a change in one place is never forgotten in another." />
+      </section>
+
+      <div data-dark className="theme-dark bg-page text-ink">
+        <Section id="how" index="02" label="How it works" dark>
+          <StickySteps steps={STEPS} />
+        </Section>
+      </div>
+
+      <Section id="models" index="03" label="Where the AI runs">
+        <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr] lg:items-end">
+          <Reveal>
+            <h2 className="text-[34px] leading-[1.05] font-medium tracking-[-0.05em] sm:text-[52px]">On device first.</h2>
+          </Reveal>
+          <Reveal delay={0.08}>
+            <p className="max-w-[46ch] text-[15px] leading-[1.75] text-soft lg:justify-self-end">
+              Most of the work runs on Gemini Nano inside your browser or phone. The cloud steps in when your device can't, or when the job is too big.
+            </p>
+          </Reveal>
+        </div>
+        <Reveal delay={0.1} className="mt-12 overflow-x-auto border border-line-strong">
+          <table className="w-full min-w-[720px] text-left text-[13px]">
+            <thead className="bg-side text-[11px] tracking-[0.06em] text-faint uppercase">
+              <tr>
+                <th className="px-5 py-3 font-normal">Job</th>
+                <th className="px-5 py-3 font-normal">Model</th>
+                <th className="px-5 py-3 font-normal">Where</th>
+                <th className="px-5 py-3 font-normal">How</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {MODELS.map((row) => (
+                <tr key={row.job} className="bg-card transition-colors hover:bg-panel">
+                  <td className="px-5 py-4 leading-[1.6]">{row.job}</td>
+                  <td className="px-5 py-4 whitespace-nowrap">{row.model}</td>
+                  <td className="px-5 py-4 whitespace-nowrap">
+                    <span className={`px-1.5 py-0.5 text-[11px] tracking-[0.05em] uppercase ${row.where === "On device" ? "bg-accent-tint text-accent-ink" : "bg-chip text-soft"}`}>
+                      {row.where}
                     </span>
-                  </Floating>
-                </>
-              }
-            >
-              <div className="overflow-hidden rounded-[28px] bg-paper-raised p-2 shadow-pop sm:rounded-[36px] sm:p-3">
-                <div className="overflow-hidden rounded-[22px] sm:rounded-[28px]">
-                  <Shot
-                    name="editor"
-                    alt="The Dittle app: a grid of notes sorted into buckets, and a catering note where 80 guests became 95 with a card offering to update three other notes."
-                  />
-                </div>
-              </div>
-            </TiltedShot>
-          </div>
-        </section>
+                  </td>
+                  <td className="px-5 py-4 leading-[1.6] text-soft">{row.how}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Reveal>
+        <Reveal delay={0.1} className="mt-px grid border border-t-0 border-line-strong sm:grid-cols-3">
+          <Fact title="Private" body="On-device jobs never send your note anywhere. Cloud jobs get values and titles, not whole notes." />
+          <Fact title="Offline" body="Notes save to your device first and sync when you're back. The on-device model works without a connection." />
+          <Fact title="Open" body="The code is on GitHub under Apache 2.0. Read how every AI call is made, or run your own copy." />
+        </Reveal>
+        <Reveal delay={0.1} className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 text-[11px] tracking-[0.06em] text-faint uppercase">
+          <span>Built on Firebase</span>
+          {FIREBASE.map((product) => (
+            <span key={product} className="text-soft">
+              {product}
+            </span>
+          ))}
+        </Reveal>
+      </Section>
 
-        <section className="mx-auto max-w-5xl px-4 py-36 sm:px-8 sm:py-52">
-          <ScrollWords
-            text="Your notes repeat the same numbers, dates and names. Dittle notices them as you write, right on your device, and keeps every note in step."
-            marked="right on your device"
-          />
-        </section>
-
-        <section id="how" className="rounded-t-[40px] bg-[#0d0d0d] px-4 py-24 text-white sm:rounded-t-[64px] sm:px-8 sm:py-32">
-          <div className="mx-auto max-w-6xl">
-            <p className="text-[15px] font-bold text-white/50">How it works</p>
-            <h2 className="mt-3 max-w-[16ch] text-[40px] leading-[1.02] font-extrabold tracking-[-0.045em] sm:text-[68px]">
-              The busywork, done quietly.
+      <div data-dark className="theme-dark bg-page text-ink">
+        <section className="mx-auto max-w-[1200px] px-4 py-32 sm:px-8 sm:py-40">
+          <Reveal>
+            <p className="text-[11px] tracking-[0.06em] text-faint uppercase">04 — Start</p>
+            <h2 className="mt-6 max-w-[14ch] text-[44px] leading-[1.02] font-medium tracking-[-0.06em] sm:text-[88px]">
+              <InViewScramble text="Write it down once." />
             </h2>
-            <div className="mt-10">
-              <StickySteps steps={STEPS} />
-            </div>
-          </div>
-        </section>
-
-        <section className="bg-[#0d0d0d]">
-          <div className="rounded-t-[40px] bg-paper px-4 py-24 sm:rounded-t-[64px] sm:px-8 sm:py-32">
-            <div className="mx-auto max-w-6xl">
-              <h2 className="max-w-[18ch] text-[40px] leading-[1.02] font-extrabold tracking-[-0.045em] sm:text-[68px]">
-                On your device first. <span className="text-ink-faint">Cloud when it helps.</span>
-              </h2>
-              <div className="mt-14 grid gap-4 lg:grid-cols-[1.15fr_1fr]">
-                <div className="rounded-[36px] bg-paper-raised p-7 shadow-card sm:p-10">
-                  <SourceTag source="device" />
-                  <h3 className="mt-4 text-[30px] font-extrabold tracking-[-0.04em]">Gemini Nano</h3>
-                  <p className="mt-2 max-w-[40ch] text-[17px] text-ink-soft">
-                    Runs inside Chrome on your computer. Fast, private, free, and it works on a plane.
-                  </p>
-                  <List items={["Reading your notes as you type", "Finding the notes a change affects", "Sorting notes into buckets", "Writing short lists"]} />
-                </div>
-                <div className="flex flex-col gap-4">
-                  <div className="rounded-[36px] bg-primary p-7 text-primary-ink sm:p-10">
-                    <SourceTag source="cloud" />
-                    <h3 className="mt-4 text-[30px] font-extrabold tracking-[-0.04em]">Gemini Flash</h3>
-                    <p className="mt-2 max-w-[40ch] text-[17px] opacity-70">
-                      For jobs that span every note, or that are too big for your device.
-                    </p>
-                    <List items={["Finding collections", "Longer writing", "Backup when your device can't"]} invert />
-                  </div>
-                  <div className="rounded-[36px] bg-paper-sunk/70 p-3">
-                    <Shot name="activity" alt="AI activity today: 412 calls on device and 6 in the cloud." />
-                  </div>
-                </div>
-              </div>
-              <p className="mt-6 text-[15px] font-semibold text-ink-faint">
-                Both run through Firebase AI Logic. If your browser can't run Gemini Nano, everything still works in the cloud.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="px-4 pb-6 sm:px-8">
-          <div className="mx-auto max-w-6xl overflow-hidden rounded-[40px] bg-primary px-6 pt-16 text-center text-primary-ink sm:rounded-[56px] sm:pt-24">
-            <h2 className="mx-auto max-w-[14ch] text-[44px] leading-[1] font-extrabold tracking-[-0.05em] sm:text-[80px]">
-              Write it down. Dittle keeps up.
-            </h2>
-            <div className="mt-9 flex flex-wrap justify-center gap-3">
+            <div className="mt-12 flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={onStart}
                 disabled={busy}
-                className="rounded-full bg-primary-ink px-7 py-4 text-[16px] font-bold text-primary transition active:scale-[0.97]"
+                className="inline-flex h-11 items-center gap-2 bg-ink px-5 text-[12px] tracking-[0.06em] text-page uppercase transition-opacity hover:opacity-90 disabled:opacity-60"
               >
                 Start writing
+                <MIcon name="right" className="size-3.5" />
               </button>
-              <button
-                type="button"
-                onClick={onGoogle}
-                disabled={busy}
-                className="rounded-full px-7 py-4 text-[16px] font-bold opacity-70 ring-1 ring-current transition hover:opacity-100"
+              <a
+                href={REPO_URL}
+                className="inline-flex h-11 items-center border border-line-strong px-5 text-[12px] tracking-[0.06em] uppercase transition-colors hover:border-ink"
               >
-                Continue with Google
-              </button>
+                View on GitHub
+              </a>
             </div>
-            <div className="mx-auto mt-16 max-w-4xl translate-y-6 [perspective:1600px]">
-              <div className="overflow-hidden rounded-t-[28px] p-2 pb-0 [transform:rotateX(18deg)] [transform-origin:50%_100%]">
-                <Shot name="editor" alt="" />
-              </div>
-            </div>
-          </div>
+          </Reveal>
         </section>
-      </main>
-
-      <footer className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-8 text-[14px] font-semibold text-ink-faint sm:px-8">
-        <Wordmark className="text-[18px]" />
-        <span>On-device AI needs desktop Chrome. Other browsers use the cloud.</span>
-        <a href={REPO_URL} className="hover:text-ink">
-          Open source on GitHub
-        </a>
-      </footer>
+        <footer className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 border-t border-line px-4 py-6 text-[11px] tracking-[0.06em] text-faint uppercase sm:px-8">
+          <Wordmark className="text-[12px]" />
+          <span>Built for #BuildHybridAI 2026</span>
+          <span className="flex gap-5">
+            <a href={REPO_URL} className="hover:text-ink">
+              GitHub
+            </a>
+            <span>Apache 2.0</span>
+          </span>
+        </footer>
+      </div>
     </div>
   );
 }
 
-function Chip({ children }: { children: ReactNode }) {
+function useNavOverDark(): boolean {
+  const [dark, setDark] = useState(false);
+  useEffect(() => {
+    const check = () => {
+      const probe = 36;
+      setDark(
+        [...document.querySelectorAll<HTMLElement>("[data-dark]")].some((el) => {
+          const rect = el.getBoundingClientRect();
+          return rect.top <= probe && rect.bottom >= probe;
+        }),
+      );
+    };
+    check();
+    window.addEventListener("scroll", check, { passive: true });
+    return () => window.removeEventListener("scroll", check);
+  }, []);
+  return dark;
+}
+
+function Section({ id, index, label, dark = false, children }: { id: string; index: string; label: string; dark?: boolean; children: ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-2xl bg-paper-raised px-4 py-3 text-[14px] font-bold whitespace-nowrap shadow-pop">
+    <section id={id} className={`mx-auto max-w-[1200px] scroll-mt-20 px-4 sm:px-8 ${dark ? "py-28 sm:py-36" : "py-24 sm:py-32"}`}>
+      <div className="mb-10 flex items-center gap-4 text-[11px] tracking-[0.06em] text-faint uppercase">
+        <span className="text-accent">{index}</span>
+        {label}
+        <span className="h-px flex-1 bg-line" />
+      </div>
       {children}
-    </span>
+    </section>
   );
 }
 
-function List({ items, invert = false }: { items: string[]; invert?: boolean }) {
+function Note({ code, title, detail, accent = false }: { code: string; title: string; detail: string; accent?: boolean }) {
   return (
-    <ul className="mt-6 space-y-0">
-      {items.map((item) => (
-        <li
-          key={item}
-          className={`flex items-center gap-3 border-t py-3 text-[16px] font-semibold ${invert ? "border-current/15" : "border-rule"}`}
-        >
-          <span aria-hidden className={`size-2 rounded-full ${invert ? "bg-hl-blue" : "bg-hl-green"}`} />
-          {item}
-        </li>
-      ))}
-    </ul>
+    <div className={`flex items-center gap-3 border bg-card py-2.5 pr-4 pl-3 shadow-pop ${accent ? "border-accent-line" : "border-line-strong"}`}>
+      <Code className="size-8 text-[11px]">{code}</Code>
+      <span className="text-[12px] leading-[1.4]">
+        <span className={`block font-medium ${accent ? "text-accent-ink" : ""}`}>{title}</span>
+        <span className="block text-[10.5px] tracking-[0.05em] text-faint uppercase">{detail}</span>
+      </span>
+    </div>
   );
 }
 
-function GoogleMark() {
+function Fact({ title, body }: { title: string; body: string }) {
   return (
-    <svg aria-hidden viewBox="0 0 18 18" className="size-4">
-      <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z" />
-      <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z" />
-      <path fill="#FBBC05" d="M3.97 10.72a5.4 5.4 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33z" />
-      <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z" />
-    </svg>
+    <div className="border-t border-line-strong bg-card p-6 sm:border-t-0 sm:border-l sm:first:border-l-0">
+      <p className="text-[11px] tracking-[0.06em] text-accent-ink uppercase">{title}</p>
+      <p className="mt-3 text-[13px] leading-[1.7] text-soft">{body}</p>
+    </div>
   );
 }
+
+function InViewScramble({ text }: { text: string }) {
+  const [shown, setShown] = useState(false);
+  return (
+    <motion.span onViewportEnter={() => setShown(true)} viewport={{ once: true }}>
+      {shown ? <Scramble text={text} duration={900} /> : <span className="opacity-0">{text}</span>}
+    </motion.span>
+  );
+}
+

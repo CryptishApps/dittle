@@ -1,12 +1,11 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
-import { Reprint } from "../../../../ui/Reprint";
-import { SyncBadge, type SyncState } from "../../../../ui/SyncBadge";
-import { LogoMark } from "../../../../ui/Wordmark";
+import { useEffect, useState, type ReactNode } from "react";
+import { Reprint } from "../../ui/Reprint";
+import { SyncBadge, type SyncState } from "../../ui/SyncBadge";
+import { Wordmark } from "../../ui/Wordmark";
 import { NOTES, TREE, type NoteId } from "./data";
-import "./mono.css";
 import { NoteView, staleNotes, type Change, type NoteContext } from "./NoteView";
-import { Btn, Code, ease, Kbd, MIcon, Path, Scramble, type MIconName } from "./ui";
+import { Btn, Code, ease, Kbd, MIcon, Path, Scramble, type MIconName } from "../../ui/kit";
 
 type Entry = {
   key: string;
@@ -21,7 +20,7 @@ type Entry = {
 
 const budgetTotal = (g: number) => `£${(g * 38 + g * 2 + 3050).toLocaleString("en-GB")}`;
 
-export function MonoDesign() {
+export function NotesApp() {
   const [guests, setGuests] = useState(80);
   const [applied, setApplied] = useState<Partial<Record<NoteId, number>>>({});
   const [change, setChange] = useState<Change>(null);
@@ -143,18 +142,17 @@ export function MonoDesign() {
   const pending = staleNotes(ctx).length;
 
   return (
-    <div className="skin-mono flex h-dvh overflow-hidden text-[13px]" style={{ "--primary": "var(--m-ink)", "--primary-ink": "var(--m-page)", "--hl-green": "var(--m-accent)" } as CSSProperties}>
-      <aside className="flex w-[264px] shrink-0 flex-col border-r border-(--m-line) bg-(--m-side)">
-        <div className="flex h-11 items-center justify-between border-b border-(--m-line) px-4 text-(--m-soft)">
+    <div className="flex h-dvh overflow-hidden bg-page text-[13px] text-ink">
+      <aside className="flex w-[264px] shrink-0 flex-col border-r border-line bg-side">
+        <div className="flex h-11 items-center justify-between border-b border-line px-4 text-soft">
           <MIcon name="sidebar" />
           <span className="text-[10.5px] tracking-[0.04em] uppercase">v0.1</span>
         </div>
         <div className="flex items-center gap-3 px-5 pt-5">
-          <LogoMark className="size-7" />
-          <span className="text-[17px] font-medium tracking-[0.06em]">DITTLE</span>
+          <Wordmark className="text-[17px]" />
         </div>
         <div className="px-4 pt-5">
-          <button type="button" className="flex h-9 w-full items-center gap-2.5 border border-(--m-line) bg-(--m-card) px-3 text-(--m-faint)">
+          <button type="button" className="flex h-9 w-full items-center gap-2.5 border border-line bg-card px-3 text-faint">
             <MIcon name="search" />
             <span className="text-[11px] tracking-[0.04em] uppercase">Search</span>
             <span className="ml-auto flex gap-1">
@@ -163,21 +161,21 @@ export function MonoDesign() {
             </span>
           </button>
         </div>
-        <div className="mx-4 mt-4 border-t border-(--m-line)" />
+        <div className="mx-4 mt-4 border-t border-line" />
         <nav className="space-y-0.5 px-3 pt-3">
           <SideItem icon="inbox" label="Inbox" active={inboxOpen} onClick={() => setInboxOpen((v) => !v)}>
             {unread > 0 && (
-              <span className="bg-(--m-accent-tint) px-1.5 text-[11px] text-(--m-accent-ink) tabular-nums">
+              <span className="bg-accent-tint px-1.5 text-[11px] text-accent-ink tabular-nums">
                 <Reprint value={String(unread)} />
               </span>
             )}
           </SideItem>
           <SideItem icon="today" label="Today" />
           <SideItem icon="notes" label="All notes">
-            <span className="text-[11px] text-(--m-faint)">31</span>
+            <span className="text-[11px] text-faint">31</span>
           </SideItem>
         </nav>
-        <div className="flex items-center justify-between px-5 pt-6 pb-2 text-[10.5px] tracking-[0.06em] text-(--m-faint) uppercase">
+        <div className="flex items-center justify-between px-5 pt-6 pb-2 text-[10.5px] tracking-[0.06em] text-faint uppercase">
           Buckets
           <MIcon name="plus" className="size-3.5" />
         </div>
@@ -189,12 +187,12 @@ export function MonoDesign() {
                 <button
                   type="button"
                   onClick={() => setExpanded((list) => (isOpen ? list.filter((id) => id !== bucket.id) : [...list, bucket.id]))}
-                  className="flex h-8 w-full items-center gap-2.5 px-2 text-left transition-colors hover:bg-(--m-chip)"
+                  className="flex h-8 w-full items-center gap-2.5 px-2 text-left transition-colors hover:bg-chip"
                 >
-                  <MIcon name="folder" className="size-4 text-(--m-soft)" />
+                  <MIcon name="folder" className="size-4 text-soft" />
                   <span className="flex-1 truncate">{bucket.name}</span>
-                  <span className="text-[11px] text-(--m-faint)">{bucket.notes.length}</span>
-                  <MIcon name="chevron" className={`size-3.5 text-(--m-faint) transition-transform duration-300 ${isOpen ? "rotate-90" : ""}`} />
+                  <span className="text-[11px] text-faint">{bucket.notes.length}</span>
+                  <MIcon name="chevron" className={`size-3.5 text-faint transition-transform duration-300 ${isOpen ? "rotate-90" : ""}`} />
                 </button>
                 <AnimatePresence initial={false}>
                   {isOpen && (
@@ -211,15 +209,15 @@ export function MonoDesign() {
                             type="button"
                             onClick={() => open(id)}
                             className={`relative flex h-8 w-full items-center gap-2.5 pr-2 pl-8 text-left transition-colors ${
-                              active === id ? "text-(--m-ink)" : "text-(--m-soft) hover:text-(--m-ink)"
+                              active === id ? "text-ink" : "text-soft hover:text-ink"
                             }`}
                           >
                             {active === id && (
-                              <motion.span layoutId="mono-tree" className="absolute inset-0 bg-(--m-chip)" transition={{ duration: 0.3, ease }} />
+                              <motion.span layoutId="mono-tree" className="absolute inset-0 bg-chip" transition={{ duration: 0.3, ease }} />
                             )}
                             <MIcon name="file" className="relative size-3.5" />
                             <span className="relative flex-1 truncate">{NOTES[id].title}</span>
-                            {staleNotes(ctx).includes(id) && <span className="relative size-1.5 bg-(--m-accent)" aria-label="Out of date" />}
+                            {staleNotes(ctx).includes(id) && <span className="relative size-1.5 bg-accent" aria-label="Out of date" />}
                           </button>
                         </li>
                       ))}
@@ -230,23 +228,23 @@ export function MonoDesign() {
             );
           })}
         </div>
-        <div className="border-t border-(--m-line) px-5 py-4">
+        <div className="border-t border-line px-5 py-4">
           <div className="flex items-center justify-between text-[10.5px] tracking-[0.04em] uppercase">
             <span className="flex items-center gap-2">
               <MIcon name="chip" className="size-4" />
               Gemini Nano
             </span>
-            <span className="text-(--m-faint)">Ready</span>
+            <span className="text-faint">Ready</span>
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-2 text-[10.5px] tracking-[0.04em] text-(--m-faint) uppercase">
-            <span className="border border-(--m-line) bg-(--m-card) px-2 py-1.5">
-              <span className="block text-[15px] tracking-normal text-(--m-ink) tabular-nums">
+          <div className="mt-3 grid grid-cols-2 gap-2 text-[10.5px] tracking-[0.04em] text-faint uppercase">
+            <span className="border border-line bg-card px-2 py-1.5">
+              <span className="block text-[15px] tracking-normal text-ink tabular-nums">
                 <Reprint value={String(calls.local)} />
               </span>
               On device
             </span>
-            <span className="border border-(--m-line) bg-(--m-card) px-2 py-1.5">
-              <span className="block text-[15px] tracking-normal text-(--m-ink) tabular-nums">{calls.cloud}</span>
+            <span className="border border-line bg-card px-2 py-1.5">
+              <span className="block text-[15px] tracking-normal text-ink tabular-nums">{calls.cloud}</span>
               Cloud
             </span>
           </div>
@@ -260,24 +258,24 @@ export function MonoDesign() {
             animate={{ width: 420, opacity: 1 }}
             exit={{ width: 0, opacity: 0.6 }}
             transition={{ duration: 0.42, ease }}
-            className="shrink-0 overflow-hidden border-r border-(--m-line) bg-(--m-panel)"
+            className="shrink-0 overflow-hidden border-r border-line bg-panel"
           >
             <div className="flex h-full w-[420px] flex-col">
-              <div className="flex h-11 shrink-0 items-center justify-between border-b border-(--m-line) px-4">
+              <div className="flex h-11 shrink-0 items-center justify-between border-b border-line px-4">
                 <span className="flex items-center gap-3">
-                  <button type="button" aria-label="Close inbox" onClick={() => setInboxOpen(false)} className="text-(--m-soft) hover:text-(--m-ink)">
+                  <button type="button" aria-label="Close inbox" onClick={() => setInboxOpen(false)} className="text-soft hover:text-ink">
                     <MIcon name="close" className="size-3.5" />
                   </button>
                   <span className="text-[12px] tracking-[0.04em] uppercase">Inbox</span>
-                  {unread > 0 && <span className="bg-(--m-accent-tint) px-1.5 text-[11px] text-(--m-accent-ink) uppercase">{unread} new</span>}
+                  {unread > 0 && <span className="bg-accent-tint px-1.5 text-[11px] text-accent-ink uppercase">{unread} new</span>}
                 </span>
                 <button
                   type="button"
                   onClick={() => setUnread(0)}
-                  className="flex items-center gap-1.5 bg-(--m-chip) px-2 py-1 text-[10.5px] tracking-[0.04em] uppercase hover:bg-(--m-chip-hover)"
+                  className="flex items-center gap-1.5 bg-chip px-2 py-1 text-[10.5px] tracking-[0.04em] uppercase hover:bg-chip-hover"
                 >
                   Mark all as read
-                  <MIcon name="check" className="size-3.5 text-(--m-accent)" />
+                  <MIcon name="check" className="size-3.5 text-accent" />
                 </button>
               </div>
               <ul className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin]">
@@ -289,23 +287,23 @@ export function MonoDesign() {
                       initial={{ opacity: 0, x: -12 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: entry.at === "Now" ? 0 : 0.12 + index * 0.06, duration: 0.4, ease }}
-                      className="flex gap-4 border-b border-(--m-line) px-5 py-5"
+                      className="flex gap-4 border-b border-line px-5 py-5"
                     >
                       <Code>{entry.code}</Code>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-3">
                           <p className="leading-[1.55]">
                             <span className="font-semibold">Dittle</span> {entry.lead}{" "}
-                            <button type="button" onClick={() => open(entry.link)} className="m-link font-medium">
+                            <button type="button" onClick={() => open(entry.link)} className="link font-medium">
                               {entry.at === "Now" ? <Scramble text={NOTES[entry.link].title} /> : NOTES[entry.link].title}
                             </button>
                           </p>
-                          <span className="shrink-0 text-[11px] text-(--m-faint)">{entry.at}</span>
+                          <span className="shrink-0 text-[11px] text-faint">{entry.at}</span>
                         </div>
                         <div className="mt-3">
                           <Path parts={entry.path} />
                         </div>
-                        {entry.body && <p className="mt-3 leading-[1.6] text-(--m-soft)">{entry.body}</p>}
+                        {entry.body && <p className="mt-3 leading-[1.6] text-soft">{entry.body}</p>}
                         <div className="mt-3 flex gap-2">
                           {entry.actions.map((action) => (
                             <Btn key={action}>{action}</Btn>
@@ -322,11 +320,11 @@ export function MonoDesign() {
       </AnimatePresence>
 
       <main className="flex min-w-0 flex-1 flex-col">
-        <div className="flex h-11 shrink-0 items-stretch border-b border-(--m-line) bg-(--m-side)">
-          <span className="grid w-10 place-items-center border-r border-(--m-line) text-(--m-soft)">
+        <div className="flex h-11 shrink-0 items-stretch border-b border-line bg-side">
+          <span className="grid w-10 place-items-center border-r border-line text-soft">
             <MIcon name="left" className="size-3.5" />
           </span>
-          <span className="grid w-10 place-items-center border-r border-(--m-line) text-(--m-faint)">
+          <span className="grid w-10 place-items-center border-r border-line text-faint">
             <MIcon name="right" className="size-3.5" />
           </span>
           <AnimatePresence initial={false}>
@@ -338,40 +336,40 @@ export function MonoDesign() {
                 animate={{ opacity: 1, width: "auto" }}
                 exit={{ opacity: 0, width: 0 }}
                 transition={{ duration: 0.3, ease }}
-                className={`group relative flex shrink-0 items-center overflow-hidden border-r border-(--m-line) ${active === id ? "bg-(--m-page)" : ""}`}
+                className={`group relative flex shrink-0 items-center overflow-hidden border-r border-line ${active === id ? "bg-page" : ""}`}
               >
-                {active === id && <span aria-hidden className="absolute inset-x-0 -bottom-px h-px bg-(--m-page)" />}
+                {active === id && <span aria-hidden className="absolute inset-x-0 -bottom-px h-px bg-page" />}
                 <button
                   type="button"
                   onClick={() => open(id)}
-                  className={`flex h-full items-center gap-2 pr-1 pl-4 whitespace-nowrap ${active === id ? "text-(--m-ink)" : "text-(--m-soft) hover:text-(--m-ink)"}`}
+                  className={`flex h-full items-center gap-2 pr-1 pl-4 whitespace-nowrap ${active === id ? "text-ink" : "text-soft hover:text-ink"}`}
                 >
                   <MIcon name="file" className="size-3.5" />
                   {NOTES[id].title}
-                  {staleNotes(ctx).includes(id) && <span className="size-1.5 bg-(--m-accent)" aria-label="Out of date" />}
+                  {staleNotes(ctx).includes(id) && <span className="size-1.5 bg-accent" aria-label="Out of date" />}
                 </button>
                 <button
                   type="button"
                   aria-label={`Close ${NOTES[id].title}`}
                   onClick={() => closeTab(id)}
-                  className="mr-2 ml-1 grid size-5 place-items-center text-(--m-faint) opacity-0 transition-opacity group-hover:opacity-100 hover:text-(--m-ink)"
+                  className="mr-2 ml-1 grid size-5 place-items-center text-faint opacity-0 transition-opacity group-hover:opacity-100 hover:text-ink"
                 >
                   <MIcon name="close" className="size-3" />
                 </button>
               </motion.div>
             ))}
           </AnimatePresence>
-          <div className="m-hatch flex-1" />
-          <div className="flex items-center gap-3 border-l border-(--m-line) px-4">
+          <div className="hatch flex-1" />
+          <div className="flex items-center gap-3 border-l border-line px-4">
             <SyncBadge state={sync} />
-            <button type="button" className="flex items-center gap-1.5 text-[11px] tracking-[0.04em] text-(--m-soft) uppercase hover:text-(--m-ink)">
+            <button type="button" className="flex items-center gap-1.5 text-[11px] tracking-[0.04em] text-soft uppercase hover:text-ink">
               <MIcon name="share" className="size-3.5" />
               Share
             </button>
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto bg-(--m-page) [scrollbar-width:thin]">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-page [scrollbar-width:thin]">
           <AnimatePresence mode="wait">
             <motion.div key={active} exit={{ opacity: 0, y: -6, transition: { duration: 0.18 } }}>
               <NoteView noteId={active} ctx={ctx} firstRead={active === "catering" && !seen.includes("catering")} />
@@ -379,11 +377,11 @@ export function MonoDesign() {
           </AnimatePresence>
         </div>
 
-        <div className="flex h-8 shrink-0 items-center gap-5 border-t border-(--m-line) bg-(--m-side) px-4 text-[10.5px] tracking-[0.04em] text-(--m-faint) uppercase">
-          <span className="text-(--m-soft)">{NOTES[active].bucket.name}</span>
+        <div className="flex h-8 shrink-0 items-center gap-5 border-t border-line bg-side px-4 text-[10.5px] tracking-[0.04em] text-faint uppercase">
+          <span className="text-soft">{NOTES[active].bucket}</span>
           <span>Gemini Nano · on device</span>
           {pending > 0 ? (
-            <span className="text-(--m-accent-ink)">
+            <span className="text-accent-ink">
               <Scramble text={`${pending} ${pending === 1 ? "note" : "notes"} out of date`} />
             </span>
           ) : (
@@ -414,9 +412,9 @@ function SideItem({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`flex h-9 w-full items-center gap-3 px-2 text-left transition-colors ${active ? "bg-(--m-chip-hover)" : "hover:bg-(--m-chip)"}`}
+      className={`flex h-9 w-full items-center gap-3 px-2 text-left transition-colors ${active ? "bg-chip-hover" : "hover:bg-chip"}`}
     >
-      <MIcon name={icon} className="size-[18px] text-(--m-soft)" />
+      <MIcon name={icon} className="size-[18px] text-soft" />
       <span className="flex-1 text-[14px]">{label}</span>
       {children}
     </button>

@@ -40,7 +40,7 @@ export function Scramble({ text, duration }: { text: string; duration?: number }
 
 export function Code({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <span className={`m-brackets grid size-9 shrink-0 place-items-center text-[12px] font-medium text-(--m-accent-ink) ${className}`}>{children}</span>
+    <span className={`brackets grid bg-chip size-9 shrink-0 place-items-center text-[12px] font-medium text-accent-ink ${className}`}>{children}</span>
   );
 }
 
@@ -61,8 +61,8 @@ export function Btn({
       onClick={onClick}
       className={`inline-flex h-7 items-center gap-1.5 border px-2.5 text-[11px] font-medium tracking-[0.02em] uppercase transition-colors ${
         primary
-          ? "border-(--m-ink) bg-(--m-ink) text-(--m-page) hover:opacity-90"
-          : "border-(--m-line-strong) bg-(--m-card) text-(--m-ink) hover:border-(--m-ink)"
+          ? "border-ink bg-ink text-page hover:opacity-90"
+          : "border-line-strong bg-card text-ink hover:border-ink"
       } ${className}`}
     >
       {children}
@@ -72,7 +72,7 @@ export function Btn({
 
 export function Path({ parts }: { parts: string[] }) {
   return (
-    <span className="inline-flex flex-wrap items-center gap-x-1.5 bg-(--m-chip) px-2 py-1 text-[11px] tracking-[0.02em] text-(--m-soft) uppercase">
+    <span className="inline-flex flex-wrap items-center gap-x-1.5 bg-chip px-2 py-1 text-[11px] tracking-[0.02em] text-soft uppercase">
       {parts.map((part, index) => (
         <span key={index} className="inline-flex items-center gap-1.5">
           {index > 0 && <span aria-hidden>→</span>}
@@ -84,7 +84,7 @@ export function Path({ parts }: { parts: string[] }) {
 }
 
 export function Kbd({ children }: { children: ReactNode }) {
-  return <kbd className="grid size-5 place-items-center bg-(--m-chip) text-[10px] text-(--m-soft)">{children}</kbd>;
+  return <kbd className="grid size-5 place-items-center bg-chip text-[10px] text-soft">{children}</kbd>;
 }
 
 export type MIconName = "inbox" | "today" | "notes" | "folder" | "file" | "search" | "plus" | "chevron" | "left" | "right" | "close" | "check" | "sidebar" | "chip" | "share";

@@ -1,6 +1,32 @@
-import { NOTES, type NoteId } from "../tech/data";
+export type NoteId = "catering" | "budget" | "chairs" | "email" | "venue" | "lisbon" | "roadmap" | "rings" | "hotel" | "oneonone" | "sourdough";
 
-export { NOTES, type NoteId };
+export type Note = { title: string; subtitle: string; bucket: string; edited: string; excerpt: string };
+
+export const NOTES: Record<NoteId, Note> = {
+  catering: { title: "Catering quote", subtitle: "Rosa's Kitchen", bucket: "Wedding", edited: "2m", excerpt: "" },
+  budget: { title: "Budget", subtitle: "Wedding costs", bucket: "Wedding", edited: "1d", excerpt: "" },
+  chairs: { title: "Chair hire", subtitle: "Chair Hire Co", bucket: "Wedding", edited: "3d", excerpt: "" },
+  email: { title: "Email to Sam", subtitle: "Draft", bucket: "Wedding", edited: "4d", excerpt: "" },
+  venue: { title: "Hartley Barn", subtitle: "Venue", bucket: "Wedding", edited: "5d", excerpt: "" },
+  rings: { title: "Pick up the rings", subtitle: "Hatton Garden", bucket: "Wedding", edited: "now", excerpt: "Friday after 2pm. Bring the receipt." },
+  lisbon: { title: "Flights to Lisbon", subtitle: "TAP from Gatwick", bucket: "Lisbon trip", edited: "1w", excerpt: "2 adults, out on the 16th, back on the 22nd." },
+  hotel: {
+    title: "Hotel in Alfama",
+    subtitle: "Memmo Alfama",
+    bucket: "Lisbon trip",
+    edited: "1w",
+    excerpt: "Terrace room, 6 nights from the 16th. Breakfast included, late checkout asked.",
+  },
+  roadmap: { title: "Q4 roadmap", subtitle: "Product", bucket: "Work", edited: "1w", excerpt: "Ship offline mode first, then the Android beta." },
+  oneonone: { title: "1:1 with Priya", subtitle: "Weekly", bucket: "Work", edited: "2d", excerpt: "Offline mode is the priority. She wants the Android beta by the 30th." },
+  sourdough: {
+    title: "Sourdough starter",
+    subtitle: "Feeding schedule",
+    bucket: "Recipes",
+    edited: "2w",
+    excerpt: "Feed at 9am and 9pm. 50g flour, 50g water, keep at room temperature.",
+  },
+};
 
 export type VarId = "guests" | "perHead" | "food" | "date";
 
@@ -48,7 +74,7 @@ export const BODIES: Partial<Record<NoteId, Part[][]>> = {
 };
 
 export function bodyFor(id: NoteId): Part[][] {
-  return BODIES[id] ?? [[NOTES[id].excerpt(80)], ["Next: confirm with everyone by Friday."]];
+  return BODIES[id] ?? [[NOTES[id].excerpt], ["Next: confirm with everyone by Friday."]];
 }
 
 export const PATHS: Record<NoteId, string[]> = {

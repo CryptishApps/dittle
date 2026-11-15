@@ -13,10 +13,10 @@ function RootError({ error, reset }: ErrorComponentProps) {
   const setup = error instanceof FirebaseNotConfigured;
   return (
     <Centered>
-      <h1 className="text-[28px] font-bold tracking-[-0.03em]">{setup ? "Firebase isn't set up yet" : "Something went wrong"}</h1>
-      <p className="mt-3 text-ink-soft">{error instanceof Error ? error.message : String(error)}</p>
+      <h1 className="text-[24px] font-medium tracking-[-0.02em]">{setup ? "Firebase isn't set up yet" : "Something went wrong"}</h1>
+      <p className="mt-3 text-[13px] leading-relaxed text-soft">{error instanceof Error ? error.message : String(error)}</p>
       {!setup && (
-        <button type="button" onClick={reset} className="mt-6 rounded-full bg-ink px-4 py-2 text-paper">
+        <button type="button" onClick={reset} className="mt-6 inline-flex h-9 items-center bg-ink px-4 text-[12px] tracking-[0.04em] text-page uppercase">
           Try again
         </button>
       )}
@@ -27,8 +27,8 @@ function RootError({ error, reset }: ErrorComponentProps) {
 function NotFound() {
   return (
     <Centered>
-      <h1 className="text-[28px] font-bold tracking-[-0.03em]">There's no page here</h1>
-      <Link to="/" className="mt-6 inline-block rounded-full bg-ink px-4 py-2 text-paper">
+      <h1 className="text-[24px] font-medium tracking-[-0.02em]">There's no page here</h1>
+      <Link to="/" className="mt-6 inline-flex h-9 items-center bg-ink px-4 text-[12px] tracking-[0.04em] text-page uppercase">
         Go to your notes
       </Link>
     </Centered>
@@ -37,9 +37,9 @@ function NotFound() {
 
 function Centered({ children }: { children: ReactNode }) {
   return (
-    <div className="grid min-h-dvh place-items-center bg-paper px-4">
+    <div className="grid min-h-dvh place-items-center bg-page px-4">
       <div className="max-w-md text-center">
-        <Wordmark className="mb-8 text-[22px]" />
+        <Wordmark className="mb-8 text-[16px]" />
         {children}
       </div>
     </div>
