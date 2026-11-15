@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useRef, useState, type ReactNode } from "react";
 import { Reprint } from "../../../../ui/Reprint";
 import { StreamedText, useStreamedWords } from "../../../../ui/StreamIn";
 import { MEALS, NOTES, type NoteId } from "./data";
@@ -64,7 +64,9 @@ export function NoteSheet({
   );
 }
 
-function CateringBody({
+export const ShowMargin = createContext(false);
+
+export function CateringBody({
   guests,
   reading,
   onGuests,
@@ -88,7 +90,23 @@ function CateringBody({
 
   return (
     <>
-      <Paragraph active={reading}>
+      <Paragraph
+        active={reading}
+        n={1}
+        margin={
+          reading ? (
+            <span className="t-shimmer-text" data-text="Reading">
+              Reading
+            </span>
+          ) : (
+            <>
+              <SourceBadge source="device" ms={180} />
+              <span className="block">Guests, price per head</span>
+              <span className="block text-tx-blue">Also in 3 notes</span>
+            </>
+          )
+        }
+      >
         Rosa's Kitchen can do a buffet for{" "}
         <span className="relative inline-block">
           <EditableNumber value={guests} onCommit={edit} />
@@ -117,23 +135,64 @@ function CateringBody({
         </span>{" "}
         guests at £38 a head, so roughly <Reprint value={`£${(guests * 38).toLocaleString("en-GB")}`} highlight /> before drinks.
       </Paragraph>
-      <Paragraph>They need a £500 deposit to hold the date, and the menu has to be final two weeks before the 14th of June.</Paragraph>
+      <Paragraph
+        n={2}
+        margin={
+          !reading && (
+            <>
+              <SourceBadge source="device" ms={160} />
+              <span className="block">Event date</span>
+              <span className="block text-tx-blue">Also in 2 notes</span>
+            </>
+          )
+        }
+      >
+        They need a £500 deposit to hold the date, and the menu has to be final two weeks before the 14th of June.</Paragraph>
       {meals === "request" ? (
-        <Paragraph>
+        <Paragraph
+          n={3}
+          margin={
+            !reading && (
+              <>
+                <SourceBadge source="device" ms={150} />
+                <span className="block">Request spotted</span>
+              </>
+            )
+          }
+        >
           <span className="text-ink-soft">add in a list of meals here</span>
           {!reading && <InsertAction onInsert={() => setMeals("inserted")} />}
         </Paragraph>
       ) : (
         <InsertedMeals />
       )}
-      <Paragraph>Tastings are on Thursdays. Ask about a vegan cake.</Paragraph>
+      <Paragraph n={4}>Tastings are on Thursdays. Ask about a vegan cake.</Paragraph>
     </>
   );
 }
 
-function Paragraph({ active = false, children }: { active?: boolean; children: ReactNode }) {
+export function Paragraph({ active = false, n, margin, children }: { active?: boolean; n?: number; margin?: ReactNode; children: ReactNode }) {
+  const showMargin = useContext(ShowMargin);
   return (
     <p className="relative mt-5 first:mt-0">
+      {showMargin && n !== undefined && (
+        <span aria-hidden className="absolute top-[0.45em] -left-14 font-mono text-[10px] leading-none text-ink-faint tabular-nums">
+          ¶{String(n).padStart(2, "0")}
+        </span>
+      )}
+      <AnimatePresence>
+        {showMargin && margin && (
+          <motion.span
+            initial={{ opacity: 0, x: -6 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4, ease }}
+            className="absolute top-[0.2em] left-full ml-12 block w-44 space-y-1 border-l border-rule pl-3 font-mono text-[10px] leading-relaxed text-ink-faint uppercase"
+          >
+            {margin}
+          </motion.span>
+        )}
+      </AnimatePresence>
       <span
         aria-hidden
         className={`absolute top-1 -left-4 h-[calc(100%-8px)] w-[2px] rounded-full bg-primary transition-opacity duration-500 ${active ? "animate-pulse opacity-100" : "opacity-0"}`}

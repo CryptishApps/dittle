@@ -29,6 +29,18 @@ function DesignsLayout() {
         <Link to="/dev/designs/elsewhere" className={tab}>
           C · Elsewhere
         </Link>
+        <span className="mx-1 h-4 w-px bg-rule" />
+        <span className="px-1 text-[11px] text-ink-faint">note</span>
+        <Link to="/dev/designs/note/$variant" params={{ variant: "page" }} className={tab}>
+          Page
+        </Link>
+        <Link to="/dev/designs/note/$variant" params={{ variant: "margin" }} className={tab}>
+          Margin
+        </Link>
+        <Link to="/dev/designs/note/$variant" params={{ variant: "sheet" }} className={tab}>
+          Sheet
+        </Link>
+        <span className="mx-1 h-4 w-px bg-rule" />
         <Link to="/dev/designs/welcome" className={tab}>
           Welcome
         </Link>
