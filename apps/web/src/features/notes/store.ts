@@ -18,7 +18,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firestore";
 import type { Listen } from "@/lib/live-query";
-import type { StoredValue } from "./fact";
+import type { Collection, Row, StoredValue } from "./fact";
 import { EMPTY_NOTE, relabel, summarise, valueIdsOf, type NoteDoc } from "./note-doc";
 
 export type NoteSummary = { id: string; title: string; preview: string; updatedAt: number; pending: boolean; folderId: string | null; valueIds: string[] };
@@ -29,6 +29,8 @@ export type { StoredValue } from "./fact";
 const notes = (uid: string) => collection(db, "users", uid, "notes");
 const values = (uid: string) => collection(db, "users", uid, "values");
 const folders = (uid: string) => collection(db, "users", uid, "folders");
+const collectionsOf = (uid: string) => collection(db, "users", uid, "collections");
+const rowsOf = (uid: string) => collection(db, "users", uid, "entities");
 
 const write = (pending: Promise<void>) => void pending.catch((error: unknown) => console.error("Dittle could not save", error));
 
@@ -172,4 +174,64 @@ export async function relabelNotes(uid: string, valueId: string, label: string, 
     const stored = snapshot?.data()?.doc as NoteDoc | undefined;
     if (stored) saveNote(uid, id, relabel(stored, valueId, label));
   }
+}
+
+export const listenCollections =
+  (uid: string): Listen<Collection[]> =>
+  async (next, fail) =>
+    onSnapshot(
+      collectionsOf(uid),
+      (snapshot) =>
+        next(
+          snapshot.docs
+            .map((item) => {
+              const data = item.data({ serverTimestamps: "estimate" });
+              return { ...(data as Omit<Collection, "id" | "createdAt">), id: item.id, createdAt: millis(data.createdAt) };
+            })
+            .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })),
+        ),
+      fail,
+    );
+
+export const listenRows =
+  (uid: string): Listen<Row[]> =>
+  async (next, fail) =>
+    onSnapshot(
+      rowsOf(uid),
+      (snapshot) =>
+        next(
+          snapshot.docs.map((item) => {
+            const data = item.data({ serverTimestamps: "estimate" });
+            return { ...(data as Omit<Row, "id" | "createdAt">), id: item.id, createdAt: millis(data.createdAt) };
+          }),
+        ),
+      fail,
+    );
+
+export type CellWrite = { valueId: string; rowId: string; fieldId: string };
+
+export function createCollection(uid: string, created: Omit<Collection, "createdAt">, rows: Omit<Row, "createdAt">[], cells: CellWrite[]): void {
+  const batch = writeBatch(db);
+  const { id, ...fields } = created;
+  batch.set(doc(collectionsOf(uid), id), { ...fields, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  rows.forEach(({ id: rowId, ...row }) => batch.set(doc(rowsOf(uid), rowId), { ...row, createdAt: serverTimestamp() }, { merge: true }));
+  cells.forEach((cell) => batch.update(doc(values(uid), cell.valueId), { "subject.entityId": cell.rowId, field: cell.fieldId, updatedAt: serverTimestamp() }));
+  write(batch.commit());
+}
+
+export function placeCell(uid: string, row: Omit<Row, "createdAt">, cell: CellWrite): () => void {
+  const batch = writeBatch(db);
+  const { id: rowId, ...rest } = row;
+  batch.set(doc(rowsOf(uid), rowId), { ...rest, createdAt: serverTimestamp() }, { merge: true });
+  batch.update(doc(values(uid), cell.valueId), { "subject.entityId": cell.rowId, field: cell.fieldId, updatedAt: serverTimestamp() });
+  write(batch.commit());
+  return () => {
+    const undo = writeBatch(db);
+    undo.update(doc(values(uid), cell.valueId), { "subject.entityId": null, field: null, updatedAt: serverTimestamp() });
+    write(undo.commit());
+  };
+}
+
+export function deleteCollection(uid: string, id: string): void {
+  write(deleteDoc(doc(collectionsOf(uid), id)));
 }

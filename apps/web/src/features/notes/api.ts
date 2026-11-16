@@ -1,7 +1,8 @@
 import { queryOptions, type QueryClient } from "@tanstack/react-query";
 import { live } from "@/lib/live-query";
 import { EMPTY_NOTE, type NoteDoc } from "./note-doc";
-import type { Folder, Note, NoteSummary, StoredValue } from "./store";
+import type { Collection, Row } from "./fact";
+import type { CellWrite, Folder, Note, NoteSummary, StoredValue } from "./store";
 
 export const loadStore = () => import("./store");
 
@@ -25,6 +26,20 @@ export const foldersQuery = (uid: string) =>
   queryOptions({
     queryKey: ["folders", uid],
     queryFn: live<Folder[], ["folders", string]>(async (next, fail) => (await loadStore()).listenFolders(uid)(next, fail)),
+    ...forever,
+  });
+
+export const collectionsQuery = (uid: string) =>
+  queryOptions({
+    queryKey: ["collections", uid],
+    queryFn: live<Collection[], ["collections", string]>(async (next, fail) => (await loadStore()).listenCollections(uid)(next, fail)),
+    ...forever,
+  });
+
+export const rowsQuery = (uid: string) =>
+  queryOptions({
+    queryKey: ["rows", uid],
+    queryFn: live<Row[], ["rows", string]>(async (next, fail) => (await loadStore()).listenRows(uid)(next, fail)),
     ...forever,
   });
 
@@ -56,6 +71,10 @@ export const writes = {
   createValue: (uid: string, value: StoredValue) => later((store) => store.createValue(uid, value)),
   updateValue: (uid: string, id: string, patch: Partial<Omit<StoredValue, "id">>) => later((store) => store.updateValue(uid, id, patch)),
   deleteValue: (uid: string, id: string) => later((store) => store.deleteValue(uid, id)),
+  createCollection: (uid: string, created: Omit<Collection, "createdAt">, rows: Omit<Row, "createdAt">[], cells: CellWrite[]) =>
+    later((store) => store.createCollection(uid, created, rows, cells)),
+  placeCell: async (uid: string, row: Omit<Row, "createdAt">, cell: CellWrite) => (await loadStore()).placeCell(uid, row, cell),
+  deleteCollection: (uid: string, id: string) => later((store) => store.deleteCollection(uid, id)),
   relabelNotes: (uid: string, valueId: string, label: string, noteIds: string[]) => later((store) => void store.relabelNotes(uid, valueId, label, noteIds)),
 };
 

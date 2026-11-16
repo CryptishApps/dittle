@@ -27,6 +27,13 @@ export const LINK_CASES: LinkCase[] = [
     expect: { match: 0, changed: false },
   },
   {
+    id: "L5",
+    sentence: "Went out again tonight for another 3 km.",
+    item: fact("3 km", "number", "run_distance", "run", { when: { on: "2026-11-16", grain: "day" }, remarks: ["another"] }),
+    candidates: [fact("5 km", "number", "run_distance", "run", { when: { on: "2026-11-16", grain: "day" }, noteTitle: "Training log", sentence: "I ran 5 km today in 27 minutes." })],
+    expect: { match: null },
+  },
+  {
     id: "L8",
     sentence: "Rosa's Kitchen can do 80 people.",
     item: fact("80", "count", "capacity", "Rosa's Kitchen"),

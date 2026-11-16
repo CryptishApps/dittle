@@ -6,6 +6,7 @@ export type FactFields = {
   kind?: TagKind;
   name?: string;
   subject?: { label: string; entityId?: string };
+  field?: string;
   event?: boolean;
   when?: { on: string; grain: Grain };
   conditions?: string[];
@@ -18,3 +19,8 @@ export type FactFields = {
 };
 
 export type StoredValue = { id: string } & FactFields;
+
+export type CollectionField = { id: string; name: string; kind: TagKind };
+export type CollectionKey = { by: "when"; grain: "day" } | { by: "name" };
+export type Collection = { id: string; name: string; rowLabel: string; fields: CollectionField[]; key: CollectionKey; createdAt: number };
+export type Row = { id: string; collectionId: string; label: string; period?: string; createdAt: number };

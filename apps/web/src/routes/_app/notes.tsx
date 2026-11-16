@@ -1,10 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { foldersQuery, loadStore, notesQuery, valuesQuery } from "@/features/notes/api";
+import { collectionsQuery, foldersQuery, loadStore, notesQuery, rowsQuery, valuesQuery } from "@/features/notes/api";
 import { NotesShell } from "@/features/notes/NotesShell";
 
 export const Route = createFileRoute("/_app/notes")({
   loader: async ({ context: { queryClient, user } }) => {
-    await Promise.all([loadStore(), queryClient.ensureQueryData(notesQuery(user.uid)), queryClient.ensureQueryData(valuesQuery(user.uid)), queryClient.ensureQueryData(foldersQuery(user.uid))]);
+    const { uid } = user;
+    await Promise.all([
+      loadStore(),
+      queryClient.ensureQueryData(notesQuery(uid)),
+      queryClient.ensureQueryData(valuesQuery(uid)),
+      queryClient.ensureQueryData(foldersQuery(uid)),
+      queryClient.ensureQueryData(collectionsQuery(uid)),
+      queryClient.ensureQueryData(rowsQuery(uid)),
+    ]);
   },
   component: NotesRoute,
 });

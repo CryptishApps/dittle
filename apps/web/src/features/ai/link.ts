@@ -2,7 +2,7 @@ import { InferenceMode } from "firebase/ai";
 import type { Grain, TagKind } from "./describe";
 import { createHybrid, type InferenceWhere } from "./hybrid";
 
-export const LINK_PROMPT_VERSION = "v2";
+export const LINK_PROMPT_VERSION = "v3";
 
 export const MAX_ITEMS = 8;
 export const MAX_CANDIDATES = 12;
@@ -16,6 +16,7 @@ export type LinkFact = {
   name?: string;
   about?: string;
   conditions?: string[];
+  remarks?: string[];
   when?: { on: string; grain: Grain };
   noteTitle?: string;
   sentence?: string;
@@ -35,7 +36,7 @@ A different name usually means a different thing is measured, such as a deposit 
 Pick none when:
 - the item has a condition the candidate lacks, such as "for the double batch" or "on weekdays", or the candidate has one the item lacks
 - the subjects are different things
-- they are for different occasions or dates
+- they are for different occasions or dates, including a second occasion on the same day, such as "again" or "another one"
 - you are not sure
 
 "changed" is true only when the item is the same fact and the sentence gives it a different value.
@@ -80,6 +81,7 @@ function line(fact: LinkFact): string {
     fact.name,
     fact.about && `about ${fact.about}`,
     fact.conditions?.length ? `if ${fact.conditions.join(", ")}` : undefined,
+    fact.remarks?.length ? `noted ${fact.remarks.join(", ")}` : undefined,
     fact.when && `on ${fact.when.on}`,
     fact.noteTitle && `in "${fact.noteTitle}"`,
     fact.sentence && `from "${fact.sentence.length > 140 ? `${fact.sentence.slice(0, 140)}…` : fact.sentence}"`,

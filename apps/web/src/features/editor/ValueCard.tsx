@@ -7,6 +7,7 @@ import { ease } from "@/ui/kit";
 import { changeEverywhere, relabelInEditor, repoint } from "./linking";
 import { foundValueAt, spottingKey } from "./spotting";
 import { VALUE_NODE } from "./value-tag";
+import type { EditorServices } from "./services";
 import { describeInBackground, useValues, type TrackedValue, type ValueStore } from "./values";
 
 type Target = { kind: "tag" | "found"; id: string; element: HTMLElement };
@@ -29,9 +30,10 @@ const contextLine = (value: Shown) => [value.subject?.label, showWhen(value.when
 const nameOf = (value: { name?: string } | undefined) => value?.name?.replaceAll("_", " ") ?? "value";
 const notes = (count: number) => `${count} ${count === 1 ? "note" : "notes"}`;
 
-type ValueCardProps = { editor: Editor; store: ValueStore; usage?: (factId: string) => number; onChanged?: (factId: string, text: string) => void };
+type ValueCardProps = { editor: Editor; store: ValueStore; services?: EditorServices };
 
-export function ValueCard({ editor, store, usage = () => 0, onChanged }: ValueCardProps) {
+export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
+  const { usage = () => 0, onChanged, onNewFact, placementOf, startCollection, noteId } = services;
   const [target, setTarget] = useState<Target>();
   const card = useRef<HTMLDivElement>(null);
   const hideTimer = useRef<number | undefined>(undefined);
@@ -106,9 +108,15 @@ export function ValueCard({ editor, store, usage = () => 0, onChanged }: ValueCa
       return;
     }
     const notSame = how === "separate" && link ? [link.factId] : undefined;
-    const value = store.add(quote, described ? { kind, name, subject: about ? { label: about } : undefined, event, when, conditions, remarks, notSame } : { kind, name, notSame });
+    const sentence = editor.state.doc.resolve(hit.from).parent.textContent;
+    const origin = { noteId, sentence };
+    const value = store.add(
+      quote,
+      described ? { kind, name, subject: about ? { label: about } : undefined, event, when, conditions, remarks, notSame, origin } : { kind, name, notSame, origin },
+    );
     insertTag(hit.from, hit.to, value.id, quote);
-    if (!described) describeInBackground(store, value, { sentence: editor.state.doc.resolve(hit.from).parent.textContent, noteTitle: editor.state.doc.firstChild?.textContent ?? "" });
+    if (described) onNewFact?.(value);
+    else describeInBackground(store, value, { sentence, noteTitle: editor.state.doc.firstChild?.textContent ?? "", noteId }, onNewFact);
   };
 
   const settleProposal = (value: TrackedValue, accept: boolean) => {
@@ -164,6 +172,16 @@ export function ValueCard({ editor, store, usage = () => 0, onChanged }: ValueCa
             </p>
           )}
           {tag && !tag.proposal && usage(tag.id) > 1 && <p className="mt-2 text-soft">In {notes(usage(tag.id))}</p>}
+          {tag && placementOf?.(tag) && <p className="mt-2 text-soft">{placementOf(tag)}</p>}
+          {tag && !tag.proposal && !tag.naming && !tag.field && startCollection && (
+            <StartCollection
+              value={tag}
+              onStart={(name) => {
+                startCollection(tag, name);
+                setTarget(undefined);
+              }}
+            />
+          )}
 
           <Actions>
             {found && changed && (
@@ -222,5 +240,44 @@ function Action({ primary, onClick, children }: { primary?: boolean; onClick: ()
     >
       {children}
     </button>
+  );
+}
+
+function StartCollection({ value, onStart }: { value: TrackedValue; onStart: (name: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const label = value.subject?.label ?? nameOf(value);
+  const [name, setName] = useState(label.charAt(0).toUpperCase() + label.slice(1));
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="mt-2 text-[11px] tracking-[0.04em] text-soft underline underline-offset-4 hover:text-ink">
+        Start a collection from this
+      </button>
+    );
+  }
+  return (
+    <form
+      className="mt-2.5 border-t border-line pt-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (name.trim()) onStart(name.trim());
+      }}
+    >
+      <label className="block text-[10.5px] tracking-[0.06em] text-faint uppercase" htmlFor="collection-name">
+        Collection name
+      </label>
+      <div className="mt-1 flex gap-2">
+        <input
+          id="collection-name"
+          autoFocus
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          className="h-7 min-w-0 flex-1 border border-line-strong bg-card px-2 text-[12.5px] outline-none focus:border-accent"
+        />
+        <button type="submit" className="bg-ink px-2 text-[10.5px] tracking-[0.06em] text-page uppercase hover:opacity-90">
+          Create
+        </button>
+      </div>
+      <p className="mt-1.5 text-faint">{value.event ? "One row per day. Other values in this note from the same day become columns." : `One row per ${label}. Other values from the same sentence become columns.`}</p>
+    </form>
   );
 }

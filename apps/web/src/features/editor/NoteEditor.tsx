@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { StarterKit } from "@tiptap/starter-kit";
 import { deviceModelStatus } from "@/features/ai/device-model";
 import { findLinks, repoint } from "./linking";
+import type { EditorServices } from "./services";
 import { Spotting, type FoundValue } from "./spotting";
 import { TitleDocument, TitleKeys } from "./title-body";
 import { ValueCard } from "./ValueCard";
@@ -15,19 +16,19 @@ type NoteEditorOptions = {
   store: ValueStore;
   content?: Content;
   label: string;
-  noteId?: string;
-  noteTitleOf?: (noteId: string | undefined) => string | undefined;
+  services?: EditorServices;
   autofocus?: boolean;
   onUpdate?: (editor: Editor) => void;
 };
 
-export function useNoteEditor({ store, content, label, noteId, noteTitleOf = () => undefined, autofocus = false, onUpdate }: NoteEditorOptions): Editor | null {
+export function useNoteEditor({ store, content, label, services = {}, autofocus = false, onUpdate }: NoteEditorOptions): Editor | null {
+  const { noteId, noteTitleOf = () => undefined } = services;
   const holder = useRef<Editor | null>(null);
 
   const linkFound = (sentence: string, found: FoundValue[]) =>
     findLinks({
       sentence,
-      probes: found.map((value) => ({ text: value.quote, kind: value.kind, name: value.name, about: value.about, conditions: value.conditions, when: value.when, event: value.event })),
+      probes: found.map((value) => ({ text: value.quote, kind: value.kind, name: value.name, about: value.about, conditions: value.conditions, remarks: value.remarks, when: value.when, event: value.event })),
       values: store.list(),
       noteId,
       noteTitle: noteTitleOf,
@@ -42,7 +43,8 @@ export function useNoteEditor({ store, content, label, noteId, noteTitleOf = () 
       noteTitle: noteTitleOf,
     });
     const editor = holder.current;
-    if (!target || !editor || editor.isDestroyed) return;
+    if (!target) return services.onNewFact?.(value);
+    if (!editor || editor.isDestroyed) return;
     if (target.changed) return store.update(value.id, { proposal: { factId: target.factId } });
     repoint(editor, value.id, target.factId, store.get(target.factId)?.text ?? value.text);
     store.remove(value.id);
@@ -90,17 +92,17 @@ export function useNoteEditor({ store, content, label, noteId, noteTitleOf = () 
   return editor;
 }
 
-type NoteEditorViewProps = { editor: Editor | null; store: ValueStore; usage?: (factId: string) => number; onChanged?: (factId: string, text: string) => void };
+type NoteEditorViewProps = { editor: Editor | null; store: ValueStore; services?: EditorServices };
 
-export function NoteEditorView({ editor, store, usage, onChanged }: NoteEditorViewProps) {
+export function NoteEditorView({ editor, store, services }: NoteEditorViewProps) {
   return (
     <>
       <EditorContent editor={editor} />
-      {editor && <ValueCard editor={editor} store={store} usage={usage} onChanged={onChanged} />}
+      {editor && <ValueCard editor={editor} store={store} services={services} />}
     </>
   );
 }
 
 export function NoteEditor(options: NoteEditorOptions) {
-  return <NoteEditorView editor={useNoteEditor(options)} store={options.store} />;
+  return <NoteEditorView editor={useNoteEditor(options)} store={options.store} services={options.services} />;
 }

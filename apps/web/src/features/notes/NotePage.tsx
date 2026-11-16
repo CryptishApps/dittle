@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { NoteEditorView, useNoteEditor } from "@/features/editor/NoteEditor";
 import { createSyncedValueStore } from "@/features/editor/values";
 import { MIcon } from "@/ui/kit";
-import { notesQuery, noteQuery, writes } from "./api";
+import { noteQuery, writes } from "./api";
+import { createEditorServices } from "./editor-services";
 import { fromNoteDoc, summarise, toNoteDoc, type NoteDoc } from "./note-doc";
 
 const SAVE_AFTER_MS = 800;
@@ -23,13 +24,7 @@ export function NotePage({ uid, noteId }: { uid: string; noteId: string }) {
 function OpenNote({ uid, noteId, doc, pending }: { uid: string; noteId: string; doc: NoteDoc; pending: boolean }) {
   const queryClient = useQueryClient();
   const [store] = useState(() => createSyncedValueStore(queryClient, uid, writes));
-  const { data: notes } = useSuspenseQuery(notesQuery(uid));
-  const notesRef = useRef(notes);
-  useEffect(() => {
-    notesRef.current = notes;
-  }, [notes]);
-  const noteTitleOf = (id: string | undefined) => notesRef.current.find((note) => note.id === id)?.title || undefined;
-  const usage = (factId: string) => notes.filter((note) => note.valueIds.includes(factId)).length;
+  const [services] = useState(() => createEditorServices({ queryClient, uid, noteId, store }));
   const [initial] = useState(() => fromNoteDoc(doc));
   const saved = useRef(canonical(doc));
   const unsaved = useRef<NoteDoc | undefined>(undefined);
@@ -48,8 +43,7 @@ function OpenNote({ uid, noteId, doc, pending }: { uid: string; noteId: string; 
     store,
     content: initial,
     label: "Note",
-    noteId,
-    noteTitleOf,
+    services,
     autofocus: summarise(doc).title === "",
     onUpdate: (current) => {
       unsaved.current = toNoteDoc(current.getJSON());
@@ -82,19 +76,7 @@ function OpenNote({ uid, noteId, doc, pending }: { uid: string; noteId: string; 
       <NoteBar />
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto max-w-[680px] px-6 pt-10 pb-32 sm:px-10">
-          <NoteEditorView
-            editor={editor}
-            store={store}
-            usage={usage}
-            onChanged={(factId, text) =>
-              writes.relabelNotes(
-                uid,
-                factId,
-                text,
-                notes.filter((note) => note.id !== noteId && note.valueIds.includes(factId)).map((note) => note.id),
-              )
-            }
-          />
+          <NoteEditorView editor={editor} store={store} services={services} />
         </div>
       </div>
     </>

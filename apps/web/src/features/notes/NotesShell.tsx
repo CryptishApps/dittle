@@ -7,8 +7,9 @@ import { useDeviceModel, type DeviceModelStatus } from "@/features/ai/device-mod
 import { loadAuth } from "@/lib/session";
 import { Btn, ease, MIcon } from "@/ui/kit";
 import { Wordmark } from "@/ui/Wordmark";
-import { foldersQuery, loadStore, notesQuery, startNote, writes } from "./api";
+import { collectionsQuery, foldersQuery, loadStore, notesQuery, rowsQuery, startNote, writes } from "./api";
 import { NoteTree } from "./NoteTree";
+import { dismissToast, showToast, useToast } from "./toast";
 import type { Folder, NoteSummary } from "./store";
 
 const subscribeOnline = (onChange: () => void) => {
@@ -27,8 +28,11 @@ export function useOnline(): boolean {
 export function NotesShell({ user }: { user: User }) {
   const { data: notes } = useSuspenseQuery(notesQuery(user.uid));
   const { data: folders } = useSuspenseQuery(foldersQuery(user.uid));
+  const { data: collections } = useSuspenseQuery(collectionsQuery(user.uid));
+  const { data: rows } = useSuspenseQuery(rowsQuery(user.uid));
   const [creatingFolder, setCreatingFolder] = useState(false);
-  const { noteId } = useParams({ strict: false });
+  const { noteId, collectionId } = useParams({ strict: false });
+  const detail = Boolean(noteId || collectionId);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const online = useOnline();
@@ -42,23 +46,18 @@ export function NotesShell({ user }: { user: User }) {
 
   const newNote = (folderId: string | null = null) => void navigate({ to: "/notes/$noteId", params: { noteId: startNote(queryClient, user.uid, folderId) } });
 
-  const [toast, setToast] = useState<{ id: number; text: string; undo: () => void }>();
-  useEffect(() => {
-    if (!toast) return;
-    const timer = window.setTimeout(() => setToast(undefined), 6000);
-    return () => window.clearTimeout(timer);
-  }, [toast]);
+  const toast = useToast();
 
   const remove = async (note: NoteSummary) => {
     if (note.id === noteId) await navigate({ to: "/notes" });
     const undo = await writes.deleteNote(user.uid, note.id);
-    setToast({ id: Date.now(), text: `Deleted ${note.title ? `"${note.title}"` : "note"}`, undo });
+    showToast(`Deleted ${note.title ? `"${note.title}"` : "note"}`, undo);
   };
 
   const removeFolder = async (folder: Folder) => {
     const inside = notes.filter((note) => note.folderId === folder.id).map((note) => note.id);
     const undo = await writes.deleteFolder(user.uid, folder, inside);
-    setToast({ id: Date.now(), text: `Deleted folder "${folder.name}"${inside.length ? `, ${inside.length} ${inside.length === 1 ? "note" : "notes"} kept` : ""}`, undo });
+    showToast(`Deleted folder "${folder.name}"${inside.length ? `, ${inside.length} ${inside.length === 1 ? "note" : "notes"} kept` : ""}`, undo);
   };
 
   const signOut = async () => {
@@ -71,7 +70,7 @@ export function NotesShell({ user }: { user: User }) {
 
   return (
     <div className="flex h-dvh bg-page">
-      <aside className={`${noteId ? "hidden md:flex" : "flex"} w-full shrink-0 flex-col border-line bg-side md:w-[288px] md:border-r`}>
+      <aside className={`${detail ? "hidden md:flex" : "flex"} w-full shrink-0 flex-col border-line bg-side md:w-[288px] md:border-r`}>
         <div className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-line px-4">
           <Link to="/notes" aria-label="All notes">
             <Wordmark className="text-[14px]" />
@@ -94,6 +93,29 @@ export function NotesShell({ user }: { user: User }) {
         </div>
 
         <nav aria-label="Notes" className="min-h-0 flex-1 overflow-y-auto py-2">
+          {collections.length > 0 && (
+            <div className="mb-2 border-b border-line pb-2">
+              <p className="px-4 pt-1 pb-1 text-[10.5px] tracking-[0.06em] text-faint uppercase">Collections</p>
+              <ul>
+                {collections.map((collection) => {
+                  const count = rows.filter((row) => row.collectionId === collection.id).length;
+                  return (
+                    <li key={collection.id}>
+                      <Link
+                        to="/notes/collections/$collectionId"
+                        params={{ collectionId: collection.id }}
+                        className="flex items-center gap-2 border-l-2 border-transparent py-1.5 pr-4 pl-4 text-[13px] text-ink hover:bg-panel [&.active]:border-ink [&.active]:bg-panel"
+                      >
+                        <MIcon name="chip" className="size-3.5 text-soft" />
+                        <span className="truncate">{collection.name}</span>
+                        <span className="ml-auto text-[10.5px] text-faint tabular-nums">{count}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
           <NoteTree
             uid={user.uid}
             notes={notes}
@@ -121,7 +143,7 @@ export function NotesShell({ user }: { user: User }) {
         </footer>
       </aside>
 
-      <main className={`${noteId ? "flex" : "hidden md:flex"} min-w-0 flex-1 flex-col`}>
+      <main className={`${detail ? "flex" : "hidden md:flex"} min-w-0 flex-1 flex-col`}>
         <Outlet />
       </main>
 
@@ -137,16 +159,18 @@ export function NotesShell({ user }: { user: User }) {
             className="fixed bottom-4 left-4 z-50 flex max-w-[calc(100vw-2rem)] items-center gap-4 bg-ink py-2.5 pr-2.5 pl-4 text-[12.5px] text-page shadow-pop"
           >
             <span className="truncate">{toast.text}</span>
-            <button
-              type="button"
-              onClick={() => {
-                toast.undo();
-                setToast(undefined);
-              }}
-              className="shrink-0 px-2 py-1 text-[11px] tracking-[0.06em] uppercase hover:bg-page/15"
-            >
-              Undo
-            </button>
+            {toast.undo && (
+              <button
+                type="button"
+                onClick={() => {
+                  toast.undo?.();
+                  dismissToast();
+                }}
+                className="shrink-0 px-2 py-1 text-[11px] tracking-[0.06em] uppercase hover:bg-page/15"
+              >
+                Undo
+              </button>
+            )}
           </m.div>
         )}
       </AnimatePresence>

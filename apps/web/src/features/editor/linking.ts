@@ -1,5 +1,6 @@
 import type { Editor } from "@tiptap/core";
 import type { LinkFact } from "@/features/ai/link";
+import { periodOf } from "@/features/collections/logic";
 import type { FactFields } from "@/features/notes/fact";
 import { VALUE_NODE } from "./value-tag";
 import type { TrackedValue, ValueStore } from "./values";
@@ -8,7 +9,7 @@ export const MAX_CANDIDATES = 12;
 
 export type LinkTarget = { factId: string; changed: boolean };
 
-export type LinkProbe = Pick<FactFields, "text" | "kind" | "name" | "conditions" | "when" | "event" | "notSame"> & { id?: string; about?: string };
+export type LinkProbe = Pick<FactFields, "text" | "kind" | "name" | "conditions" | "remarks" | "when" | "event" | "notSame" | "updatedAt"> & { id?: string; about?: string };
 
 const aboutOf = (value: LinkProbe | TrackedValue) => ("subject" in value && value.subject?.label) || ("about" in value ? value.about : undefined);
 
@@ -18,14 +19,20 @@ const toFact = (value: LinkProbe | TrackedValue): LinkFact => ({
   name: value.name,
   about: aboutOf(value) || undefined,
   conditions: value.conditions,
+  remarks: value.remarks,
   when: value.when,
 });
+
+function differentOccasion(probe: LinkProbe, value: TrackedValue): boolean {
+  if (probe.when && value.when && probe.when.grain === value.when.grain) return probe.when.on !== value.when.on;
+  return periodOf(probe) !== periodOf(value);
+}
 
 export function candidatesFor(probe: LinkProbe, values: TrackedValue[], noteId?: string): TrackedValue[] {
   return values
     .filter((value) => value.id !== probe.id && !value.proposal && value.kind !== undefined && value.kind === probe.kind)
     .filter((value) => !probe.notSame?.includes(value.id) && !(probe.id && value.notSame?.includes(probe.id)))
-    .filter((value) => !(probe.event && value.event && probe.when && value.when && probe.when.grain === value.when.grain && probe.when.on !== value.when.on))
+    .filter((value) => !(probe.event && value.event && differentOccasion(probe, value)))
     .sort((a, b) => Number(b.origin?.noteId === noteId) - Number(a.origin?.noteId === noteId) || (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
 }
 
