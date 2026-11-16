@@ -39,6 +39,7 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
   const hideTimer = useRef<number | undefined>(undefined);
   const values = useValues(store);
   const [, setVersion] = useState(0);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     if (target?.kind !== "found") return;
@@ -60,11 +61,20 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
     const out = (event: MouseEvent) => {
       if ((event.target as HTMLElement).closest(".value-tag, .value-found")) hide();
     };
+    const click = (event: MouseEvent) => {
+      const element = (event.target as HTMLElement).closest<HTMLElement>(".value-tag");
+      if (!element?.dataset.id) return;
+      window.clearTimeout(hideTimer.current);
+      setTarget({ kind: "tag", id: element.dataset.id, element });
+      setEditing(true);
+    };
     dom.addEventListener("mouseover", over);
     dom.addEventListener("mouseout", out);
+    dom.addEventListener("click", click);
     return () => {
       dom.removeEventListener("mouseover", over);
       dom.removeEventListener("mouseout", out);
+      dom.removeEventListener("click", click);
     };
   }, [editor]);
 
@@ -80,8 +90,24 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
 
   function hide() {
     window.clearTimeout(hideTimer.current);
+    if (editing) return;
     hideTimer.current = window.setTimeout(() => setTarget(undefined), 220);
   }
+
+  const close = () => {
+    setEditing(false);
+    setTarget(undefined);
+  };
+
+  const saveEdit = (value: TrackedValue, text: string, scope: "everywhere" | "here") => {
+    close();
+    if (text === value.text) return;
+    if (scope === "everywhere") return applyEverywhere(value.id, text);
+    const { id: _id, text: _text, naming: _naming, proposal: _proposal, updatedAt: _updatedAt, ...context } = value;
+    const forked = store.add(text, { ...context, notSame: [...(value.notSame ?? []), value.id], history: [{ text: value.text, at: Date.now() }] });
+    repoint(editor, value.id, forked.id, text);
+    store.update(value.id, { notSame: [...(value.notSame ?? []), forked.id] });
+  };
 
   const tag = target?.kind === "tag" ? values.find((value) => value.id === target.id) : undefined;
   const found = target?.kind === "found" ? spottingKey.getState(editor.state)?.found.get(target.id) : undefined;
@@ -129,6 +155,17 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
     store.remove(value.id);
   };
 
+  useEffect(() => {
+    if (!editing) return;
+    const outside = (event: MouseEvent) => {
+      const node = event.target as Node;
+      if (card.current?.contains(node) || target?.element.contains(node)) return;
+      close();
+    };
+    document.addEventListener("mousedown", outside);
+    return () => document.removeEventListener("mousedown", outside);
+  }, [editing, target]);
+
   const describing = tag?.naming || (found && !found.described);
   const changed = (found?.link?.changed || Boolean(tag?.proposal)) && linked;
 
@@ -151,6 +188,8 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
           <p className="text-[10.5px] tracking-[0.06em] text-faint uppercase">
             {[nameOf(shown), shown.kind, shown.event === undefined ? undefined : shown.event ? "event" : "ongoing"].filter(Boolean).join(" · ")}
           </p>
+          {tag && editing && !tag.proposal && <EditValue value={tag} count={usage(tag.id)} onSave={(text, scope) => saveEdit(tag, text, scope)} onCancel={close} />}
+          {tag && !editing && tag.history?.length ? <p className="mt-1 text-faint">Was {tag.history.at(-1)!.text}</p> : null}
           {describing ? (
             <p className="mt-1">
               <span className="t-shimmer-text" data-text="Describing">
@@ -279,5 +318,52 @@ function StartCollection({ value, onStart }: { value: TrackedValue; onStart: (na
       </div>
       <p className="mt-1.5 text-faint">{value.event ? "One row per day. Other values in this note from the same day become columns." : `One row per ${label}. Other values from the same sentence become columns.`}</p>
     </form>
+  );
+}
+
+function EditValue({ value, count, onSave, onCancel }: { value: TrackedValue; count: number; onSave: (text: string, scope: "everywhere" | "here") => void; onCancel: () => void }) {
+  const [text, setText] = useState(value.text);
+  const [asking, setAsking] = useState(false);
+  const submit = () => {
+    const next = text.trim();
+    if (!next || next === value.text) return onCancel();
+    if (count > 1) setAsking(true);
+    else onSave(next, "everywhere");
+  };
+  return (
+    <div className="mt-2">
+      <input
+        autoFocus
+        aria-label={`Change ${nameOf(value)}`}
+        value={text}
+        onChange={(event) => {
+          setText(event.target.value);
+          setAsking(false);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            submit();
+          }
+          if (event.key === "Escape") onCancel();
+        }}
+        className="h-8 w-full border border-accent bg-card px-2 text-[13px] outline-none"
+      />
+      {asking ? (
+        <div className="mt-2">
+          <p className="text-accent-ink">
+            {value.text} is used in {notes(count)}.
+          </p>
+          <div className="mt-2 flex flex-wrap justify-end gap-2">
+            <Action onClick={() => onSave(text.trim(), "here")}>Only in this note</Action>
+            <Action primary onClick={() => onSave(text.trim(), "everywhere")}>
+              Update all {count}
+            </Action>
+          </div>
+        </div>
+      ) : (
+        <p className="mt-1.5 text-faint">Enter to save · Esc to cancel</p>
+      )}
+    </div>
   );
 }
