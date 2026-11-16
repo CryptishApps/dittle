@@ -94,7 +94,7 @@ function DescribePage() {
     JSON.stringify(
       {
         when: new Date().toISOString(),
-        prompt: "v6",
+        prompt: "v6.1",
         mode,
         availability: model.status,
         userAgent: navigator.userAgent,
@@ -117,7 +117,7 @@ function DescribePage() {
     <div className="min-h-dvh bg-page text-[13px]">
       <header className="flex flex-wrap items-center gap-4 border-b border-line px-6 py-3">
         <Wordmark className="text-[14px]" />
-        <span className="text-[11px] tracking-[0.06em] text-faint uppercase">Describe test · prompt v6</span>
+        <span className="text-[11px] tracking-[0.06em] text-faint uppercase">Describe test · prompt v6.1</span>
         <span className="text-[11px] tracking-[0.06em] text-soft uppercase">Gemini Nano: {model.status}</span>
         <select value={mode} onChange={(event) => setMode(event.target.value as InferenceMode)} className="ml-auto border border-line-strong bg-card px-2 py-1">
           <option value={InferenceMode.PREFER_ON_DEVICE}>Prefer device</option>

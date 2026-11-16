@@ -2,7 +2,7 @@ import { InferenceMode } from "firebase/ai";
 import { VALUE_KINDS, type ValueKind } from "./detect";
 import { createHybrid, type InferenceWhere } from "./hybrid";
 
-export const DESCRIBE_PROMPT_VERSION = "v6";
+export const DESCRIBE_PROMPT_VERSION = "v6.1";
 
 export const TAG_KINDS = [...VALUE_KINDS, "text"] as const;
 export type TagKind = (typeof TAG_KINDS)[number];
@@ -54,6 +54,8 @@ For each value give:
 - "grain": day, time, month or year to match "when", or none when "when" is empty.
 - "conditions": phrases copied from the paragraph that limit when or for whom the value is true, such as "on Saturdays" or "for members". A repeating time is a condition, never "when". Empty if none.
 - "remarks": words copied from the paragraph that say something notable about the value without limiting it, such as "fastest", "roughly" or "quoted". A unit is never a remark. Empty if none.
+
+Words that say when, such as "today", "yesterday" or "on Friday", only ever set "when". They are never conditions or remarks.
 
 Examples
 Dates: today Mon 2026-03-09. Fri 2026-03-06, Sat 2026-03-07, Sun 2026-03-08, Tue 2026-03-10.
