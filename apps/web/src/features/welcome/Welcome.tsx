@@ -3,7 +3,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Code, MIcon, Scramble } from "../../ui/kit";
 import { Wordmark } from "../../ui/Wordmark";
 import { Demo } from "./Demo";
-import { Floating, Reveal, Rise, ScrollWords, Shot, StickySteps, TiltedShot, useSmoothScroll, type Step } from "./motion";
+import { Shot } from "../../ui/Shot";
+import { Floating, Reveal, Rise, ScrollWords, StickySteps, TiltedShot, useSmoothScroll, type Step } from "./motion";
 
 type WelcomeProps = {
   onStart: () => void;

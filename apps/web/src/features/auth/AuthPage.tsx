@@ -1,12 +1,12 @@
-import { m, useReducedMotion } from "motion/react";
+import { m } from "motion/react";
 import { useEffect, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import type { PasswordCheck } from "@/lib/auth";
 import { authMessage, isCancelled } from "@/lib/auth-errors";
-import { Reprint } from "@/ui/Reprint";
 import { ease, MIcon, Scramble } from "@/ui/kit";
+import { Shot } from "@/ui/Shot";
 import { Wordmark } from "@/ui/Wordmark";
 
 export type AuthMode = "signin" | "signup";
@@ -21,21 +21,24 @@ export type AuthActions = {
 
 type Pending = "google" | "email" | "guest" | "reset";
 
+export type AuthAside = "peek" | "note";
+
 type AuthPageProps = {
   mode: AuthMode;
   actions: AuthActions;
   isGuest?: boolean;
   links: { home: Nav; signin: Nav; signup: Nav };
+  aside?: AuthAside;
 };
 
 type Nav = { href: string; go: () => void };
 
 const COPY = {
-  signin: { label: "Sign in", title: "Welcome back.", submit: "Sign in", busy: "Signing in" },
-  signup: { label: "Create account", title: "Start writing.", submit: "Create account", busy: "Creating account" },
+  signin: { title: "Welcome back.", submit: "Sign in", busy: "Signing in" },
+  signup: { title: "Start writing.", submit: "Create account", busy: "Creating account" },
 } as const;
 
-export function AuthPage({ mode, actions, isGuest = false, links }: AuthPageProps) {
+export function AuthPage({ mode, actions, isGuest = false, links, aside = "peek" }: AuthPageProps) {
   const copy = COPY[mode];
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -90,13 +93,9 @@ export function AuthPage({ mode, actions, isGuest = false, links }: AuthPageProp
   return (
     <div className="grid min-h-dvh bg-page text-ink lg:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)]">
       <div className="flex min-h-dvh flex-col px-6 py-6 sm:px-10">
-        <header className="flex items-center justify-between">
-          <NavLink nav={links.home} className="-m-1 p-1">
+        <header>
+          <NavLink nav={links.home} label={isGuest ? "Back to your notes" : "Dittle home"} className="-m-1 inline-flex p-1">
             <Wordmark className="text-[14px]" />
-          </NavLink>
-          <NavLink nav={links.home} className="flex items-center gap-1.5 text-[11px] tracking-[0.06em] text-faint uppercase hover:text-ink">
-            <MIcon name="left" className="size-3.5" />
-            {isGuest ? "Your notes" : "Home"}
           </NavLink>
         </header>
 
@@ -108,12 +107,7 @@ export function AuthPage({ mode, actions, isGuest = false, links }: AuthPageProp
             transition={{ duration: 0.5, ease }}
             className="w-full max-w-[360px]"
           >
-            <p className="flex items-center gap-3 text-[11px] tracking-[0.06em] text-faint uppercase">
-              <span className="text-accent-ink">{mode === "signin" ? "01" : "00"}</span>
-              {copy.label}
-              <span className="h-px flex-1 bg-line" />
-            </p>
-            <h1 className="mt-6 text-[34px] leading-[1.05] font-medium tracking-[-0.05em]">
+            <h1 className="text-[34px] leading-[1.05] font-medium tracking-[-0.05em]">
               <Scramble key={mode} text={copy.title} duration={520} />
             </h1>
             <p className="mt-3 text-[13px] leading-[1.7] text-soft">{sub}</p>
@@ -239,14 +233,10 @@ export function AuthPage({ mode, actions, isGuest = false, links }: AuthPageProp
             )}
           </m.div>
         </main>
-
-        <footer className="flex flex-wrap items-center justify-between gap-2 text-[10.5px] tracking-[0.06em] text-faint uppercase">
-          <span>Built for #BuildHybridAI 2026</span>
-          <span>Apache 2.0</span>
-        </footer>
+        <div aria-hidden className="h-8" />
       </div>
 
-      <AuthVisual />
+      {aside === "peek" ? <AsidePeek /> : <AsideNote />}
     </div>
   );
 }
@@ -299,14 +289,14 @@ function Label({ busy, text, busyText }: { busy: boolean; text: string; busyText
   );
 }
 
-function NavLink({ nav, className, children }: { nav: Nav; className?: string; children: ReactNode }) {
+function NavLink({ nav, label, className, children }: { nav: Nav; label?: string; className?: string; children: ReactNode }) {
   const onClick = (event: MouseEvent<HTMLAnchorElement>) => {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
     event.preventDefault();
     nav.go();
   };
   return (
-    <a href={nav.href} onClick={onClick} className={className}>
+    <a href={nav.href} onClick={onClick} aria-label={label} className={className}>
       {children}
     </a>
   );
@@ -323,102 +313,59 @@ function GoogleMark() {
   );
 }
 
-const CYCLE = [80, 95, 120] as const;
+function AsidePeek() {
+  return (
+    <aside aria-hidden className="relative hidden overflow-hidden border-l border-line bg-side lg:block">
+      <div className="hatch absolute inset-0 opacity-50" />
+      <div className="absolute top-[16%] left-[14%] w-[150%] border border-line-strong bg-card p-1.5 shadow-pop">
+        <Shot name="hero" alt="" sizes="(min-width: 1024px) 80vw, 1px" />
+      </div>
+      <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-b from-transparent to-side" />
+    </aside>
+  );
+}
+
 const money = (n: number) => `£${n.toLocaleString("en-GB")}`;
+const GUESTS = 80;
 
-function AuthVisual() {
-  const reduce = useReducedMotion();
+function AsideNote() {
   const [found, setFound] = useState(false);
-  const [count, setCount] = useState(0);
-  const [synced, setSynced] = useState(true);
-
   useEffect(() => {
-    const timer = window.setTimeout(() => setFound(true), 700);
+    const timer = window.setTimeout(() => setFound(true), 500);
     return () => window.clearTimeout(timer);
   }, []);
 
-  useEffect(() => {
-    if (reduce) return;
-    let settle = 0;
-    const tick = window.setInterval(() => {
-      setCount((current) => current + 1);
-      setSynced(false);
-      settle = window.setTimeout(() => setSynced(true), 1500);
-    }, 4600);
-    return () => {
-      window.clearInterval(tick);
-      window.clearTimeout(settle);
-    };
-  }, [reduce]);
-
-  const guests = CYCLE[count % CYCLE.length]!;
-  const before = CYCLE[(count + CYCLE.length - 1) % CYCLE.length]!;
-  const shown = synced ? guests : before;
-
+  const value = (n: number) => (
+    <span className="token text-soft" data-found={found}>
+      {n}
+    </span>
+  );
   const rows: { title: string; body: ReactNode }[] = [
-    { title: "Budget", body: <>Food: {value(shown)} × £38 = <Reprint value={money(shown * 38)} /></> },
-    { title: "Chair hire", body: <>{value(shown)} chairs, plus 4 spare</> },
-    { title: "Email to Sam", body: <>We're expecting {value(shown)} people</> },
+    { title: "Budget", body: <>Food: {value(GUESTS)} × £38 = {money(GUESTS * 38)}</> },
+    { title: "Chair hire", body: <>{value(GUESTS)} chairs, plus 4 spare</> },
+    { title: "Email to Sam", body: <>We're expecting {value(GUESTS)} people</> },
   ];
 
-  function value(n: number) {
-    return (
-      <span className="token text-ink" data-found={found} data-state={synced ? "idle" : "stale"}>
-        <Reprint value={String(n)} />
-      </span>
-    );
-  }
-
   return (
-    <aside aria-hidden className="theme-dark relative hidden overflow-hidden border-l border-line bg-page text-ink lg:flex lg:flex-col">
-      <div className="hatch absolute inset-x-0 top-0 h-14 border-b border-line" />
-      <div className="relative flex h-14 items-center justify-between px-10 text-[11px] tracking-[0.06em] text-faint uppercase">
-        <span>Fig. 01 — One change, every note</span>
-        <span className="flex items-center gap-2 bg-page px-2 py-1">
-          <span className="size-1.5 animate-pulse bg-accent" />
-          Gemini Nano · on device
-        </span>
-      </div>
-
-      <div className="flex flex-1 items-center justify-center px-10 py-12">
-        <div className="brackets w-full max-w-[520px] [--bracket-inset:-9px] [--bracket-size:14px]">
-          <div className="border border-line-strong bg-card">
-            <Bar left="Catering quote" right={found ? "4 values · on device" : "Reading"} />
-            <p className="px-6 pt-2 pb-6 text-[15px] leading-[2]">
-              Rosa's Kitchen can do a buffet for{" "}
-              <span className="token" data-found={found} data-state={synced ? "idle" : "changed"}>
-                <Reprint value={String(guests)} />
-              </span>{" "}
-              guests at{" "}
-              <span className="token" data-found={found}>
-                £38
-              </span>{" "}
-              a head.
-            </p>
-            <div className="divide-y divide-line-strong border-t border-line-strong bg-panel">
-              {rows.map((row, index) => (
-                <div key={row.title} className="relative">
-                  <span
-                    className={`absolute inset-y-0 left-0 w-[2px] transition-colors duration-300 ${synced ? "bg-transparent" : "bg-accent"}`}
-                    style={{ transitionDelay: synced ? `${index * 160}ms` : "0ms" }}
-                  />
-                  <Bar
-                    left={row.title}
-                    right={synced ? <Scramble key={`${count}-${index}`} text={count === 0 ? "In step" : "Updated · 190 ms"} /> : <span className="text-accent-ink">Says {before}</span>}
-                  />
-                  <p className="px-6 pt-0.5 pb-4 text-[13px] leading-[1.9] text-soft">{row.body}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="border-t border-line px-10 py-9">
-        <p className="text-[30px] leading-[1.1] font-medium tracking-[-0.05em]">Change it once.</p>
-        <p className="mt-3 max-w-[46ch] text-[13px] leading-[1.7] text-soft">
-          Dittle spots the counts, dates and prices your notes share, and keeps every copy in step. It runs on your device.
+    <aside aria-hidden className="relative hidden items-center justify-center overflow-hidden border-l border-line bg-side px-12 lg:flex">
+      <div className="hatch absolute inset-0 opacity-50" />
+      <div className="relative w-full max-w-[420px] border border-line bg-card text-soft shadow-pop">
+        <Bar left="Catering quote" right="4 values" />
+        <p className="px-5 pt-1 pb-5 text-[14px] leading-[1.9]">
+          Rosa's Kitchen can do a buffet for {value(GUESTS)} guests at{" "}
+          <span className="token" data-found={found}>
+            £38
+          </span>{" "}
+          a head.
         </p>
+        <div className="divide-y divide-line border-t border-line bg-panel">
+          {rows.map((row) => (
+            <div key={row.title}>
+              <Bar left={row.title} right="In step" />
+              <p className="px-5 pt-0.5 pb-4 text-[12.5px] leading-[1.8]">{row.body}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </aside>
   );
@@ -426,9 +373,9 @@ function AuthVisual() {
 
 function Bar({ left, right }: { left: string; right: ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-3 px-6 pt-4 pb-1.5 text-[11px] tracking-[0.05em] uppercase">
-      <span className="flex items-center gap-2 font-medium">
-        <MIcon name="file" className="size-3.5 text-soft" />
+    <div className="flex items-center justify-between gap-3 px-5 pt-4 pb-1.5 text-[10.5px] tracking-[0.05em] uppercase">
+      <span className="flex items-center gap-2 font-medium text-ink/80">
+        <MIcon name="file" className="size-3.5 text-faint" />
         {left}
       </span>
       <span className="text-faint">{right}</span>
