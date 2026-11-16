@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import type { InferenceMode } from "firebase/ai";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { DetectResult, Detector } from "@/features/ai/detect";
-import { EXISTING, SAMPLES, type Sample } from "@/features/spike/samples";
+import { KNOWN, SAMPLES, type Sample } from "@/features/spike/samples";
 import { scoreSample, summarise, type SampleScore } from "@/features/spike/score";
 import { Wordmark } from "@/ui/Wordmark";
 
@@ -52,6 +52,7 @@ function SpikePage() {
   const [running, setRunning] = useState(false);
   const [copied, setCopied] = useState(false);
   const [setupError, setSetupError] = useState<string>();
+  const [version, setVersion] = useState<string>();
   const stop = useRef(false);
   const detectors = useRef(new Map<InferenceMode, Promise<Detector>>());
 
@@ -62,7 +63,10 @@ function SpikePage() {
   const detector = (forMode: InferenceMode) => {
     let pending = detectors.current.get(forMode);
     if (!pending) {
-      pending = import("@/features/ai/detect").then(({ createDetector }) => createDetector(forMode, EXISTING));
+      pending = import("@/features/ai/detect").then(({ createDetector, DETECT_PROMPT_VERSION }) => {
+        setVersion(DETECT_PROMPT_VERSION);
+        return createDetector(forMode, KNOWN);
+      });
       detectors.current.set(forMode, pending);
     }
     return pending;
@@ -115,6 +119,7 @@ function SpikePage() {
   const copy = async () => {
     const report = {
       when: new Date().toISOString(),
+      prompt: version,
       mode,
       availability,
       userAgent: navigator.userAgent,
@@ -144,7 +149,7 @@ function SpikePage() {
         <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-x-6 gap-y-3 px-6 py-4">
           <div className="flex items-center gap-3">
             <Wordmark className="text-[13px]" />
-            <span className="text-[11px] tracking-[0.06em] text-faint uppercase">Detect test</span>
+            <span className="text-[11px] tracking-[0.06em] text-faint uppercase">Detect test{version ? ` · prompt ${version}` : ""}</span>
           </div>
           <ModelStatus availability={availability} progress={progress} />
           <div className="ml-auto flex flex-wrap items-center gap-2">
@@ -184,7 +189,8 @@ function SpikePage() {
       <main className="mx-auto max-w-[1200px] px-6 py-8">
         <Summary summary={summary} total={SAMPLES.length} />
         <p className="mt-6 text-[12px] leading-[1.7] text-soft">
-          Existing variables given to the model: <span className="text-ink">{EXISTING.join(", ")}</span>. Grey highlights are values the model found
+          Known variables given to the model:{" "}
+          <span className="text-ink">{KNOWN.map((variable) => `${variable.name} = ${variable.value}`).join(", ")}</span>. Grey highlights are values the model found
           in the text. Orange chips are wrong: the wrong kind, the wrong link, or a value that isn't in the paragraph.
         </p>
         <ol className="mt-6 divide-y divide-line border-y border-line">

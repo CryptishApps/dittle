@@ -1,9 +1,18 @@
-import type { ValueKind } from "@/features/ai/detect";
+import type { KnownVariable, ValueKind } from "@/features/ai/detect";
 
 export type ExpectedValue = { quote: string; kind: ValueKind; existing?: string; optional?: boolean };
 export type Sample = { id: string; topic: string; text: string; values: ExpectedValue[]; requests?: string[] };
 
-export const EXISTING = ["guest_count", "per_head_price", "wedding_date", "venue_deposit", "flight_cost", "hotel_nightly_rate", "team_size", "sprint_length"];
+export const KNOWN: KnownVariable[] = [
+  { name: "guest_count", value: "80", note: "Wedding: catering quote" },
+  { name: "per_head_price", value: "£38", note: "Wedding: catering quote" },
+  { name: "wedding_date", value: "14 June", note: "Wedding: venue" },
+  { name: "venue_deposit", value: "£500", note: "Wedding: venue" },
+  { name: "flight_cost", value: "£182", note: "Lisbon: flights" },
+  { name: "hotel_nightly_rate", value: "€140", note: "Lisbon: hotel" },
+  { name: "team_size", value: "6", note: "Work: team" },
+  { name: "sprint_length", value: "two weeks", note: "Work: team" },
+];
 
 export const SAMPLES: Sample[] = [
   {

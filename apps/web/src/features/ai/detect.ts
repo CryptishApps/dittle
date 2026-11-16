@@ -15,18 +15,28 @@ export type DetectResult = {
   fallbackReason?: string;
 };
 
-const INSTRUCTIONS = `You read one paragraph from someone's personal notes and list the facts in it that could also appear in their other notes and might change later.
+export const DETECT_PROMPT_VERSION = "v3";
 
-Return JSON with two lists.
+export type KnownVariable = { name: string; value: string; note: string };
 
-"values": each fact in the paragraph.
-- "quote": the value exactly as written in the paragraph, copied character for character. Include a currency sign or unit that is attached to it ("£38", "250g", "3 weeks"), but not the noun it counts ("80", not "80 guests").
-- "kind": money, count (how many of something), number (other quantities and measurements), date (dates, days and times), duration, percent, person or place.
-- "name": a short snake_case name for what the value means, such as guest_count or flight_cost.
-- "existing": if the value means the same thing as one of the existing variable names you are given, that name. Otherwise "none".
-Skip anything that isn't a concrete fact. If there are none, return an empty list.
+const INSTRUCTIONS = `You read one paragraph from someone's notes and list the concrete values in it: amounts of money, counts, other numbers and measurements, dates and times, durations, percentages, and the names of people and places.
 
-"requests": sentences in the paragraph that ask for something to be written or added into the note, such as "add in a list of meals here". Copy them exactly. Usually there are none.`;
+For each value give:
+- "quote": only the value itself, copied exactly from the paragraph. Keep a currency sign or unit attached to it (£38, 250g, 45 minutes, 14 June). Leave out the thing being counted and the words around it: "80 guests" gives "80", "£38 a head" gives "£38", "£182 return" gives "£182".
+- "kind": money, count, number, date, duration, percent, person or place.
+- "name": a short snake_case name for what the value means.
+- "existing": the name of a known variable only if this value is about that same thing in the same context: the same value, or the paragraph says the value has changed ("now 95 guests, not 80" for the wedding guest count). A value from a different topic, or a different date, price or count, is "none".
+
+"requests": sentences that ask you to write or add content into the note at that spot, such as "add a list of meals here", copied exactly. Reminders and to-dos for the person, such as "call the florist" or "ask about the menu", are not requests. A request is never also a value.
+
+Ordinary words are never values. If there are no values, return an empty list.
+
+Example
+Known variables:
+- guest_count = 80 (Wedding: catering)
+- wedding_date = 14 June (Wedding: venue)
+Paragraph: Dinner for 12 people on 3 May with Ana at Casa Lola, about £30 each. Add a shopping list here.
+Answer: {"values":[{"quote":"12","kind":"count","name":"dinner_guests","existing":"none"},{"quote":"3 May","kind":"date","name":"dinner_date","existing":"none"},{"quote":"Ana","kind":"person","name":"host","existing":"none"},{"quote":"Casa Lola","kind":"place","name":"restaurant","existing":"none"},{"quote":"£30","kind":"money","name":"price_per_person","existing":"none"}],"requests":["Add a shopping list here."]}`;
 
 const TEXT_EN = [{ type: "text" as const, languages: ["en"] }];
 
@@ -78,10 +88,12 @@ export type Detector = {
   detect: (paragraph: string) => Promise<DetectResult>;
 };
 
-export function createDetector(mode: InferenceMode, existing: string[]): Detector {
-  const model = getGenerativeModel(ai, params(mode, existing));
-  const cloud = mode === InferenceMode.ONLY_IN_CLOUD ? model : getGenerativeModel(ai, params(InferenceMode.ONLY_IN_CLOUD, existing));
-  const prompt = (paragraph: string) => `Existing variable names: ${existing.join(", ") || "none"}\n\nParagraph:\n${paragraph}`;
+export function createDetector(mode: InferenceMode, known: KnownVariable[]): Detector {
+  const names = known.map((variable) => variable.name);
+  const model = getGenerativeModel(ai, params(mode, names));
+  const cloud = mode === InferenceMode.ONLY_IN_CLOUD ? model : getGenerativeModel(ai, params(InferenceMode.ONLY_IN_CLOUD, names));
+  const listed = known.length ? known.map((variable) => `- ${variable.name} = ${variable.value} (${variable.note})`).join("\n") : "none";
+  const prompt = (paragraph: string) => `Known variables:\n${listed}\n\nParagraph:\n${paragraph}`;
 
   const run = async (target: GenerativeModel, paragraph: string): Promise<DetectResult> => {
     const started = performance.now();
@@ -113,7 +125,9 @@ function parse(text: string): Pick<DetectResult, "values" | "requests"> {
   const data: unknown = JSON.parse(text);
   if (typeof data !== "object" || data === null) throw new Error("Detect returned something other than an object.");
   const record = data as { values?: unknown; requests?: unknown };
-  const values = Array.isArray(record.values) ? record.values.filter(isValue) : [];
+  const values = Array.isArray(record.values)
+    ? record.values.filter(isValue).map((value) => ({ ...value, quote: value.quote.trim() })).filter((value) => value.quote.length > 0)
+    : [];
   const requests = Array.isArray(record.requests) ? record.requests.filter((item): item is string => typeof item === "string") : [];
   return { values, requests };
 }
