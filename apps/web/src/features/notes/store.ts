@@ -19,9 +19,9 @@ import {
 import { db } from "@/lib/firestore";
 import type { Listen } from "@/lib/live-query";
 import type { StoredValue } from "./fact";
-import { EMPTY_NOTE, summarise, type NoteDoc } from "./note-doc";
+import { EMPTY_NOTE, relabel, summarise, valueIdsOf, type NoteDoc } from "./note-doc";
 
-export type NoteSummary = { id: string; title: string; preview: string; updatedAt: number; pending: boolean; folderId: string | null };
+export type NoteSummary = { id: string; title: string; preview: string; updatedAt: number; pending: boolean; folderId: string | null; valueIds: string[] };
 export type Folder = { id: string; name: string; createdAt: number };
 export type Note = NoteSummary & { doc: NoteDoc };
 export type { StoredValue } from "./fact";
@@ -43,6 +43,7 @@ function summary(snapshot: DocumentSnapshot<DocumentData>): NoteSummary {
     updatedAt: millis(data.updatedAt),
     pending: snapshot.metadata.hasPendingWrites,
     folderId: typeof data.folderId === "string" ? data.folderId : null,
+    valueIds: Array.isArray(data.valueIds) ? data.valueIds.filter((item): item is string => typeof item === "string") : [],
   };
 }
 
@@ -64,7 +65,17 @@ export const listenNote =
 export const listenValues =
   (uid: string): Listen<StoredValue[]> =>
   async (next, fail) =>
-    onSnapshot(values(uid), (snapshot) => next(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as StoredValue)), fail);
+    onSnapshot(
+      values(uid),
+      (snapshot) =>
+        next(
+          snapshot.docs.map((item) => {
+            const { createdAt: _created, updatedAt, ...data } = item.data({ serverTimestamps: "estimate" });
+            return { ...data, text: String(data.text ?? ""), id: item.id, updatedAt: millis(updatedAt) } as StoredValue;
+          }),
+        ),
+      fail,
+    );
 
 export const listenFolders =
   (uid: string): Listen<Folder[]> =>
@@ -122,7 +133,7 @@ export function deleteFolder(uid: string, folder: Folder, noteIds: string[]): ()
 }
 
 export function saveNote(uid: string, id: string, note: NoteDoc): void {
-  write(updateDoc(doc(notes(uid), id), { schemaVersion: 1, doc: note, ...summarise(note), updatedAt: serverTimestamp() }));
+  write(updateDoc(doc(notes(uid), id), { schemaVersion: 1, doc: note, ...summarise(note), valueIds: valueIdsOf(note), updatedAt: serverTimestamp() }));
 }
 
 export async function deleteNote(uid: string, id: string): Promise<() => void> {
@@ -142,6 +153,10 @@ export function createValue(uid: string, value: StoredValue): void {
   write(setDoc(doc(values(uid), id), { ...fields, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }));
 }
 
+export function deleteValue(uid: string, id: string): void {
+  write(deleteDoc(doc(values(uid), id)));
+}
+
 export function updateValue(uid: string, id: string, patch: Partial<Omit<StoredValue, "id">>): void {
   write(updateDoc(doc(values(uid), id), { ...patch, updatedAt: serverTimestamp() }));
 }
@@ -149,4 +164,12 @@ export function updateValue(uid: string, id: string, patch: Partial<Omit<StoredV
 export async function forgetThisDevice(): Promise<void> {
   await terminate(db);
   await clearIndexedDbPersistence(db);
+}
+
+export async function relabelNotes(uid: string, valueId: string, label: string, noteIds: string[]): Promise<void> {
+  for (const id of noteIds) {
+    const snapshot = await getDocFromCache(doc(notes(uid), id)).catch(() => undefined);
+    const stored = snapshot?.data()?.doc as NoteDoc | undefined;
+    if (stored) saveNote(uid, id, relabel(stored, valueId, label));
+  }
 }

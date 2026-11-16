@@ -5,6 +5,7 @@ import type { DescribedValue, createDescriber } from "@/features/ai/describe";
 import type { DetectResult } from "@/features/ai/detect";
 import { useDeviceModel } from "@/features/ai/device-model";
 import { CONTEXT_CASES, CONTEXT_TODAY } from "@/features/spike/context-samples";
+import { LINK_CASES } from "@/features/spike/link-samples";
 import { scoreContext, type ContextScore } from "@/features/spike/context-score";
 import { SAMPLES } from "@/features/spike/samples";
 import { scoreSample, summarise, type SampleScore } from "@/features/spike/score";
@@ -16,6 +17,7 @@ export const Route = createFileRoute("/dev/describe")({
 
 type Describer = ReturnType<typeof createDescriber>;
 type ValueRow = { id: string; result?: DetectResult; score?: SampleScore; error?: string };
+type LinkRow = { id: string; ok?: boolean; got?: string; want: string; where?: string; ms?: number; error?: string };
 type ContextRow = { id: string; values?: DescribedValue[]; where?: string; ms?: number; findMs?: number; score?: ContextScore; error?: string };
 
 const pause = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -40,6 +42,7 @@ function DescribePage() {
   const [mode, setMode] = useState<InferenceMode>(InferenceMode.PREFER_ON_DEVICE);
   const [valueRows, setValueRows] = useState<ValueRow[]>([]);
   const [contextRows, setContextRows] = useState<ContextRow[]>([]);
+  const [linkRows, setLinkRows] = useState<LinkRow[]>([]);
   const [running, setRunning] = useState(false);
   const [copied, setCopied] = useState(false);
   const describers = useRef(new Map<InferenceMode, Promise<Describer>>());
@@ -57,7 +60,22 @@ function DescribePage() {
     setRunning(true);
     setValueRows([]);
     setContextRows([]);
+    setLinkRows([]);
     const active = await describer(mode);
+    const { createLinker } = await import("@/features/ai/link");
+    const linker = createLinker(mode);
+    const show = (decision: { match: number | null; changed?: boolean }) => (decision.match === null ? "none" : `c${decision.match + 1}${decision.changed === undefined ? "" : decision.changed ? " changed" : " same"}`);
+    for (const sample of LINK_CASES) {
+      const want = show(sample.expect);
+      try {
+        const result = await withRetry(() => linker({ sentence: sample.sentence, items: [sample.item], candidates: sample.candidates }));
+        const decision = result.decisions[0]!;
+        const ok = decision.match === sample.expect.match && (sample.expect.changed === undefined || decision.changed === sample.expect.changed);
+        setLinkRows((rows) => [...rows, { id: sample.id, ok, got: show(decision), want, where: result.where, ms: result.ms }]);
+      } catch (error) {
+        setLinkRows((rows) => [...rows, { id: sample.id, want, error: message(error) }]);
+      }
+    }
     for (const sample of CONTEXT_CASES) {
       try {
         const input = { paragraph: sample.text, noteTitle: sample.note, today: CONTEXT_TODAY };
@@ -100,6 +118,8 @@ function DescribePage() {
         userAgent: navigator.userAgent,
         values,
         context: Object.fromEntries(fields.map(({ field, ok, total }) => [field, `${ok}/${total}`])),
+        link: `${linkRows.filter((row) => row.ok).length}/${linkRows.length}`,
+        linkCases: linkRows,
         contextCases: contextRows.map((row) => ({ id: row.id, where: row.where, findMs: row.findMs, describeMs: row.ms, error: row.error, wrong: row.score?.checks.filter((check) => !check.ok) })),
         valueSamples: valueRows.map((row) => ({ id: row.id, where: row.result?.where, ms: row.result?.ms, fallback: row.result?.fallbackReason, error: row.error, requests: row.result?.requests, requestOk: row.score?.requestOk, missed: row.score?.missed.map((value) => value.quote), extra: row.score?.verdicts.filter((verdict) => verdict.verdict !== "match" && verdict.verdict !== "optional").map((verdict) => verdict.value.quote) })),
       },
@@ -125,7 +145,9 @@ function DescribePage() {
           <option value={InferenceMode.ONLY_IN_CLOUD}>Cloud only</option>
         </select>
         <button type="button" disabled={running} onClick={() => void runAll()} className="bg-ink px-3 py-1.5 text-[11px] tracking-[0.06em] text-page uppercase disabled:opacity-60">
-          {running ? `Running ${contextRows.length + valueRows.length}/${CONTEXT_CASES.length + SAMPLES.length}` : `Run all ${CONTEXT_CASES.length + SAMPLES.length}`}
+          {running
+            ? `Running ${linkRows.length + contextRows.length + valueRows.length}/${LINK_CASES.length + CONTEXT_CASES.length + SAMPLES.length}`
+            : `Run all ${LINK_CASES.length + CONTEXT_CASES.length + SAMPLES.length}`}
         </button>
         <button type="button" onClick={() => void copy()} className="border border-line-strong px-3 py-1.5 text-[11px] tracking-[0.06em] uppercase">
           {copied ? "Copied" : "Copy results"}
@@ -133,6 +155,20 @@ function DescribePage() {
       </header>
 
       <main className="mx-auto grid max-w-6xl gap-10 px-6 py-8 lg:grid-cols-2">
+        <section className="lg:col-span-2">
+          <h2 className="text-[11px] tracking-[0.06em] text-faint uppercase">
+            Link ({LINK_CASES.length} cases) · {linkRows.filter((row) => row.ok).length}/{linkRows.length} right
+          </h2>
+          <ul className="mt-3 grid gap-x-8 gap-y-1 text-[12px] sm:grid-cols-2">
+            {linkRows.map((row) => (
+              <li key={row.id} className={row.ok ? "text-soft" : "text-accent-ink"}>
+                <span className="text-faint">{row.id}</span> {LINK_CASES.find((item) => item.id === row.id)?.sentence} · wanted {row.want}, got {row.error ?? row.got}
+                {row.ms !== undefined && <span className="text-faint"> · {(row.ms / 1000).toFixed(1)} s</span>}
+              </li>
+            ))}
+          </ul>
+        </section>
+
         <section>
           <h2 className="text-[11px] tracking-[0.06em] text-faint uppercase">Context ({CONTEXT_CASES.length} cases)</h2>
           <dl className="mt-3 grid grid-cols-4 gap-2">

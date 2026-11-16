@@ -4,19 +4,21 @@ import { Plugin, PluginKey, type EditorState, type Transaction } from "@tiptap/p
 import { Mapping } from "@tiptap/pm/transform";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import type { DescribeResult, FindResult, SpottedValue, ValueContext } from "@/features/ai/describe";
+import type { LinkTarget } from "./linking";
 import { VALUE_NODE } from "./value-tag";
 
-export type FoundValue = SpottedValue & Partial<ValueContext> & { id: string; described: boolean };
+export type FoundValue = SpottedValue & Partial<ValueContext> & { id: string; described: boolean; link?: LinkTarget | null };
 
 type SpottingState = { decorations: DecorationSet; found: Map<string, FoundValue> };
 type Placement = { from: number; to: number; value: FoundValue };
-type SetMeta = { block: { from: number; to: number }; placements: Placement[] } | { context: Map<string, ValueContext> };
+type SetMeta = { block: { from: number; to: number }; placements: Placement[] } | { context: Map<string, ValueContext> } | { links: Map<string, LinkTarget | null> };
 
 export const spottingKey = new PluginKey<SpottingState>("spotting");
 
 export type SpottingOptions = {
   find: (input: { paragraph: string; noteTitle: string }) => Promise<FindResult>;
   describe: (input: { paragraph: string; noteTitle: string; quotes: string[] }) => Promise<DescribeResult>;
+  link?: (sentence: string, values: FoundValue[]) => Promise<(LinkTarget | null)[]>;
   continuous: () => boolean;
 };
 
@@ -73,6 +75,21 @@ function spottingPlugin() {
         }
         const meta = tr.getMeta(spottingKey) as SetMeta | undefined;
         if (!meta) return { decorations, found: previous.found };
+        if ("links" in meta) {
+          const found = new Map(previous.found);
+          const replaced: Decoration[] = [];
+          const restyled: Decoration[] = [];
+          meta.links.forEach((link, id) => {
+            const value = found.get(id);
+            if (!value) return;
+            found.set(id, { ...value, link });
+            const [decoration] = decorations.find(undefined, undefined, (spec) => spec.id === id);
+            if (!decoration || !link) return;
+            replaced.push(decoration);
+            restyled.push(Decoration.inline(decoration.from, decoration.to, { class: "value-found", "data-found": id, "data-link": link.changed ? "changed" : "same" }, { id }));
+          });
+          return { decorations: decorations.remove(replaced).add(tr.doc, restyled), found };
+        }
         if ("context" in meta) {
           const found = new Map(previous.found);
           meta.context.forEach((context, id) => {
@@ -221,8 +238,19 @@ class Scheduler {
           if (described) context.set(value.id, { about: described.about, event: described.event, when: described.when, conditions: described.conditions, remarks: described.remarks });
         });
         this.editor.view.dispatch(this.editor.state.tr.setMeta(spottingKey, { context }).setMeta("addToHistory", false));
+        const described = placed.flatMap((value) => {
+          const extra = context.get(value.id);
+          return extra ? [{ ...value, ...extra, described: true }] : [];
+        });
+        if (this.options.link && described.length) return this.options.link(paragraph, described).then((links) => this.applyLinks(described, links));
       })
       .catch(() => undefined);
+  }
+
+  private applyLinks(values: FoundValue[], links: (LinkTarget | null)[]) {
+    if (this.editor.isDestroyed) return;
+    const map = new Map(values.map((value, index) => [value.id, links[index] ?? null] as const));
+    this.editor.view.dispatch(this.editor.state.tr.setMeta(spottingKey, { links: map }).setMeta("addToHistory", false));
   }
 
   private place(blockStart: number, mapping: Mapping, checked: string, result: FindResult): FoundValue[] {

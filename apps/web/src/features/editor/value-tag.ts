@@ -35,6 +35,7 @@ export function ValueTag({ store, onCreate }: ValueTagOptions) {
           const value = store.get(node.attrs.id);
           dom.textContent = value?.text ?? node.attrs.label;
           dom.dataset.naming = String(value?.naming ?? false);
+          dom.dataset.proposal = String(Boolean(value?.proposal));
           dom.title = value?.name ? `${value.name.replaceAll("_", " ")} · ${value.kind}` : "";
         };
         paint();

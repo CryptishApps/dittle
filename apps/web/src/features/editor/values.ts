@@ -3,13 +3,16 @@ import { useSyncExternalStore } from "react";
 import { valuesQuery, type writes } from "@/features/notes/api";
 import type { FactFields, StoredValue } from "@/features/notes/fact";
 
-export type TrackedValue = StoredValue & { naming: boolean };
+type LocalState = { naming: boolean; proposal?: { factId: string } };
+
+export type TrackedValue = StoredValue & LocalState;
 
 export type ValueStore = {
   list: () => TrackedValue[];
   get: (id: string) => TrackedValue | undefined;
   add: (text: string, fields?: Omit<FactFields, "text">) => TrackedValue;
   update: (id: string, patch: Partial<Omit<TrackedValue, "id">>) => void;
+  remove: (id: string) => void;
   subscribe: (listener: () => void) => () => void;
 };
 
@@ -31,6 +34,10 @@ export function createValueStore(initial: TrackedValue[] = []): ValueStore {
       values = values.map((value) => (value.id === id ? { ...value, ...patch } : value));
       emit();
     },
+    remove: (id) => {
+      values = values.filter((value) => value.id !== id);
+      emit();
+    },
     subscribe: (listener) => {
       listeners.add(listener);
       return () => listeners.delete(listener);
@@ -38,12 +45,12 @@ export function createValueStore(initial: TrackedValue[] = []): ValueStore {
   };
 }
 
-type ValueWrites = Pick<typeof writes, "createValue" | "updateValue">;
+type ValueWrites = Pick<typeof writes, "createValue" | "updateValue" | "deleteValue">;
 
 export function createSyncedValueStore(client: QueryClient, uid: string, writes: ValueWrites): ValueStore {
   const { queryKey } = valuesQuery(uid);
   const queryHash = hashKey(queryKey);
-  const naming = new Set<string>();
+  const local = new Map<string, LocalState>();
   const listeners = new Set<() => void>();
   let source: StoredValue[] | undefined;
   let values: TrackedValue[] = [];
@@ -56,7 +63,7 @@ export function createSyncedValueStore(client: QueryClient, uid: string, writes:
     const current = client.getQueryData(queryKey) ?? [];
     if (current !== source) {
       source = current;
-      values = current.map((value) => ({ ...value, naming: naming.has(value.id) }));
+      values = current.map((value) => ({ ...value, naming: false, ...local.get(value.id) }));
     }
     return values;
   };
@@ -69,12 +76,18 @@ export function createSyncedValueStore(client: QueryClient, uid: string, writes:
       writes.createValue(uid, value);
       return { ...value, naming: false };
     },
-    update: (id, { naming: isNaming, ...patch }) => {
-      if (isNaming !== undefined) {
-        if (isNaming) naming.add(id);
-        else naming.delete(id);
+    update: (id, patch) => {
+      const { naming, proposal, ...stored } = patch;
+      if ("naming" in patch || "proposal" in patch) {
+        const current = local.get(id) ?? { naming: false };
+        local.set(id, { ...current, ...("naming" in patch && { naming: naming ?? false }), ...("proposal" in patch && { proposal }) });
       }
-      if (Object.keys(patch).length > 0) writes.updateValue(uid, id, patch);
+      if (Object.keys(stored).length > 0) writes.updateValue(uid, id, stored);
+      emit();
+    },
+    remove: (id) => {
+      local.delete(id);
+      writes.deleteValue(uid, id);
       emit();
     },
     subscribe: (listener) => {
@@ -96,25 +109,18 @@ export function useValues(store: ValueStore): TrackedValue[] {
 
 export type TagContext = { sentence: string; noteTitle: string; noteId?: string };
 
-export function describeInBackground(store: ValueStore, value: TrackedValue, { sentence, noteTitle, noteId }: TagContext): void {
+export function describeInBackground(store: ValueStore, value: TrackedValue, { sentence, noteTitle, noteId }: TagContext, onDescribed?: (value: TrackedValue) => void): void {
   store.update(value.id, { naming: true, origin: { noteId, sentence } });
   void import("@/features/ai/describe")
     .then(({ describeTag, DESCRIBE_PROMPT_VERSION }) =>
       describeTag({ paragraph: sentence, noteTitle, tagged: value.text }).then((described) => ({ described, v: DESCRIBE_PROMPT_VERSION })),
     )
     .then(
-      ({ described: { kind, name, about, event, when, conditions, remarks, where, ms }, v }) =>
-        store.update(value.id, {
-          kind,
-          name,
-          subject: about ? { label: about } : undefined,
-          event,
-          when,
-          conditions,
-          remarks,
-          naming: false,
-          describedBy: { where, ms, v },
-        }),
+      ({ described: { kind, name, about, event, when, conditions, remarks, where, ms }, v }) => {
+        const context = { kind, name, subject: about ? { label: about } : undefined, event, when, conditions, remarks };
+        store.update(value.id, { ...context, naming: false, describedBy: { where, ms, v } });
+        onDescribed?.({ ...value, ...context, naming: false, origin: { noteId, sentence } });
+      },
       () => store.update(value.id, { naming: false }),
     );
 }

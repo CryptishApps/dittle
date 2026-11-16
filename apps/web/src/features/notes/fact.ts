@@ -12,6 +12,9 @@ export type FactFields = {
   remarks?: string[];
   origin?: { noteId?: string; sentence: string };
   describedBy?: { where: InferenceWhere; ms: number; v: string };
+  history?: { text: string; at: number }[];
+  notSame?: string[];
+  updatedAt?: number;
 };
 
 export type StoredValue = { id: string } & FactFields;

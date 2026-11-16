@@ -96,3 +96,20 @@ export function summarise(doc: NoteDoc): { title: string; preview: string } {
   const [first, ...rest] = doc.blocks.map(blockText).map((text) => text.trim());
   return { title: first ?? "", preview: rest.filter(Boolean).join(" ").slice(0, 160) };
 }
+
+export function valueIdsOf(doc: NoteDoc): string[] {
+  const inlines = doc.blocks.flatMap((block) => (block.t === "p" || block.t === "h" ? block.c : block.items.flatMap((item) => item.c)));
+  return [...new Set(inlines.flatMap((inline) => (inline.t === "value" ? [inline.id] : [])))];
+}
+
+export function relabel(doc: NoteDoc, valueId: string, label: string): NoteDoc {
+  const fix = (inlines: Inline[]) => inlines.map((inline) => (inline.t === "value" && inline.id === valueId ? { ...inline, label } : inline));
+  return {
+    ...doc,
+    blocks: doc.blocks.map((block): Block => {
+      if (block.t === "p" || block.t === "h") return { ...block, c: fix(block.c) };
+      if (block.t === "ul") return { ...block, items: block.items.map((item) => ({ ...item, c: fix(item.c) })) };
+      return { ...block, items: block.items.map((item) => ({ ...item, c: fix(item.c) })) };
+    }),
+  };
+}

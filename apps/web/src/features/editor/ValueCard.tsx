@@ -1,12 +1,13 @@
 import { autoUpdate, computePosition, flip, offset, shift } from "@floating-ui/dom";
 import type { Editor } from "@tiptap/react";
 import { AnimatePresence, m } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { FactFields } from "@/features/notes/fact";
 import { ease } from "@/ui/kit";
+import { changeEverywhere, relabelInEditor, repoint } from "./linking";
 import { foundValueAt, spottingKey } from "./spotting";
 import { VALUE_NODE } from "./value-tag";
-import { describeInBackground, useValues, type ValueStore } from "./values";
+import { describeInBackground, useValues, type TrackedValue, type ValueStore } from "./values";
 
 type Target = { kind: "tag" | "found"; id: string; element: HTMLElement };
 
@@ -22,14 +23,15 @@ function showWhen(when: FactFields["when"]): string | undefined {
   return DAY.format(new Date(`${when.on}T00:00:00Z`));
 }
 
-type Shown = Omit<FactFields, "text"> & { text: string; about?: string };
+type Shown = Omit<FactFields, "text"> & { text: string };
 
-function contextLine(value: Shown): string {
-  const about = value.subject?.label ?? value.about;
-  return [about, showWhen(value.when), ...(value.conditions ?? []), ...(value.remarks ?? [])].filter(Boolean).join(" · ");
-}
+const contextLine = (value: Shown) => [value.subject?.label, showWhen(value.when), ...(value.conditions ?? []), ...(value.remarks ?? [])].filter(Boolean).join(" · ");
+const nameOf = (value: { name?: string } | undefined) => value?.name?.replaceAll("_", " ") ?? "value";
+const notes = (count: number) => `${count} ${count === 1 ? "note" : "notes"}`;
 
-export function ValueCard({ editor, store }: { editor: Editor; store: ValueStore }) {
+type ValueCardProps = { editor: Editor; store: ValueStore; usage?: (factId: string) => number; onChanged?: (factId: string, text: string) => void };
+
+export function ValueCard({ editor, store, usage = () => 0, onChanged }: ValueCardProps) {
   const [target, setTarget] = useState<Target>();
   const card = useRef<HTMLDivElement>(null);
   const hideTimer = useRef<number | undefined>(undefined);
@@ -81,27 +83,46 @@ export function ValueCard({ editor, store }: { editor: Editor; store: ValueStore
 
   const tag = target?.kind === "tag" ? values.find((value) => value.id === target.id) : undefined;
   const found = target?.kind === "found" ? spottingKey.getState(editor.state)?.found.get(target.id) : undefined;
+  const linked = found?.link ? store.get(found.link.factId) : tag?.proposal ? store.get(tag.proposal.factId) : undefined;
   const shown: Shown | undefined = tag ?? (found && { ...found, text: found.quote, subject: found.about ? { label: found.about } : undefined });
 
-  const track = () => {
-    if (!target) return;
-    const hit = foundValueAt(editor.state, target.id);
-    if (!hit) return setTarget(undefined);
-    const { quote, kind, name, about, event, when, conditions, remarks, described } = hit.value;
-    const value = described
-      ? store.add(quote, { kind, name, subject: about ? { label: about } : undefined, event, when, conditions, remarks })
-      : store.add(quote, { kind, name });
-    if (!described) {
-      const sentence = editor.state.doc.resolve(hit.from).parent.textContent;
-      describeInBackground(store, value, { sentence, noteTitle: editor.state.doc.firstChild?.textContent ?? "" });
-    }
-    editor
-      .chain()
-      .focus()
-      .insertContentAt({ from: hit.from, to: hit.to }, { type: VALUE_NODE, attrs: { id: value.id, label: quote, mentionSuggestionChar: "@" } })
-      .run();
-    setTarget(undefined);
+  const insertTag = (from: number, to: number, id: string, label: string) =>
+    editor.chain().focus().insertContentAt({ from, to }, { type: VALUE_NODE, attrs: { id, label, mentionSuggestionChar: "@" } }).run();
+
+  const applyEverywhere = (factId: string, text: string) => {
+    changeEverywhere(store, factId, text);
+    relabelInEditor(editor, factId, text);
+    onChanged?.(factId, text);
   };
+
+  const trackFound = (how: "new" | "same" | "update" | "separate") => {
+    const hit = target && foundValueAt(editor.state, target.id);
+    setTarget(undefined);
+    if (!hit) return;
+    const { quote, kind, name, about, event, when, conditions, remarks, described, link } = hit.value;
+    if (link && (how === "same" || how === "update")) {
+      insertTag(hit.from, hit.to, link.factId, quote);
+      if (how === "update") applyEverywhere(link.factId, quote);
+      return;
+    }
+    const notSame = how === "separate" && link ? [link.factId] : undefined;
+    const value = store.add(quote, described ? { kind, name, subject: about ? { label: about } : undefined, event, when, conditions, remarks, notSame } : { kind, name, notSame });
+    insertTag(hit.from, hit.to, value.id, quote);
+    if (!described) describeInBackground(store, value, { sentence: editor.state.doc.resolve(hit.from).parent.textContent, noteTitle: editor.state.doc.firstChild?.textContent ?? "" });
+  };
+
+  const settleProposal = (value: TrackedValue, accept: boolean) => {
+    const factId = value.proposal?.factId;
+    setTarget(undefined);
+    if (!factId) return;
+    if (!accept) return store.update(value.id, { proposal: undefined, notSame: [...(value.notSame ?? []), factId] });
+    repoint(editor, value.id, factId, value.text);
+    applyEverywhere(factId, value.text);
+    store.remove(value.id);
+  };
+
+  const describing = tag?.naming || (found && !found.described);
+  const changed = (found?.link?.changed || Boolean(tag?.proposal)) && linked;
 
   return (
     <AnimatePresence>
@@ -117,12 +138,12 @@ export function ValueCard({ editor, store }: { editor: Editor; store: ValueStore
           onMouseLeave={hide}
           role="dialog"
           aria-label={`About ${shown.text}`}
-          className="fixed top-0 left-0 z-50 w-max max-w-[300px] border border-line-strong bg-card px-3 py-2.5 text-[12px] shadow-pop"
+          className={`fixed top-0 left-0 z-50 w-max max-w-[320px] border bg-card px-3 py-2.5 text-[12px] shadow-pop ${changed ? "border-accent" : "border-line-strong"}`}
         >
           <p className="text-[10.5px] tracking-[0.06em] text-faint uppercase">
-            {[shown.name?.replaceAll("_", " "), shown.kind, shown.event === undefined ? undefined : shown.event ? "event" : "ongoing"].filter(Boolean).join(" · ")}
+            {[nameOf(shown), shown.kind, shown.event === undefined ? undefined : shown.event ? "event" : "ongoing"].filter(Boolean).join(" · ")}
           </p>
-          {tag?.naming || (found && !found.described) ? (
+          {describing ? (
             <p className="mt-1">
               <span className="t-shimmer-text" data-text="Describing">
                 Describing
@@ -131,22 +152,75 @@ export function ValueCard({ editor, store }: { editor: Editor; store: ValueStore
           ) : (
             contextLine(shown) && <p className="mt-1 text-ink">{contextLine(shown)}</p>
           )}
-          {target.kind === "found" ? (
-            <div className="mt-2.5 flex items-center justify-between gap-4 border-t border-line pt-2">
-              <span className="text-faint">Spotted by AI</span>
-              <button type="button" onClick={track} className="bg-ink px-2 py-1 text-[10.5px] tracking-[0.06em] text-page uppercase hover:opacity-90">
+
+          {changed && linked && (
+            <p className="mt-2 text-accent-ink">
+              {nameOf(linked)} is {linked.text} in {notes(usage(linked.id))}. Change it to {shown.text}?
+            </p>
+          )}
+          {!changed && linked && (
+            <p className="mt-2 text-soft">
+              Same as {nameOf(linked)} in {notes(usage(linked.id))}
+            </p>
+          )}
+          {tag && !tag.proposal && usage(tag.id) > 1 && <p className="mt-2 text-soft">In {notes(usage(tag.id))}</p>}
+
+          <Actions>
+            {found && changed && (
+              <>
+                <Action onClick={() => trackFound("separate")}>Only here</Action>
+                <Action primary onClick={() => trackFound("update")}>
+                  Update everywhere
+                </Action>
+              </>
+            )}
+            {found && !changed && linked && (
+              <>
+                <Action onClick={() => trackFound("separate")}>Not the same</Action>
+                <Action primary onClick={() => trackFound("same")}>
+                  Track as {nameOf(linked)}
+                </Action>
+              </>
+            )}
+            {found && !linked && (
+              <Action primary onClick={() => trackFound("new")}>
                 Track value
-              </button>
-            </div>
-          ) : (
-            tag?.describedBy && (
-              <p className="mt-2 border-t border-line pt-2 text-faint">
-                Described {tag.describedBy.where === "on_device" ? "on this device" : "in the cloud"} in {(tag.describedBy.ms / 1000).toFixed(1)} s
-              </p>
-            )
+              </Action>
+            )}
+            {tag?.proposal && (
+              <>
+                <Action onClick={() => settleProposal(tag, false)}>Keep separate</Action>
+                <Action primary onClick={() => settleProposal(tag, true)}>
+                  Update everywhere
+                </Action>
+              </>
+            )}
+          </Actions>
+          {tag && !tag.proposal && tag.describedBy && (
+            <p className="mt-2 border-t border-line pt-2 text-faint">
+              Described {tag.describedBy.where === "on_device" ? "on this device" : "in the cloud"} in {(tag.describedBy.ms / 1000).toFixed(1)} s
+            </p>
           )}
         </m.div>
       )}
     </AnimatePresence>
+  );
+}
+
+function Actions({ children }: { children: ReactNode }) {
+  const items = Array.isArray(children) ? children.filter(Boolean) : children;
+  if (!items || (Array.isArray(items) && items.length === 0)) return null;
+  return <div className="mt-2.5 flex flex-wrap items-center justify-end gap-2 border-t border-line pt-2">{children}</div>;
+}
+
+function Action({ primary, onClick, children }: { primary?: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`px-2 py-1 text-[10.5px] tracking-[0.06em] uppercase ${primary ? "bg-ink text-page hover:opacity-90" : "border border-line-strong text-ink hover:border-ink"}`}
+    >
+      {children}
+    </button>
   );
 }

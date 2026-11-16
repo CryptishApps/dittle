@@ -55,12 +55,14 @@ export const writes = {
   deleteNote: async (uid: string, id: string) => (await loadStore()).deleteNote(uid, id),
   createValue: (uid: string, value: StoredValue) => later((store) => store.createValue(uid, value)),
   updateValue: (uid: string, id: string, patch: Partial<Omit<StoredValue, "id">>) => later((store) => store.updateValue(uid, id, patch)),
+  deleteValue: (uid: string, id: string) => later((store) => store.deleteValue(uid, id)),
+  relabelNotes: (uid: string, valueId: string, label: string, noteIds: string[]) => later((store) => void store.relabelNotes(uid, valueId, label, noteIds)),
 };
 
 export function startNote(queryClient: QueryClient, uid: string, folderId: string | null = null): string {
   const id = writes.createNote(uid, folderId);
   const query = noteQuery(uid, id);
-  const seed: Note = { id, title: "", preview: "", updatedAt: Date.now(), pending: true, folderId, doc: EMPTY_NOTE };
+  const seed: Note = { id, title: "", preview: "", updatedAt: Date.now(), pending: true, folderId, valueIds: [], doc: EMPTY_NOTE };
   queryClient.setQueryData<Note | null>(query.queryKey, seed);
   void queryClient.prefetchQuery({ ...query, staleTime: 0 });
   return id;
