@@ -24,12 +24,12 @@ const TEXT_EN = [{ type: "text", languages: ["en"] }];
 const pause = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 async function withRetry<T>(call: () => Promise<T>): Promise<T> {
-  const { isRateLimited } = await import("@/features/ai/hybrid");
+  const { isTemporary } = await import("@/features/ai/hybrid");
   for (let attempt = 0; ; attempt += 1) {
     try {
       return await call();
     } catch (error) {
-      if (!isRateLimited(error) || attempt === 5) throw error;
+      if (!isTemporary(error) || attempt === 5) throw error;
       await pause(6000 * (attempt + 1));
     }
   }

@@ -72,6 +72,8 @@ export function createHybrid(task: string, mode: InferenceMode, instructions: st
   };
 }
 
-export function isRateLimited(error: unknown): boolean {
-  return error instanceof AIError && error.customErrorData?.status === 429;
+const TEMPORARY_STATUS = new Set([429, 500, 503]);
+
+export function isTemporary(error: unknown): boolean {
+  return error instanceof AIError && TEMPORARY_STATUS.has(error.customErrorData?.status ?? 0);
 }
