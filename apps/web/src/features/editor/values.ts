@@ -3,7 +3,7 @@ import { useSyncExternalStore } from "react";
 import { valuesQuery, type writes } from "@/features/notes/api";
 import type { FactFields, StoredValue } from "@/features/notes/fact";
 
-type LocalState = { naming: boolean; proposal?: { factId: string } };
+type LocalState = { naming: boolean };
 
 export type TrackedValue = StoredValue & LocalState;
 
@@ -77,11 +77,9 @@ export function createSyncedValueStore(client: QueryClient, uid: string, writes:
       return { ...value, naming: false };
     },
     update: (id, patch) => {
-      const { naming, proposal, ...stored } = patch;
-      if ("naming" in patch || "proposal" in patch) {
-        const current = local.get(id) ?? { naming: false };
-        local.set(id, { ...current, ...("naming" in patch && { naming: naming ?? false }), ...("proposal" in patch && { proposal }) });
-      }
+      const { naming, ...stored } = patch;
+      if (naming !== undefined) local.set(id, { naming });
+      if ("proposal" in stored && stored.proposal === undefined) stored.proposal = null;
       if (Object.keys(stored).length > 0) writes.updateValue(uid, id, stored);
       emit();
     },

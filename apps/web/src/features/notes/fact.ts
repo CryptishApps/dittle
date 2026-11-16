@@ -15,6 +15,7 @@ export type FactFields = {
   describedBy?: { where: InferenceWhere; ms: number; v: string };
   history?: { text: string; at: number }[];
   notSame?: string[];
+  proposal?: { factId: string } | null;
   updatedAt?: number;
 };
 
