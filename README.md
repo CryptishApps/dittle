@@ -35,7 +35,7 @@ The cloud never sees full notes for Collections, only the values Dittle extracte
 |---|---|
 | [Firebase AI Logic](https://firebase.google.com/docs/ai-logic) | Every AI call, on-device first with cloud fallback |
 | [App Check](https://firebase.google.com/docs/app-check) | Keeps AI Logic and Firestore for this app only: reCAPTCHA Enterprise on web, Play Integrity on Android |
-| [Authentication](https://firebase.google.com/docs/auth) | Start writing with no account, then sign in with Google to keep notes across devices |
+| [Authentication](https://firebase.google.com/docs/auth) | Start writing with no account, then keep your notes with email and password or Google. The guest account is linked rather than replaced, so its notes carry over |
 | [Cloud Firestore](https://firebase.google.com/docs/firestore) | Notes, variables and collections, with an offline cache that syncs when you reconnect |
 | [Remote Config](https://firebase.google.com/docs/remote-config) | Prompts, the cloud model name, the typing-pause delay and a switch for cloud calls |
 | [Hosting](https://firebase.google.com/docs/hosting) | Serves the web app at [dittle.app](https://dittle.app) |
@@ -59,11 +59,11 @@ cp apps/web/.env.example apps/web/.env.local   # fill in your Firebase web app s
 bun run dev                                    # http://localhost:5180
 ```
 
-In development, App Check uses a debug token. Leave `VITE_APPCHECK_DEBUG_TOKEN` empty the first time, copy the token the browser console prints, and add it in the Firebase console under App Check > Manage debug tokens.
+App Check is optional until AI Logic is wired up: leave `VITE_RECAPTCHA_ENTERPRISE_SITE_KEY` empty to run without it. Once it's set, development uses a debug token. Leave `VITE_APPCHECK_DEBUG_TOKEN` empty the first time, copy the token the browser console prints, and add it in the Firebase console under App Check > Manage debug tokens.
 
-Design previews live at `http://localhost:5180/dev/designs`: the notes app filled with sample notes, and the homepage. They exist only in development and are left out of production builds.
+Design previews live at `http://localhost:5180/dev/designs`: the notes app filled with sample notes, the homepage and the sign-in page. They exist only in development and are left out of production builds.
 
-The homepage screenshots in `apps/web/public/shots` come from the notes app preview. To retake them, keep `bun run dev` running and run `CHROME_PATH=/path/to/chrome bun run --filter @dittle/web shots`.
+The homepage screenshots come from the notes app preview. `apps/web/shots` holds the PNG originals, and `apps/web/public/shots` holds the AVIF and WebP copies the site serves. To retake them, keep `bun run dev` running and run `CHROME_PATH=/path/to/chrome bun run --filter @dittle/web shots`.
 
 Deploy to Firebase Hosting with the Firebase CLI:
 
@@ -73,14 +73,36 @@ bunx firebase use --add
 bun run deploy
 ```
 
+## Performance
+
+Lighthouse on a simulated mid-range phone over slow 4G (median of three runs on a production build):
+
+| Page | Before | After |
+|---|---|---|
+| Homepage | 73, content shows at 7.4 s, 1,152 KB | 100, content shows at 0.75 s, 318 KB |
+| Sign in | 74, content shows at 5.5 s, 520 KB | 100, content shows at 0.75 s, 227 KB |
+
+Accessibility, best practices and SEO also score 100 on both pages.
+
+How:
+
+- **Firebase loads only when it's needed.** The homepage and sign-in page don't wait for it. A small flag in local storage remembers whether you were signed in, so only returning users wait for Firebase before the first screen, and the app sends them straight to their notes. Everyone else gets the page at once, while Firebase downloads in the background when the browser is idle.
+- **Auth set up the lean way.** `initializeAuth` with only the persistence Dittle uses, and the popup resolver passed to the Google sign-in call itself, as in Firebase's [custom dependencies guide](https://firebase.google.com/docs/auth/web/custom-dependencies). Pages no longer load Google's sign-in iframe at startup.
+- **Each page's code is fetched up front.** A small build step ([route-preload.ts](apps/web/build/route-preload.ts)) puts a short script in the HTML. It tells the browser which code chunks the current page needs before the main script runs, and adds the Firebase chunk for signed-in visitors.
+- **Animation code is loaded in the background.** Motion's `LazyMotion` with `m` components loads its animation features separately (about 18 KB compressed) instead of putting them in every page's code.
+- **React Compiler** memoises components at build time.
+- **Self-hosted, preloaded font.** Geist Mono's Latin subset (23 KB) is preloaded from the same domain. There is no Google Fonts request.
+- **AVIF and WebP screenshots at two sizes**, with `srcset`, set dimensions (no layout shift) and lazy loading below the fold.
+
 ## Repository
 
 ```
-apps/web          Web app: React, Vite, TanStack Router, Tailwind CSS, Motion, Lenis
+apps/web          Web app: React 19 with React Compiler, Vite 8, TanStack Router, Tailwind CSS 4, shadcn/ui, Motion, Lenis
+apps/web/build    Build plugins: route-aware module preloading
 firestore.rules   Each user can read and write only their own notes
 firebase.json     Hosting and Firestore settings
 ```
 
 ## Licence
 
-[Apache 2.0](LICENSE). The motion recipes in `apps/web/src/styles/transitions.css` come from [transitions.dev](https://transitions.dev) and are covered by its [terms](https://transitions.dev/terms), not by the Apache licence.
+[Apache 2.0](LICENSE). Geist Mono in `apps/web/public/fonts` is under the [SIL Open Font License](apps/web/public/fonts/OFL.txt). The motion recipes in `apps/web/src/styles/transitions.css` come from [transitions.dev](https://transitions.dev) and are covered by its [terms](https://transitions.dev/terms), not by the Apache licence.

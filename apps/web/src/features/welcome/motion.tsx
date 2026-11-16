@@ -1,5 +1,5 @@
 import Lenis from "lenis";
-import { AnimatePresence, motion, useInView, useReducedMotion, useScroll, useTransform, type MotionValue } from "motion/react";
+import { AnimatePresence, m, useInView, useReducedMotion, useScroll, useTransform, type MotionValue } from "motion/react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { ease } from "../../ui/kit";
 
@@ -21,36 +21,54 @@ export function useSmoothScroll() {
 
 export type Focus = { x: number; y: number; zoom: number };
 
-export function Shot({ name, alt, theme, focus }: { name: string; alt: string; theme?: "light" | "dark"; focus?: Focus }) {
+const SHOT = { width: 2880, height: 1800, widths: [1440, 2880] } as const;
+
+export function Shot({ name, alt, theme, focus, priority = false }: { name: string; alt: string; theme?: "light" | "dark"; focus?: Focus; priority?: boolean }) {
   const style: CSSProperties | undefined = focus
     ? { width: `${focus.zoom * 100}%`, maxWidth: "none", transform: `translate(-${focus.x}%, -${focus.y}%)` }
     : undefined;
-  const img = (src: string) => <img src={src} alt={alt} className="block h-auto w-full" style={style} loading="lazy" />;
-  if (theme) return img(`/shots/${name}-${theme}.png`);
+  const zoom = focus?.zoom ?? 1;
+  const sizes = focus
+    ? `(min-width: 1024px) ${Math.round(zoom * 620)}px, calc(${zoom * 100}vw - ${zoom * 48}px)`
+    : "(min-width: 1232px) 1188px, calc(100vw - 48px)";
+  const srcSet = (variant: string, format: "avif" | "webp") => SHOT.widths.map((w) => `/shots/${name}-${variant}-${w}.${format} ${w}w`).join(", ");
+  const sources = (variant: string, media?: string) =>
+    (["avif", "webp"] as const).map((format) => <source key={`${variant}-${format}`} type={`image/${format}`} srcSet={srcSet(variant, format)} sizes={sizes} media={media} />);
+  const fallback = theme ?? "light";
   return (
     <picture>
-      <source srcSet={`/shots/${name}-dark.png`} media="(prefers-color-scheme: dark)" />
-      {img(`/shots/${name}-light.png`)}
+      {theme ? sources(theme) : [...sources("dark", "(prefers-color-scheme: dark)"), ...sources("light")]}
+      <img
+        src={`/shots/${name}-${fallback}-1440.webp`}
+        alt={alt}
+        width={SHOT.width}
+        height={SHOT.height}
+        className="block h-auto w-full"
+        style={style}
+        loading={priority ? "eager" : "lazy"}
+        fetchPriority={priority ? "high" : "auto"}
+        decoding="async"
+      />
     </picture>
   );
 }
 
 export function Rise({ delay = 0, children, className }: { delay?: number; children: ReactNode; className?: string }) {
   return (
-    <motion.div
+    <m.div
       className={className}
       initial={{ opacity: 0, y: 16, filter: "blur(6px)" }}
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       transition={{ duration: 0.8, delay, ease }}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }
 
 export function Reveal({ children, className, delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
   return (
-    <motion.div
+    <m.div
       className={className}
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
@@ -58,7 +76,7 @@ export function Reveal({ children, className, delay = 0 }: { children: ReactNode
       transition={{ duration: 0.7, delay, ease }}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -71,9 +89,9 @@ export function TiltedShot({ children, floating }: { children: ReactNode; floati
   const y = useTransform(scrollYProgress, [0, 1], reduce ? [0, 0] : [50, 0]);
   return (
     <div ref={ref} className="relative [perspective:1800px]">
-      <motion.div style={{ rotateX, scale, y, transformOrigin: "50% 0%" }} className="relative">
+      <m.div style={{ rotateX, scale, y, transformOrigin: "50% 0%" }} className="relative">
         {children}
-      </motion.div>
+      </m.div>
       {floating?.(scrollYProgress)}
     </div>
   );
@@ -84,9 +102,9 @@ export function Floating({ progress, distance, className, children }: { progress
   const y = useTransform(progress, [0, 1], reduce ? [0, 0] : [distance, 0]);
   const opacity = useTransform(progress, [0.35, 0.8], reduce ? [1, 1] : [0, 1]);
   return (
-    <motion.div style={{ y, opacity }} className={`absolute ${className}`}>
+    <m.div style={{ y, opacity }} className={`absolute ${className}`}>
       {children}
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -127,7 +145,7 @@ function Word({ progress, from, to, unit }: { progress: MotionValue<number>; fro
   useEffect(() => progress.on("change", (value) => setReached(value >= to)), [progress, to]);
   return (
     <>
-      <motion.span style={{ opacity }}>
+      <m.span style={{ opacity }}>
         {unit.token ? (
           <span className="whitespace-nowrap">
             <span className="token" data-found={reached || reduce ? "true" : "false"}>
@@ -138,7 +156,7 @@ function Word({ progress, from, to, unit }: { progress: MotionValue<number>; fro
         ) : (
           unit.text
         )}
-      </motion.span>{" "}
+      </m.span>{" "}
     </>
   );
 }
@@ -168,7 +186,7 @@ export function StickySteps({ steps }: { steps: Step[] }) {
           <div className="brackets [--bracket-inset:-7px] [--bracket-size:12px]">
           <div className="relative aspect-[16/11] overflow-hidden border border-line-strong bg-card">
             <AnimatePresence mode="popLayout" initial={false}>
-              <motion.div
+              <m.div
                 key={current.key}
                 className="absolute inset-0 overflow-hidden"
                 initial={{ opacity: 0, y: 30, filter: "blur(8px)" }}
@@ -177,7 +195,7 @@ export function StickySteps({ steps }: { steps: Step[] }) {
                 transition={{ duration: 0.55, ease }}
               >
                 {current.visual}
-              </motion.div>
+              </m.div>
             </AnimatePresence>
           </div>
           </div>
@@ -197,7 +215,7 @@ function StepText({ step, index, total, onActive, active }: { step: Step; index:
     <div ref={ref} className="flex min-h-[72vh] flex-col justify-center py-10 lg:py-0">
       <div className={`transition-opacity duration-500 ${active ? "opacity-100" : "lg:opacity-25"}`}>
         <p className="flex items-center gap-3 text-[11px] tracking-[0.06em] text-faint uppercase">
-          <span className="text-accent">
+          <span className="text-accent-ink">
             {String(index + 1).padStart(2, "0")}/{String(total).padStart(2, "0")}
           </span>
           {step.label}

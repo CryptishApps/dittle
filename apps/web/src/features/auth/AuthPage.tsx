@@ -1,9 +1,10 @@
-import { motion, useReducedMotion } from "motion/react";
+import { m, useReducedMotion } from "motion/react";
 import { useEffect, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { authMessage, isCancelled } from "@/lib/auth";
+import type { PasswordCheck } from "@/lib/auth";
+import { authMessage, isCancelled } from "@/lib/auth-errors";
 import { Reprint } from "@/ui/Reprint";
 import { ease, MIcon, Scramble } from "@/ui/kit";
 import { Wordmark } from "@/ui/Wordmark";
@@ -15,6 +16,7 @@ export type AuthActions = {
   email: (input: { name: string; email: string; password: string }) => Promise<void>;
   guest: () => Promise<void>;
   reset: (email: string) => Promise<void>;
+  checkPassword: (password: string) => Promise<PasswordCheck>;
 };
 
 type Pending = "google" | "email" | "guest" | "reset";
@@ -42,6 +44,7 @@ export function AuthPage({ mode, actions, isGuest = false, links }: AuthPageProp
   const [pending, setPending] = useState<Pending>();
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
+  const check = usePasswordCheck(mode === "signup" ? password : "", actions.checkPassword);
 
   const run = async (kind: Pending, action: () => Promise<void>) => {
     setPending(kind);
@@ -58,6 +61,10 @@ export function AuthPage({ mode, actions, isGuest = false, links }: AuthPageProp
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (mode === "signup" && check && !check.valid) {
+      setError("That password doesn't meet the rules under the box.");
+      return;
+    }
     void run("email", () => actions.email({ name: name.trim(), email: email.trim(), password }));
   };
 
@@ -94,7 +101,7 @@ export function AuthPage({ mode, actions, isGuest = false, links }: AuthPageProp
         </header>
 
         <main className="flex flex-1 items-center justify-center py-14">
-          <motion.div
+          <m.div
             key={mode}
             initial={{ opacity: 0, y: 12, filter: "blur(6px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
@@ -102,7 +109,7 @@ export function AuthPage({ mode, actions, isGuest = false, links }: AuthPageProp
             className="w-full max-w-[360px]"
           >
             <p className="flex items-center gap-3 text-[11px] tracking-[0.06em] text-faint uppercase">
-              <span className="text-accent">{mode === "signin" ? "01" : "00"}</span>
+              <span className="text-accent-ink">{mode === "signin" ? "01" : "00"}</span>
               {copy.label}
               <span className="h-px flex-1 bg-line" />
             </p>
@@ -185,7 +192,7 @@ export function AuthPage({ mode, actions, isGuest = false, links }: AuthPageProp
                       {showPassword ? "Hide" : "Show"}
                     </button>
                   </div>
-                  {mode === "signup" && <FieldDescription className="text-[11px] text-faint">At least 6 characters.</FieldDescription>}
+                  {mode === "signup" && <PasswordRules check={check} />}
                 </Field>
 
                 <Field className="mt-1">
@@ -196,7 +203,7 @@ export function AuthPage({ mode, actions, isGuest = false, links }: AuthPageProp
                 </Field>
 
                 {(error || notice) && (
-                  <motion.p
+                  <m.p
                     role={error ? "alert" : "status"}
                     initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -204,7 +211,7 @@ export function AuthPage({ mode, actions, isGuest = false, links }: AuthPageProp
                     className={`border-l-2 bg-panel px-3 py-2.5 text-[12.5px] leading-[1.6] ${error ? "border-accent text-accent-ink" : "border-ink text-soft"}`}
                   >
                     {error ?? notice}
-                  </motion.p>
+                  </m.p>
                 )}
 
                 <p className="text-center text-[12px] text-soft">
@@ -230,7 +237,7 @@ export function AuthPage({ mode, actions, isGuest = false, links }: AuthPageProp
                 <p className="mt-1.5 text-[11.5px] leading-[1.6] text-faint">Your notes are kept in this browser until you create an account.</p>
               </div>
             )}
-          </motion.div>
+          </m.div>
         </main>
 
         <footer className="flex flex-wrap items-center justify-between gap-2 text-[10.5px] tracking-[0.06em] text-faint uppercase">
@@ -245,8 +252,43 @@ export function AuthPage({ mode, actions, isGuest = false, links }: AuthPageProp
 }
 
 const LABEL = "text-[11px] tracking-[0.06em] text-soft uppercase";
-const INPUT = "h-10 bg-card px-3 text-[13px] md:text-[13px] placeholder:text-faint focus-visible:border-ink focus-visible:ring-0";
+const INPUT = "h-10 bg-card px-3 text-[13px] md:text-[13px] placeholder:text-faint focus-visible:border-accent focus-visible:ring-0 focus-visible:outline-none";
 const BUTTON = "h-10 gap-2 text-[11.5px] tracking-[0.06em] uppercase";
+
+function usePasswordCheck(password: string, checkPassword: AuthActions["checkPassword"]): PasswordCheck | undefined {
+  const [result, setResult] = useState<{ password: string; check: PasswordCheck }>();
+  useEffect(() => {
+    if (!password) return;
+    let live = true;
+    const timer = window.setTimeout(() => {
+      checkPassword(password)
+        .then((check) => live && setResult({ password, check }))
+        .catch(() => undefined);
+    }, 180);
+    return () => {
+      live = false;
+      window.clearTimeout(timer);
+    };
+  }, [password, checkPassword]);
+  return password && result?.password === password ? result.check : undefined;
+}
+
+function PasswordRules({ check }: { check?: PasswordCheck }) {
+  if (!check) return <FieldDescription className="text-[11px] text-faint">Checked against your project's password rules as you type.</FieldDescription>;
+  return (
+    <ul aria-live="polite" className="flex flex-wrap gap-1.5 pt-0.5">
+      {check.rules.map((rule) => (
+        <li
+          key={rule.label}
+          className={`flex items-center gap-1 px-1.5 py-0.5 text-[10.5px] tracking-[0.04em] uppercase transition-colors ${rule.met ? "bg-chip text-soft" : "bg-accent-tint text-accent-ink"}`}
+        >
+          {rule.met && <MIcon name="check" className="size-3" />}
+          {rule.label}
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 function Label({ busy, text, busyText }: { busy: boolean; text: string; busyText: string }) {
   if (!busy) return <span>{text}</span>;

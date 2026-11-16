@@ -1,10 +1,9 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { readSession } from "../lib/auth";
 
 export const Route = createFileRoute("/_app")({
-  beforeLoad: async () => {
-    const session = await readSession();
-    if (session.kind === "signedOut") throw redirect({ to: "/" });
+  beforeLoad: async ({ context, location }) => {
+    const session = await context.session.read();
+    if (session.kind === "signedOut") throw redirect({ to: "/signin", search: { redirect: location.href } });
   },
   component: Outlet,
 });

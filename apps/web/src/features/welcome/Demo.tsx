@@ -1,4 +1,4 @@
-import { AnimatePresence, motion, useInView } from "motion/react";
+import { AnimatePresence, m, useInView } from "motion/react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Reprint } from "../../ui/Reprint";
 import { Btn, ease, MIcon, Scramble } from "../../ui/kit";
@@ -136,7 +136,7 @@ export function Demo() {
 
           <AnimatePresence initial={false} mode="wait">
             {(stale.length > 0 && !skipped) || allDone ? (
-              <motion.div
+              <m.div
                 key={allDone ? "done" : "ask"}
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
@@ -167,7 +167,7 @@ export function Demo() {
                     </>
                   )}
                 </div>
-              </motion.div>
+              </m.div>
             ) : null}
           </AnimatePresence>
         </div>

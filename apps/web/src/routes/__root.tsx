@@ -1,9 +1,14 @@
-import { createRootRoute, Link, Outlet, type ErrorComponentProps } from "@tanstack/react-router";
+import { createRootRouteWithContext, Link, Outlet, type ErrorComponentProps } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { FirebaseNotConfigured } from "../lib/firebase";
-import { Wordmark } from "../ui/Wordmark";
+import { FirebaseNotConfigured } from "@/lib/firebase-config";
+import type { Session, SessionKind } from "@/lib/session";
+import { Wordmark } from "@/ui/Wordmark";
 
-export const Route = createRootRoute({
+export type RouterContext = {
+  session: { hint: () => SessionKind; read: () => Promise<Session> };
+};
+
+export const Route = createRootRouteWithContext<RouterContext>()({
   component: Outlet,
   errorComponent: RootError,
   notFoundComponent: NotFound,

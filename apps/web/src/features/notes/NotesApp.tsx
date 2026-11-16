@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Reprint } from "../../ui/Reprint";
 import { SyncBadge, type SyncState } from "../../ui/SyncBadge";
@@ -196,7 +196,7 @@ export function NotesApp() {
                 </button>
                 <AnimatePresence initial={false}>
                   {isOpen && (
-                    <motion.ul
+                    <m.ul
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
@@ -213,7 +213,7 @@ export function NotesApp() {
                             }`}
                           >
                             {active === id && (
-                              <motion.span layoutId="mono-tree" className="absolute inset-0 bg-chip" transition={{ duration: 0.3, ease }} />
+                              <m.span layoutId="mono-tree" className="absolute inset-0 bg-chip" transition={{ duration: 0.3, ease }} />
                             )}
                             <MIcon name="file" className="relative size-3.5" />
                             <span className="relative flex-1 truncate">{NOTES[id].title}</span>
@@ -221,7 +221,7 @@ export function NotesApp() {
                           </button>
                         </li>
                       ))}
-                    </motion.ul>
+                    </m.ul>
                   )}
                 </AnimatePresence>
               </div>
@@ -253,7 +253,7 @@ export function NotesApp() {
 
       <AnimatePresence initial={false}>
         {inboxOpen && (
-          <motion.aside
+          <m.aside
             initial={{ width: 0, opacity: 0.6 }}
             animate={{ width: 420, opacity: 1 }}
             exit={{ width: 0, opacity: 0.6 }}
@@ -281,7 +281,7 @@ export function NotesApp() {
               <ul className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin]">
                 <AnimatePresence initial={false}>
                   {inbox.map((entry, index) => (
-                    <motion.li
+                    <m.li
                       key={entry.key}
                       layout
                       initial={{ opacity: 0, x: -12 }}
@@ -310,12 +310,12 @@ export function NotesApp() {
                           ))}
                         </div>
                       </div>
-                    </motion.li>
+                    </m.li>
                   ))}
                 </AnimatePresence>
               </ul>
             </div>
-          </motion.aside>
+          </m.aside>
         )}
       </AnimatePresence>
 
@@ -329,7 +329,7 @@ export function NotesApp() {
           </span>
           <AnimatePresence initial={false}>
             {tabs.map((id) => (
-              <motion.div
+              <m.div
                 key={id}
                 layout
                 initial={{ opacity: 0, width: 0 }}
@@ -356,7 +356,7 @@ export function NotesApp() {
                 >
                   <MIcon name="close" className="size-3" />
                 </button>
-              </motion.div>
+              </m.div>
             ))}
           </AnimatePresence>
           <div className="hatch flex-1" />
@@ -371,9 +371,9 @@ export function NotesApp() {
 
         <div className="min-h-0 flex-1 overflow-y-auto bg-page [scrollbar-width:thin]">
           <AnimatePresence mode="wait">
-            <motion.div key={active} exit={{ opacity: 0, y: -6, transition: { duration: 0.18 } }}>
+            <m.div key={active} exit={{ opacity: 0, y: -6, transition: { duration: 0.18 } }}>
               <NoteView noteId={active} ctx={ctx} firstRead={active === "catering" && !seen.includes("catering")} />
-            </motion.div>
+            </m.div>
           </AnimatePresence>
         </div>
 

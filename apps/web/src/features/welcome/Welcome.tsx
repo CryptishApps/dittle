@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Code, MIcon, Scramble } from "../../ui/kit";
 import { Wordmark } from "../../ui/Wordmark";
@@ -117,6 +117,7 @@ export function Welcome({ onStart, onSignIn, busy = false, error }: WelcomeProps
         </div>
       </nav>
 
+      <main>
       <header className="relative mx-auto max-w-[1200px] px-6 pt-36 sm:px-8 sm:pt-44">
         <Rise>
           <span className="inline-flex items-center gap-2.5 border border-line-strong bg-card px-2.5 py-1.5 text-[11px] tracking-[0.06em] text-soft uppercase">
@@ -124,18 +125,16 @@ export function Welcome({ onStart, onSignIn, busy = false, error }: WelcomeProps
             Gemini Nano · runs on your device
           </span>
         </Rise>
-        <Rise delay={0.08}>
-          <h1 className="mt-8 text-[40px] leading-[1.06] font-medium tracking-[-0.06em] [--caret-w:0.32em] sm:text-[60px] lg:text-[76px]">
-            Notes that keep <br className="hidden sm:block" />
-            themselves{" "}
-            <span className="whitespace-nowrap">
-              <span className="token" data-found={found}>
-                up to date
-              </span>
-              <span className="caret" aria-hidden />
+        <h1 className="mt-8 text-[40px] leading-[1.06] font-medium tracking-[-0.06em] [--caret-w:0.32em] sm:text-[60px] lg:text-[76px]">
+          Notes that keep <br className="hidden sm:block" />
+          themselves{" "}
+          <span className="whitespace-nowrap">
+            <span className="token" data-found={found}>
+              up to date
             </span>
-          </h1>
-        </Rise>
+            <span className="caret" aria-hidden />
+          </span>
+        </h1>
         <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
           <Rise delay={0.16}>
             <p className="max-w-[50ch] text-[16px] leading-[1.75] text-soft sm:text-[17px]">
@@ -192,7 +191,7 @@ export function Welcome({ onStart, onSignIn, busy = false, error }: WelcomeProps
             )}
           >
             <div className="brackets border border-line-strong bg-card p-1.5 shadow-pop [--bracket-inset:-9px] [--bracket-size:16px]">
-              <Shot name="hero" alt="Dittle showing a catering quote where the guest count changed from 80 to 95, with three other notes marked as out of date." />
+              <Shot name="hero" priority alt="Dittle showing a catering quote where the guest count changed from 80 to 95, with three other notes marked as out of date." />
             </div>
           </TiltedShot>
         </Rise>
@@ -276,6 +275,8 @@ export function Welcome({ onStart, onSignIn, busy = false, error }: WelcomeProps
         </Reveal>
       </Section>
 
+      </main>
+
       <div data-dark className="theme-dark bg-page text-ink">
         <section className="mx-auto max-w-[1200px] px-6 py-32 sm:px-8 sm:py-40">
           <Reveal>
@@ -340,7 +341,7 @@ function Section({ id, index, label, dark = false, children }: { id: string; ind
   return (
     <section id={id} className={`mx-auto max-w-[1200px] scroll-mt-20 px-6 sm:px-8 ${dark ? "py-28 sm:py-36" : "py-24 sm:py-32"}`}>
       <div className="mb-10 flex items-center gap-4 text-[11px] tracking-[0.06em] text-faint uppercase">
-        <span className="text-accent">{index}</span>
+        <span className="text-accent-ink">{index}</span>
         {label}
         <span className="h-px flex-1 bg-line" />
       </div>
@@ -373,9 +374,9 @@ function Fact({ title, body }: { title: string; body: string }) {
 function InViewScramble({ text }: { text: string }) {
   const [shown, setShown] = useState(false);
   return (
-    <motion.span onViewportEnter={() => setShown(true)} viewport={{ once: true }}>
+    <m.span onViewportEnter={() => setShown(true)} viewport={{ once: true }}>
       {shown ? <Scramble text={text} duration={900} /> : <span className="opacity-0">{text}</span>}
-    </motion.span>
+    </m.span>
   );
 }
 

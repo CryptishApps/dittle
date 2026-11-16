@@ -1,7 +1,7 @@
 import { chromium, type Page } from "playwright-core";
 
 const base = process.env.BASE_URL ?? "http://localhost:5180";
-const out = new URL("../public/shots/", import.meta.url).pathname;
+const out = new URL("../shots/", import.meta.url).pathname;
 const executablePath = process.env.CHROME_PATH;
 if (!executablePath) throw new Error("Set CHROME_PATH to a Chrome or Chromium binary.");
 

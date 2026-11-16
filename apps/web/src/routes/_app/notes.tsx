@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { signOut, useSession } from "../../lib/auth";
+import { loadAuth, useSession } from "@/lib/session";
 import { Wordmark } from "../../ui/Wordmark";
 
 export const Route = createFileRoute("/_app/notes")({
@@ -9,9 +9,10 @@ export const Route = createFileRoute("/_app/notes")({
 function NotesRoute() {
   const session = useSession();
   const navigate = useNavigate();
+  if (!session) return null;
 
   const leave = async () => {
-    await signOut();
+    await (await loadAuth()).signOut();
     await navigate({ to: "/" });
   };
 

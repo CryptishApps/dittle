@@ -32,7 +32,8 @@ export function useScramble(text: string, duration = 420): string {
 export function Scramble({ text, duration }: { text: string; duration?: number }) {
   const shown = useScramble(text, duration);
   return (
-    <span aria-label={text}>
+    <span>
+      <span className="sr-only">{text}</span>
       <span aria-hidden>{shown}</span>
     </span>
   );

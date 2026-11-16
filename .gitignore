@@ -8,3 +8,4 @@ dist/
 .DS_Store
 apps/web/src/routeTree.gen.ts
 apps/web/src/routeTree.build.gen.ts
+apps/web/.tanstack/

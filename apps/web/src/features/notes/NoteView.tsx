@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Reprint } from "../../ui/Reprint";
 import { StreamedText, useStreamedWords } from "../../ui/StreamIn";
@@ -49,18 +49,18 @@ export function NoteView({ noteId, ctx, firstRead }: { noteId: NoteId; ctx: Note
 
   return (
     <article className="mx-auto max-w-[720px] px-10 pt-14 pb-32">
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease }}>
+      <m.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease }}>
         <Path parts={PATHS[noteId]} />
-      </motion.div>
-      <motion.h1
+      </m.div>
+      <m.h1
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05, duration: 0.45, ease }}
         className="mt-6 text-[30px] leading-[1.15] font-medium tracking-[-0.03em]"
       >
         {note.title}
-      </motion.h1>
-      <motion.p
+      </m.h1>
+      <m.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.15, duration: 0.4 }}
@@ -77,9 +77,9 @@ export function NoteView({ noteId, ctx, firstRead }: { noteId: NoteId; ctx: Note
             <Scramble text={`${values} ${values === 1 ? "value" : "values"}`} />
           )}
         </span>
-      </motion.p>
+      </m.p>
 
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.12, duration: 0.5, ease }}
@@ -100,7 +100,7 @@ export function NoteView({ noteId, ctx, firstRead }: { noteId: NoteId; ctx: Note
             {noteId === "catering" && index === 1 && <MealsRequest ready={found} />}
           </div>
         ))}
-      </motion.div>
+      </m.div>
     </article>
   );
 }
@@ -182,7 +182,7 @@ function TokenView({ token, noteId, ctx, found, delay }: { token: Token; noteId:
       )}
       <AnimatePresence>
         {open && !editing && (
-          <motion.span
+          <m.span
             initial={{ opacity: 0, y: -4, scale: 0.98, filter: "blur(3px)" }}
             animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
             exit={{ opacity: 0, y: -2, scale: 0.99, transition: { duration: 0.12 } }}
@@ -193,7 +193,7 @@ function TokenView({ token, noteId, ctx, found, delay }: { token: Token; noteId:
             onMouseLeave={hide}
           >
             <ValueCard token={token} noteId={noteId} ctx={ctx} />
-          </motion.span>
+          </m.span>
         )}
       </AnimatePresence>
     </span>
@@ -285,7 +285,7 @@ function ChangeBlock({ ctx }: { ctx: NoteContext }) {
   return (
     <AnimatePresence initial={false}>
       {visible && (
-        <motion.div
+        <m.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
           exit={{ opacity: 0, height: 0 }}
@@ -334,7 +334,7 @@ function ChangeBlock({ ctx }: { ctx: NoteContext }) {
               )
             )}
           </div>
-        </motion.div>
+        </m.div>
       )}
     </AnimatePresence>
   );
@@ -351,19 +351,19 @@ function MealsRequest({ ready }: { ready: boolean }) {
       <span className="text-faint underline decoration-line-strong decoration-dashed underline-offset-4">add in a list of meals here</span>
       <AnimatePresence>
         {ready && (
-          <motion.span initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5, duration: 0.35, ease }} className="ml-3 inline-block align-middle">
+          <m.span initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5, duration: 0.35, ease }} className="ml-3 inline-block align-middle">
             <span onMouseEnter={() => setState("peek")} onMouseLeave={() => setState("idle")} onFocus={() => setState("peek")} onBlur={() => setState("idle")}>
               <Btn onClick={() => setState("inserted")} className="-translate-y-px">
                 <MIcon name="plus" className="size-3" />
                 Insert 7 meals
               </Btn>
             </span>
-          </motion.span>
+          </m.span>
         )}
       </AnimatePresence>
       <AnimatePresence>
         {state === "peek" && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
@@ -378,7 +378,7 @@ function MealsRequest({ ready }: { ready: boolean }) {
                 </span>
               ))}
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>
