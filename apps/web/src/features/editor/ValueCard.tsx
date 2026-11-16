@@ -212,7 +212,7 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
           )}
           {tag && !tag.proposal && usage(tag.id) > 1 && <p className="mt-2 text-soft">In {notes(usage(tag.id))}</p>}
           {tag && placementOf?.(tag) && <p className="mt-2 text-soft">{placementOf(tag)}</p>}
-          {tag && !tag.proposal && !tag.naming && !tag.field && startCollection && (
+          {tag && !editing && !tag.proposal && !tag.naming && !tag.field && startCollection && (
             <StartCollection
               value={tag}
               onStart={(name) => {
@@ -255,7 +255,7 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
           </Actions>
           {tag && !tag.proposal && tag.describedBy && (
             <p className="mt-2 border-t border-line pt-2 text-faint">
-              Described {tag.describedBy.where === "on_device" ? "on this device" : "in the cloud"} in {(tag.describedBy.ms / 1000).toFixed(1)} s
+              Click to change · described {tag.describedBy.where === "on_device" ? "on this device" : "in the cloud"} in {(tag.describedBy.ms / 1000).toFixed(1)} s
             </p>
           )}
         </m.div>
