@@ -171,7 +171,7 @@ function ChoosePassword({ code, email, actions, next }: { code: string; email: s
           </Field>
           <Field className="mt-1">
             <Button type="submit" className={BUTTON} disabled={busy || !password}>
-              <BusyLabel busy={busy} text="Save and sign in" busyText="Saving" />
+              <BusyLabel state={busy ? "busy" : "idle"} text="Save and sign in" busyText="Saving" />
               {!busy && <MIcon name="right" className="size-3.5" />}
             </Button>
           </Field>

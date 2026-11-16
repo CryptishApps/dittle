@@ -10,21 +10,19 @@ export function AuthRoute({ mode, redirectTo }: { mode: AuthMode; redirectTo?: s
   const navigate = useNavigate();
   useEffect(() => void loadAuth().catch(() => undefined), []);
 
-  const done = () => router.history.push(redirectTo ?? "/notes");
   const search = redirectTo ? { redirect: redirectTo } : {};
 
   const actions: AuthActions = {
     google: async () => {
       await (await loadAuth()).continueWithGoogle();
-      done();
     },
     email: async ({ name, email, password }) => {
       const auth = await loadAuth();
       if (mode === "signin") await auth.signInWithEmail(email, password);
       else await auth.signUpWithEmail(name, email, password);
-      done();
     },
     reset: async (email) => (await loadAuth()).sendPasswordReset(email),
+    finish: () => router.navigate({ href: redirectTo ?? "/notes" }),
     checkPassword,
   };
 

@@ -1,5 +1,6 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { writes } from "@/features/notes/api";
+import { startNote } from "@/features/notes/api";
 import { Btn, MIcon } from "@/ui/kit";
 
 export const Route = createFileRoute("/_app/notes/")({
@@ -9,7 +10,8 @@ export const Route = createFileRoute("/_app/notes/")({
 function NoNoteOpen() {
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
-  const start = () => void navigate({ to: "/notes/$noteId", params: { noteId: writes.createNote(user.uid) } });
+  const queryClient = useQueryClient();
+  const start = () => void navigate({ to: "/notes/$noteId", params: { noteId: startNote(queryClient, user.uid) } });
 
   return (
     <div className="grid flex-1 place-items-center px-6 text-center">

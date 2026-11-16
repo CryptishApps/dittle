@@ -92,8 +92,11 @@ export function PasswordRules({ check }: { check?: PasswordCheck }) {
   );
 }
 
-export function BusyLabel({ busy, text, busyText }: { busy: boolean; text: string; busyText: string }) {
-  if (!busy) return <span>{text}</span>;
+export type BusyState = "idle" | "busy" | "done";
+
+export function BusyLabel({ state, text, busyText, doneText }: { state: BusyState; text: string; busyText: string; doneText?: string }) {
+  if (state === "idle") return <span>{text}</span>;
+  if (state === "done") return <span>{doneText ?? busyText}</span>;
   return (
     <span className="t-shimmer-text" data-text={busyText}>
       {busyText}

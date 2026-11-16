@@ -1,6 +1,6 @@
-import { queryOptions } from "@tanstack/react-query";
+import { queryOptions, type QueryClient } from "@tanstack/react-query";
 import { live } from "@/lib/live-query";
-import type { NoteDoc } from "./note-doc";
+import { EMPTY_NOTE, type NoteDoc } from "./note-doc";
 import type { Note, NoteSummary, StoredValue } from "./store";
 
 export const loadStore = () => import("./store");
@@ -37,7 +37,16 @@ export const writes = {
     return id;
   },
   saveNote: (uid: string, id: string, note: NoteDoc) => later((store) => store.saveNote(uid, id, note)),
-  deleteNote: (uid: string, id: string) => later((store) => store.deleteNote(uid, id)),
+  deleteNote: async (uid: string, id: string) => (await loadStore()).deleteNote(uid, id),
   createValue: (uid: string, value: StoredValue) => later((store) => store.createValue(uid, value)),
   updateValue: (uid: string, id: string, patch: Partial<Omit<StoredValue, "id">>) => later((store) => store.updateValue(uid, id, patch)),
 };
+
+export function startNote(queryClient: QueryClient, uid: string): string {
+  const id = writes.createNote(uid);
+  const query = noteQuery(uid, id);
+  const seed: Note = { id, title: "", preview: "", updatedAt: Date.now(), pending: true, doc: EMPTY_NOTE };
+  queryClient.setQueryData<Note | null>(query.queryKey, seed);
+  void queryClient.prefetchQuery({ ...query, staleTime: 0 });
+  return id;
+}

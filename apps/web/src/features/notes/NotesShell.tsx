@@ -1,12 +1,13 @@
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { Link, Outlet, useNavigate, useParams } from "@tanstack/react-router";
+import { Link, Outlet, useNavigate, useParams, useRouter } from "@tanstack/react-router";
 import type { User } from "firebase/auth";
 import { AnimatePresence, m } from "motion/react";
-import { useState, useSyncExternalStore } from "react";
+import { DropdownMenu } from "radix-ui";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { loadAuth } from "@/lib/session";
 import { Btn, ease, MIcon } from "@/ui/kit";
 import { Wordmark } from "@/ui/Wordmark";
-import { loadStore, notesQuery, writes } from "./api";
+import { loadStore, notesQuery, startNote, writes } from "./api";
 import type { NoteSummary } from "./store";
 
 const subscribeOnline = (onChange: () => void) => {
@@ -41,7 +42,26 @@ export function NotesShell({ user }: { user: User }) {
   const online = useOnline();
   const [leaving, setLeaving] = useState(false);
 
-  const newNote = () => void navigate({ to: "/notes/$noteId", params: { noteId: writes.createNote(user.uid) } });
+  const router = useRouter();
+  useEffect(() => {
+    const id = window.requestIdleCallback?.(() => void router.loadRouteChunk(router.routesById["/_app/notes/$noteId"]));
+    return () => window.cancelIdleCallback?.(id);
+  }, [router]);
+
+  const newNote = () => void navigate({ to: "/notes/$noteId", params: { noteId: startNote(queryClient, user.uid) } });
+
+  const [toast, setToast] = useState<{ id: number; text: string; undo: () => void }>();
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(undefined), 6000);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+
+  const remove = async (note: NoteSummary) => {
+    if (note.id === noteId) await navigate({ to: "/notes" });
+    const undo = await writes.deleteNote(user.uid, note.id);
+    setToast({ id: Date.now(), text: `Deleted ${note.title ? `"${note.title}"` : "note"}`, undo });
+  };
 
   const signOut = async () => {
     setLeaving(true);
@@ -71,7 +91,7 @@ export function NotesShell({ user }: { user: User }) {
             <ul>
               <AnimatePresence initial={false}>
                 {notes.map((note) => (
-                  <NoteRow key={note.id} note={note} />
+                  <NoteRow key={note.id} note={note} onDelete={() => void remove(note)} />
                 ))}
               </AnimatePresence>
             </ul>
@@ -95,23 +115,49 @@ export function NotesShell({ user }: { user: User }) {
       <main className={`${noteId ? "flex" : "hidden md:flex"} min-w-0 flex-1 flex-col`}>
         <Outlet />
       </main>
+
+      <AnimatePresence>
+        {toast && (
+          <m.div
+            key={toast.id}
+            role="status"
+            initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            exit={{ opacity: 0, y: 6, transition: { duration: 0.15 } }}
+            transition={{ duration: 0.3, ease }}
+            className="fixed bottom-4 left-4 z-50 flex max-w-[calc(100vw-2rem)] items-center gap-4 bg-ink py-2.5 pr-2.5 pl-4 text-[12.5px] text-page shadow-pop"
+          >
+            <span className="truncate">{toast.text}</span>
+            <button
+              type="button"
+              onClick={() => {
+                toast.undo();
+                setToast(undefined);
+              }}
+              className="shrink-0 px-2 py-1 text-[11px] tracking-[0.06em] uppercase hover:bg-page/15"
+            >
+              Undo
+            </button>
+          </m.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-function NoteRow({ note }: { note: NoteSummary }) {
+function NoteRow({ note, onDelete }: { note: NoteSummary; onDelete: () => void }) {
   return (
     <m.li
       initial={{ opacity: 0, height: 0 }}
       animate={{ opacity: 1, height: "auto" }}
       exit={{ opacity: 0, height: 0 }}
       transition={{ duration: 0.28, ease }}
-      className="overflow-hidden"
+      className="group relative overflow-hidden"
     >
       <Link
         to="/notes/$noteId"
         params={{ noteId: note.id }}
-        className="block border-l-2 border-transparent px-4 py-2.5 hover:bg-panel [&.active]:border-ink [&.active]:bg-panel"
+        className="block border-l-2 border-transparent py-2.5 pr-11 pl-4 hover:bg-panel [&.active]:border-ink [&.active]:bg-panel"
       >
         <span className="flex items-baseline justify-between gap-3">
           <span className={`truncate text-[13px] ${note.title ? "text-ink" : "text-faint"}`}>{note.title || "Untitled"}</span>
@@ -119,6 +165,29 @@ function NoteRow({ note }: { note: NoteSummary }) {
         </span>
         {note.preview && <span className="mt-0.5 block truncate text-[12px] text-soft">{note.preview}</span>}
       </Link>
+      <DropdownMenu.Root modal={false}>
+        <DropdownMenu.Trigger
+          aria-label={`More actions for ${note.title || "Untitled"}`}
+          className="absolute top-2 right-2 grid size-7 place-items-center text-soft transition-opacity hover:bg-chip hover:text-ink focus-visible:opacity-100 data-[state=open]:bg-chip data-[state=open]:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
+        >
+          <svg viewBox="0 0 16 16" aria-hidden className="size-3.5 fill-current">
+            <circle cx="3" cy="8" r="1.3" />
+            <circle cx="8" cy="8" r="1.3" />
+            <circle cx="13" cy="8" r="1.3" />
+          </svg>
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Content
+            align="end"
+            sideOffset={4}
+            className="z-50 min-w-[160px] border border-line-strong bg-card p-1 text-[12.5px] shadow-pop data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
+          >
+            <DropdownMenu.Item onSelect={onDelete} className="cursor-pointer px-2.5 py-1.5 text-accent-ink outline-none data-[highlighted]:bg-panel">
+              Delete note
+            </DropdownMenu.Item>
+          </DropdownMenu.Content>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
     </m.li>
   );
 }

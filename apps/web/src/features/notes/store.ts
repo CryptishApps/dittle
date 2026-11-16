@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocFromCache,
   onSnapshot,
   orderBy,
   query,
@@ -70,8 +71,16 @@ export function saveNote(uid: string, id: string, note: NoteDoc): void {
   write(updateDoc(doc(notes(uid), id), { schemaVersion: 1, doc: note, ...summarise(note), updatedAt: serverTimestamp() }));
 }
 
-export function deleteNote(uid: string, id: string): void {
-  write(deleteDoc(doc(notes(uid), id)));
+export async function deleteNote(uid: string, id: string): Promise<() => void> {
+  const ref = doc(notes(uid), id);
+  const kept = await getDocFromCache(ref).then(
+    (snapshot) => snapshot.data(),
+    () => undefined,
+  );
+  write(deleteDoc(ref));
+  return () => {
+    if (kept) write(setDoc(ref, { ...kept, updatedAt: serverTimestamp() }));
+  };
 }
 
 export function createValue(uid: string, value: StoredValue): void {

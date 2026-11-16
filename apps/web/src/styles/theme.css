@@ -319,10 +319,15 @@ body {
   color: var(--faint);
   text-decoration: line-through;
 }
-.note-editor .is-empty::before {
+.note-editor > .is-empty {
+  position: relative;
+}
+.note-editor > h1:first-child.is-empty::before,
+.note-editor > h1:first-child + p.is-empty:last-child::before {
   content: attr(data-placeholder);
-  float: left;
-  height: 0;
+  position: absolute;
+  inset: 0 auto auto 0;
+  white-space: nowrap;
   color: var(--faint);
   pointer-events: none;
 }
@@ -428,4 +433,22 @@ body {
   .value-tag {
     animation: none !important;
   }
+}
+
+.spin-current {
+  --check-ring-w: 2px;
+  scale: 0.68;
+}
+.spin-current .t-check-ring {
+  border-color: color-mix(in oklab, currentColor 22%, transparent);
+}
+.spin-current .t-check-arc {
+  border-top-color: currentColor;
+}
+.spin-current .t-check-fill {
+  background: currentColor;
+  box-shadow: none;
+}
+.spin-current .t-check-mark {
+  stroke: var(--spin-mark, var(--page));
 }

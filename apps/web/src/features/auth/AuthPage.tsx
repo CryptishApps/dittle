@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import type { PasswordCheck } from "@/lib/auth";
 import { authMessage, isCancelled } from "@/lib/auth-errors";
 import { ease, MIcon, Scramble } from "@/ui/kit";
+import { SpinCheck } from "@/ui/SpinCheck";
 import { AuthShell, BUTTON, BusyLabel, GoogleMark, INPUT, LABEL, NavLink, PasswordInput, PasswordRules, usePasswordCheck, type Nav } from "./parts";
 
 export type AuthMode = "signin" | "signup";
@@ -14,6 +15,7 @@ export type AuthActions = {
   google: () => Promise<void>;
   email: (input: { name: string; email: string; password: string }) => Promise<void>;
   reset: (email: string) => Promise<void>;
+  finish: () => Promise<void>;
   checkPassword: (password: string) => Promise<PasswordCheck>;
 };
 
@@ -26,8 +28,8 @@ type AuthPageProps = {
 };
 
 const COPY = {
-  signin: { title: "Welcome back.", submit: "Sign in", busy: "Signing in" },
-  signup: { title: "Start writing.", submit: "Create account", busy: "Creating account" },
+  signin: { title: "Welcome back.", submit: "Sign in", busy: "Signing in", done: "Opening your notes" },
+  signup: { title: "Start writing.", submit: "Create account", busy: "Creating account", done: "Opening your notes" },
 } as const;
 
 export function AuthPage({ mode, actions, links }: AuthPageProps) {
@@ -38,9 +40,10 @@ export function AuthPage({ mode, actions, links }: AuthPageProps) {
   const [pending, setPending] = useState<Pending>();
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
+  const [signedIn, setSignedIn] = useState(false);
   const check = usePasswordCheck(mode === "signup" ? password : "", actions.checkPassword);
 
-  const run = async (kind: Pending, action: () => Promise<void>) => {
+  const run = async (kind: Pending, action: () => Promise<void>, finish?: () => Promise<void>) => {
     setPending(kind);
     setError(undefined);
     setNotice(undefined);
@@ -48,10 +51,21 @@ export function AuthPage({ mode, actions, links }: AuthPageProps) {
       await action();
     } catch (caught) {
       if (!isCancelled(caught)) setError(authMessage(caught));
-    } finally {
       setPending(undefined);
+      return;
+    }
+    if (!finish) return setPending(undefined);
+    setSignedIn(true);
+    try {
+      await finish();
+    } catch (caught) {
+      setSignedIn(false);
+      setPending(undefined);
+      setError(authMessage(caught));
     }
   };
+
+  const stateOf = (kind: Pending) => (pending !== kind ? "idle" : signedIn ? "done" : "busy");
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -59,7 +73,7 @@ export function AuthPage({ mode, actions, links }: AuthPageProps) {
       setError("That password doesn't meet the rules under the box.");
       return;
     }
-    void run("email", () => actions.email({ name: name.trim(), email: email.trim(), password }));
+    void run("email", () => actions.email({ name: name.trim(), email: email.trim(), password }), actions.finish);
   };
 
   const forgot = () => {
@@ -90,12 +104,13 @@ export function AuthPage({ mode, actions, links }: AuthPageProps) {
             </h1>
             <p className="mt-3 text-[13px] leading-[1.7] text-soft">{sub}</p>
 
-            <form onSubmit={submit} className="mt-9" noValidate>
+            <form onSubmit={submit} className="mt-9" noValidate aria-busy={!!pending}>
+              <fieldset disabled={!!pending} className="m-0 min-w-0 border-0 p-0">
               <FieldGroup className="gap-4">
                 <Field>
-                  <Button type="button" variant="outline" className={`${BUTTON} bg-card`} disabled={!!pending} onClick={() => void run("google", actions.google)}>
-                    <GoogleMark />
-                    <BusyLabel busy={pending === "google"} text="Continue with Google" busyText="Opening Google" />
+                  <Button type="button" variant="outline" className={`${BUTTON} bg-card`} onClick={() => void run("google", actions.google, actions.finish)}>
+                    {pending === "google" ? <SpinCheck done={signedIn} className="-my-1 [--spin-mark:var(--card)]" /> : <GoogleMark />}
+                    <BusyLabel state={stateOf("google")} text="Continue with Google" busyText="Waiting for Google" doneText={copy.done} />
                   </Button>
                 </Field>
 
@@ -137,10 +152,9 @@ export function AuthPage({ mode, actions, links }: AuthPageProps) {
                       <button
                         type="button"
                         onClick={forgot}
-                        disabled={!!pending}
                         className="ml-auto text-[11px] tracking-[0.04em] text-soft underline-offset-4 hover:text-ink hover:underline"
                       >
-                        {pending === "reset" ? <BusyLabel busy text="" busyText="Sending" /> : "Forgot?"}
+                        <BusyLabel state={stateOf("reset")} text="Forgot?" busyText="Sending" />
                       </button>
                     )}
                   </div>
@@ -149,9 +163,9 @@ export function AuthPage({ mode, actions, links }: AuthPageProps) {
                 </Field>
 
                 <Field className="mt-1">
-                  <Button type="submit" className={BUTTON} disabled={!!pending}>
-                    <BusyLabel busy={pending === "email"} text={copy.submit} busyText={copy.busy} />
-                    {pending !== "email" && <MIcon name="right" className="size-3.5" />}
+                  <Button type="submit" className={`${BUTTON} disabled:opacity-100`}>
+                    <BusyLabel state={stateOf("email")} text={copy.submit} busyText={copy.busy} doneText={copy.done} />
+                    {pending === "email" ? <SpinCheck done={signedIn} className="-my-1 -mr-1" /> : <MIcon name="right" className="size-3.5" />}
                   </Button>
                 </Field>
 
@@ -174,6 +188,7 @@ export function AuthPage({ mode, actions, links }: AuthPageProps) {
                   </NavLink>
                 </p>
               </FieldGroup>
+              </fieldset>
             </form>
 
           </m.div>

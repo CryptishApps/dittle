@@ -61,10 +61,17 @@ function fromInlines(inlines: Inline[]): JSONContent[] | undefined {
 
 const paragraph = (c: Inline[]): JSONContent => ({ type: "paragraph", content: fromInlines(c) });
 
+function withTitle(blocks: Block[]): Block[] {
+  const [first, ...rest] = blocks;
+  const title: Block = first?.t === "h" ? first : { t: "h", level: 1, c: first?.t === "p" ? first.c : [] };
+  const body = first && first.t !== "h" && first.t !== "p" ? [first, ...rest] : rest;
+  return [title, ...(body.length > 0 ? body : [{ t: "p" as const, c: [] }])];
+}
+
 export function fromNoteDoc(doc: NoteDoc): JSONContent {
   return {
     type: "doc",
-    content: doc.blocks.map((block): JSONContent => {
+    content: withTitle(doc.blocks).map((block): JSONContent => {
       switch (block.t) {
         case "h":
           return { type: "heading", attrs: { level: block.level }, content: fromInlines(block.c) };

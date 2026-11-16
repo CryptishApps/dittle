@@ -24,6 +24,7 @@ function sentenceWith(editor: Editor, range: Range, text: string, store: ValueSt
 export function ValueTag({ store, onCreate }: ValueTagOptions) {
   return Mention.extend<MentionOptions<MenuItem, MenuItem>>({
     name: VALUE_NODE,
+    priority: 200,
 
     addNodeView() {
       return ({ node }) => {
