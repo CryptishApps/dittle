@@ -4,6 +4,7 @@ import type { User } from "firebase/auth";
 import { AnimatePresence, m } from "motion/react";
 import { DropdownMenu } from "radix-ui";
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { useDeviceModel, type DeviceModelStatus } from "@/features/ai/device-model";
 import { loadAuth } from "@/lib/session";
 import { Btn, ease, MIcon } from "@/ui/kit";
 import { Wordmark } from "@/ui/Wordmark";
@@ -99,7 +100,8 @@ export function NotesShell({ user }: { user: User }) {
         </nav>
 
         <footer className="shrink-0 border-t border-line px-4 py-3 text-[11.5px]">
-          <p className="flex items-center gap-2 text-soft">
+          <DeviceModelLink />
+          <p className="mt-1.5 flex items-center gap-2 text-soft">
             <span aria-hidden className={`size-1.5 ${online ? "bg-ink" : "bg-accent"}`} />
             {online ? "Online · synced" : "Offline · saved on this device"}
           </p>
@@ -142,6 +144,31 @@ export function NotesShell({ user }: { user: User }) {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+const MODEL_LABEL: Record<DeviceModelStatus, string> = {
+  checking: "Checking",
+  "no-api": "Cloud only in this browser",
+  unavailable: "Cloud only on this device",
+  downloadable: "Not downloaded",
+  downloading: "Downloading",
+  available: "Ready",
+};
+
+function DeviceModelLink() {
+  const model = useDeviceModel();
+  const dot = model.status === "available" ? "bg-ink" : model.status === "downloadable" ? "bg-accent" : "bg-faint";
+  const percent = model.status === "downloading" && model.progress !== undefined ? ` ${Math.round(model.progress * 100)}%` : "";
+  return (
+    <Link to="/ai" className="flex items-center gap-2 text-soft hover:text-ink">
+      <span aria-hidden className={`size-1.5 ${dot}`} />
+      <span>
+        Gemini Nano · {MODEL_LABEL[model.status]}
+        {percent}
+      </span>
+      <MIcon name="right" className="ml-auto size-3" />
+    </Link>
   );
 }
 

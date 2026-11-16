@@ -28,7 +28,9 @@ const SCHEMA = {
   required: ["kind", "name"],
 };
 
-const namer = createHybrid(InferenceMode.PREFER_ON_DEVICE, INSTRUCTIONS, SCHEMA);
+const namer = createHybrid("Name a tag", InferenceMode.PREFER_ON_DEVICE, INSTRUCTIONS, SCHEMA);
+
+export const deviceModel = namer.model;
 
 export async function nameValue(sentence: string, value: string): Promise<ValueName> {
   const { text, where, ms } = await namer.ask(`Sentence: ${sentence}\nValue: ${value}`);

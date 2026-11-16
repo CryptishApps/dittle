@@ -68,7 +68,7 @@ export type Detector = {
 };
 
 export function createDetector(mode: InferenceMode, known: KnownVariable[]): Detector {
-  const hybrid = createHybrid(mode, INSTRUCTIONS, schema(known.map((variable) => variable.name)));
+  const hybrid = createHybrid("Find values", mode, INSTRUCTIONS, schema(known.map((variable) => variable.name)));
   const listed = known.length ? known.map((variable) => `- ${variable.name} = ${variable.value} (${variable.note})`).join("\n") : "none";
 
   return {

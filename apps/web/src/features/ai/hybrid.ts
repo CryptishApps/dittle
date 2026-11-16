@@ -1,5 +1,6 @@
 import { AIError, getGenerativeModel, InferenceMode, type GenerativeModel, type HybridParams, type LanguageModelPromptOptions } from "firebase/ai";
 import { ai, CLOUD_MODEL } from "@/lib/ai";
+import { recordCall } from "./usage";
 
 export type InferenceWhere = "on_device" | "in_cloud";
 
@@ -34,7 +35,7 @@ function params(mode: InferenceMode, instructions: string, schema: Record<string
   };
 }
 
-export function createHybrid(mode: InferenceMode, instructions: string, schema: Record<string, unknown>): Hybrid {
+export function createHybrid(task: string, mode: InferenceMode, instructions: string, schema: Record<string, unknown>): Hybrid {
   const model = getGenerativeModel(ai, params(mode, instructions, schema));
   const cloud = mode === InferenceMode.ONLY_IN_CLOUD ? model : getGenerativeModel(ai, params(InferenceMode.ONLY_IN_CLOUD, instructions, schema));
   let queue: Promise<unknown> = Promise.resolve();
@@ -45,7 +46,7 @@ export function createHybrid(mode: InferenceMode, instructions: string, schema: 
     return { text: result.response.text(), where: result.response.inferenceSource ?? "in_cloud", ms: Math.round(performance.now() - started) };
   };
 
-  const answer = async (prompt: string): Promise<HybridAnswer> => {
+  const attempt = async (prompt: string): Promise<HybridAnswer> => {
     try {
       return await run(model, prompt);
     } catch (error) {
@@ -53,6 +54,12 @@ export function createHybrid(mode: InferenceMode, instructions: string, schema: 
       const fallback = await run(cloud, prompt);
       return { ...fallback, fallbackReason: error instanceof Error ? error.message : String(error) };
     }
+  };
+
+  const answer = async (prompt: string): Promise<HybridAnswer> => {
+    const result = await attempt(prompt);
+    recordCall({ task, where: result.where, ms: result.ms, at: Date.now() });
+    return result;
   };
 
   return {
