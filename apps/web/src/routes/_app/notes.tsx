@@ -1,6 +1,5 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { continueWithGoogle, signOut, useSession } from "../../lib/auth";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { signOut, useSession } from "../../lib/auth";
 import { Wordmark } from "../../ui/Wordmark";
 
 export const Route = createFileRoute("/_app/notes")({
@@ -10,16 +9,6 @@ export const Route = createFileRoute("/_app/notes")({
 function NotesRoute() {
   const session = useSession();
   const navigate = useNavigate();
-  const [error, setError] = useState<string>();
-
-  const upgrade = async () => {
-    setError(undefined);
-    try {
-      await continueWithGoogle();
-    } catch {
-      setError("Couldn't connect your Google account. Try again.");
-    }
-  };
 
   const leave = async () => {
     await signOut();
@@ -32,11 +21,11 @@ function NotesRoute() {
         <Wordmark className="text-[15px]" />
         <div className="flex items-center gap-2 text-[12px]">
           {session.kind === "guest" && (
-            <button type="button" onClick={upgrade} className="h-8 bg-ink px-3 tracking-[0.04em] text-page uppercase">
-              Keep notes with Google
-            </button>
+            <Link to="/signup" className="inline-flex h-8 items-center bg-ink px-3 tracking-[0.04em] text-page uppercase">
+              Save your notes
+            </Link>
           )}
-          {session.kind === "member" && <span className="text-soft">{session.user.email}</span>}
+          {session.kind === "member" && <span className="text-soft">{session.user.displayName ?? session.user.email}</span>}
           {session.kind !== "guest" && (
             <button type="button" onClick={leave} className="h-8 border border-line-strong px-3 tracking-[0.04em] text-ink uppercase hover:border-ink">
               Sign out
@@ -44,7 +33,6 @@ function NotesRoute() {
           )}
         </div>
       </header>
-      {error && <p role="alert" className="px-6 pt-3 text-[13px] text-accent-ink">{error}</p>}
       <main className="mx-auto max-w-2xl px-4 py-24 text-center">
         <h1 className="text-[24px] font-medium tracking-[-0.02em]">Your first note goes here</h1>
         <p className="mt-2 text-[13px] text-soft">The editor is next on the build list.</p>

@@ -29,6 +29,9 @@ function DesignsLayout() {
         <Link to="/dev/designs/welcome" className={tab}>
           Homepage
         </Link>
+        <Link to="/dev/designs/signin" className={tab}>
+          Sign in
+        </Link>
         <select
           aria-label="Theme"
           value={theme}

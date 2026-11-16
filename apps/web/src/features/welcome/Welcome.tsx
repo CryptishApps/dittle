@@ -7,7 +7,7 @@ import { Floating, Reveal, Rise, ScrollWords, Shot, StickySteps, TiltedShot, use
 
 type WelcomeProps = {
   onStart: () => void;
-  onGoogle: () => void;
+  onSignIn: () => void;
   busy?: boolean;
   error?: string;
 };
@@ -65,7 +65,7 @@ const MODELS: { job: string; model: string; where: string; how: string }[] = [
 
 const FIREBASE = ["AI Logic", "Firestore", "Authentication", "App Check", "Remote Config", "Hosting"];
 
-export function Welcome({ onStart, onGoogle, busy = false, error }: WelcomeProps) {
+export function Welcome({ onStart, onSignIn, busy = false, error }: WelcomeProps) {
   useSmoothScroll();
   const navDark = useNavOverDark();
   const [found, setFound] = useState(false);
@@ -93,6 +93,17 @@ export function Welcome({ onStart, onGoogle, busy = false, error }: WelcomeProps
               GitHub
             </a>
           </div>
+          <div className="flex items-center gap-1">
+          <a
+            href="/signin"
+            onClick={(event) => {
+              event.preventDefault();
+              onSignIn();
+            }}
+            className="inline-flex h-9 items-center px-3 text-[11px] tracking-[0.06em] text-soft uppercase hover:text-ink"
+          >
+            Sign in
+          </a>
           <button
             type="button"
             onClick={onStart}
@@ -102,10 +113,11 @@ export function Welcome({ onStart, onGoogle, busy = false, error }: WelcomeProps
             Open Dittle
             <MIcon name="right" className="size-3.5" />
           </button>
+          </div>
         </div>
       </nav>
 
-      <header className="relative mx-auto max-w-[1200px] px-4 pt-36 sm:px-8 sm:pt-44">
+      <header className="relative mx-auto max-w-[1200px] px-6 pt-36 sm:px-8 sm:pt-44">
         <Rise>
           <span className="inline-flex items-center gap-2.5 border border-line-strong bg-card px-2.5 py-1.5 text-[11px] tracking-[0.06em] text-soft uppercase">
             <span aria-hidden className="size-1.5 animate-pulse bg-accent" />
@@ -144,11 +156,10 @@ export function Welcome({ onStart, onGoogle, busy = false, error }: WelcomeProps
               </button>
               <button
                 type="button"
-                onClick={onGoogle}
-                disabled={busy}
-                className="inline-flex h-11 items-center border border-line-strong bg-card px-5 text-[12px] tracking-[0.06em] uppercase transition-colors hover:border-ink disabled:opacity-60"
+                onClick={onSignIn}
+                className="inline-flex h-11 items-center border border-line-strong bg-card px-5 text-[12px] tracking-[0.06em] uppercase transition-colors hover:border-ink"
               >
-                Continue with Google
+                Sign in
               </button>
             </div>
             <p className="mt-3 text-[11px] tracking-[0.06em] text-faint uppercase">No account needed · Free · Apache 2.0</p>
@@ -203,7 +214,7 @@ export function Welcome({ onStart, onGoogle, busy = false, error }: WelcomeProps
         </Reveal>
       </Section>
 
-      <section className="mx-auto max-w-[1200px] px-4 py-32 sm:px-8 sm:py-44">
+      <section className="mx-auto max-w-[1200px] px-6 py-32 sm:px-8 sm:py-44">
         <ScrollWords text="Your notes repeat the same details: [a guest count], [a date], [a price]. Dittle notices them on your device and keeps every copy in step, so a change in one place is never forgotten in another." />
       </section>
 
@@ -266,7 +277,7 @@ export function Welcome({ onStart, onGoogle, busy = false, error }: WelcomeProps
       </Section>
 
       <div data-dark className="theme-dark bg-page text-ink">
-        <section className="mx-auto max-w-[1200px] px-4 py-32 sm:px-8 sm:py-40">
+        <section className="mx-auto max-w-[1200px] px-6 py-32 sm:px-8 sm:py-40">
           <Reveal>
             <p className="text-[11px] tracking-[0.06em] text-faint uppercase">04 — Start</p>
             <h2 className="mt-6 max-w-[14ch] text-[44px] leading-[1.02] font-medium tracking-[-0.06em] sm:text-[88px]">
@@ -291,7 +302,7 @@ export function Welcome({ onStart, onGoogle, busy = false, error }: WelcomeProps
             </div>
           </Reveal>
         </section>
-        <footer className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 border-t border-line px-4 py-6 text-[11px] tracking-[0.06em] text-faint uppercase sm:px-8">
+        <footer className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 border-t border-line px-6 py-6 text-[11px] tracking-[0.06em] text-faint uppercase sm:px-8">
           <Wordmark className="text-[12px]" />
           <span>Built for #BuildHybridAI 2026</span>
           <span className="flex gap-5">
@@ -327,7 +338,7 @@ function useNavOverDark(): boolean {
 
 function Section({ id, index, label, dark = false, children }: { id: string; index: string; label: string; dark?: boolean; children: ReactNode }) {
   return (
-    <section id={id} className={`mx-auto max-w-[1200px] scroll-mt-20 px-4 sm:px-8 ${dark ? "py-28 sm:py-36" : "py-24 sm:py-32"}`}>
+    <section id={id} className={`mx-auto max-w-[1200px] scroll-mt-20 px-6 sm:px-8 ${dark ? "py-28 sm:py-36" : "py-24 sm:py-32"}`}>
       <div className="mb-10 flex items-center gap-4 text-[11px] tracking-[0.06em] text-faint uppercase">
         <span className="text-accent">{index}</span>
         {label}

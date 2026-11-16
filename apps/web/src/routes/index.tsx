@@ -1,6 +1,6 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { continueWithGoogle, readSession, startAsGuest } from "../lib/auth";
+import { authMessage, readSession, startAsGuest } from "../lib/auth";
 import { Welcome } from "../features/welcome/Welcome";
 
 export const Route = createFileRoute("/")({
@@ -16,18 +16,18 @@ function WelcomeRoute() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
 
-  const run = (action: () => Promise<void>) => async () => {
+  const start = async () => {
     setBusy(true);
     setError(undefined);
     try {
-      await action();
+      await startAsGuest();
       await navigate({ to: "/notes" });
-    } catch {
-      setError("Couldn't sign you in. Check your connection and try again.");
+    } catch (caught) {
+      setError(authMessage(caught));
     } finally {
       setBusy(false);
     }
   };
 
-  return <Welcome onStart={run(startAsGuest)} onGoogle={run(continueWithGoogle)} busy={busy} error={error} />;
+  return <Welcome onStart={start} onSignIn={() => void navigate({ to: "/signin" })} busy={busy} error={error} />;
 }

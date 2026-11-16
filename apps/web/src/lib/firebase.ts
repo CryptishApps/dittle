@@ -24,7 +24,6 @@ function connect(): Firebase {
     VITE_FIREBASE_AUTH_DOMAIN: env.VITE_FIREBASE_AUTH_DOMAIN,
     VITE_FIREBASE_PROJECT_ID: env.VITE_FIREBASE_PROJECT_ID,
     VITE_FIREBASE_APP_ID: env.VITE_FIREBASE_APP_ID,
-    VITE_RECAPTCHA_ENTERPRISE_SITE_KEY: env.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY,
   };
   const missing = Object.entries(settings)
     .filter(([, value]) => !value)
@@ -40,13 +39,11 @@ function connect(): Firebase {
     appId: settings.VITE_FIREBASE_APP_ID,
   });
 
-  if (env.DEV) {
-    globalThis.FIREBASE_APPCHECK_DEBUG_TOKEN = env.VITE_APPCHECK_DEBUG_TOKEN || true;
+  const siteKey = env.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY;
+  if (siteKey) {
+    if (env.DEV) globalThis.FIREBASE_APPCHECK_DEBUG_TOKEN = env.VITE_APPCHECK_DEBUG_TOKEN || true;
+    initializeAppCheck(app, { provider: new ReCaptchaEnterpriseProvider(siteKey), isTokenAutoRefreshEnabled: true });
   }
-  initializeAppCheck(app, {
-    provider: new ReCaptchaEnterpriseProvider(settings.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY!),
-    isTokenAutoRefreshEnabled: true,
-  });
 
   const db = initializeFirestore(app, {
     localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),

@@ -51,7 +51,7 @@ Without on-device AI, the app still works: every call goes to the cloud.
 
 ## Run it locally
 
-You need [Bun](https://bun.sh) 1.3 or later and a Firebase project with AI Logic, Authentication (Anonymous and Google), Firestore and App Check (reCAPTCHA Enterprise) turned on.
+You need [Bun](https://bun.sh) 1.3 or later and a Firebase project with AI Logic, Authentication (Anonymous, Email/Password and Google), Firestore and App Check (reCAPTCHA Enterprise) turned on.
 
 ```sh
 bun install

@@ -19,7 +19,10 @@ export default defineConfig(({ command }) => {
       tailwindcss(),
     ],
     resolve: {
-      alias: build ? [{ find: /^\.\/routeTree\.gen$/, replacement: fileURLToPath(new URL(buildRouteTree, import.meta.url)) }] : [],
+      alias: [
+        { find: /^@\//, replacement: fileURLToPath(new URL("./src/", import.meta.url)) },
+        ...(build ? [{ find: /^\.\/routeTree\.gen$/, replacement: fileURLToPath(new URL(buildRouteTree, import.meta.url)) }] : []),
+      ],
     },
     server: { port: 5180, strictPort: true },
   };
