@@ -176,6 +176,15 @@ class Scheduler {
     this.timer = window.setTimeout(() => this.start(), this.pause());
   }
 
+  scan() {
+    if (this.editor.isDestroyed) return;
+    this.editor.state.doc.descendants((node, pos) => {
+      if (node.isTextblock && node.textContent.trim()) this.dirty.add(pos);
+      return !node.isTextblock;
+    });
+    this.start();
+  }
+
   destroy() {
     window.clearTimeout(this.timer);
     this.dirty.clear();
@@ -313,7 +322,11 @@ export const Spotting = Extension.create<SpottingOptions, { scheduler?: Schedule
   },
 
   onCreate() {
-    this.storage.scheduler = new Scheduler(this.editor, this.options);
+    const scheduler = new Scheduler(this.editor, this.options);
+    this.storage.scheduler = scheduler;
+    const scan = () => scheduler.scan();
+    if ("requestIdleCallback" in window) window.requestIdleCallback(scan, { timeout: 3000 });
+    else globalThis.setTimeout(scan, 1000);
   },
 
   onTransaction({ transaction }) {

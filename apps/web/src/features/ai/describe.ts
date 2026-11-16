@@ -2,7 +2,7 @@ import { InferenceMode } from "firebase/ai";
 import { VALUE_KINDS, type ValueKind } from "./detect";
 import { createHybrid, type InferenceWhere } from "./hybrid";
 
-export const DESCRIBE_PROMPT_VERSION = "v6.1";
+export { DESCRIBE_PROMPT_VERSION } from "./prompt-versions";
 
 export const TAG_KINDS = [...VALUE_KINDS, "text"] as const;
 export type TagKind = (typeof TAG_KINDS)[number];

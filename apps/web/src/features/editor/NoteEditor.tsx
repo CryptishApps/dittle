@@ -3,7 +3,9 @@ import { Placeholder } from "@tiptap/extensions";
 import { EditorContent, useEditor, type Content, type Editor } from "@tiptap/react";
 import { useEffect, useRef } from "react";
 import { StarterKit } from "@tiptap/starter-kit";
+import { remembered } from "@/features/ai/cache";
 import { deviceModelStatus } from "@/features/ai/device-model";
+import { DESCRIBE_PROMPT_VERSION } from "@/features/ai/prompt-versions";
 import { findLinks, repoint } from "./linking";
 import { Requests } from "./requests";
 import { RequestPreview } from "./RequestPreview";
@@ -13,6 +15,20 @@ import { TitleDocument, TitleKeys } from "./title-body";
 import { ValueCard } from "./ValueCard";
 import { ValueTag } from "./value-tag";
 import { describeInBackground, type TrackedValue, type ValueStore } from "./values";
+
+const today = () => new Date().toDateString();
+
+const rememberedFind = remembered(
+  `find:${DESCRIBE_PROMPT_VERSION}`,
+  (input: { paragraph: string; noteTitle: string }) => import("@/features/ai/describe").then(({ findValues }) => findValues(input)),
+  (input) => input.paragraph,
+);
+
+const rememberedDescribe = remembered(
+  `describe:${DESCRIBE_PROMPT_VERSION}`,
+  (input: { paragraph: string; noteTitle: string; quotes: string[] }) => import("@/features/ai/describe").then(({ describeValues }) => describeValues(input)),
+  (input) => [input.paragraph, input.noteTitle, input.quotes, today()],
+);
 
 type NoteEditorOptions = {
   store: ValueStore;
@@ -76,8 +92,8 @@ export function useNoteEditor({ store, content, label, services = {}, autofocus 
         placeholder: ({ pos }) => (pos === 0 ? "Untitled" : "Write here. Type @ to tag a value."),
       }),
       Spotting.configure({
-        find: (input) => import("@/features/ai/describe").then(({ findValues }) => findValues(input)),
-        describe: (input) => import("@/features/ai/describe").then(({ describeValues }) => describeValues(input)),
+        find: rememberedFind,
+        describe: rememberedDescribe,
         continuous: () => deviceModelStatus() === "available",
         link: linkFound,
         onRequests: (block, requests) => holder.current?.storage.requests.found(block, requests),

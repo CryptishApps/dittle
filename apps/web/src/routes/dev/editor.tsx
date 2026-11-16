@@ -34,6 +34,7 @@ const CONTENT: JSONContent = {
         { type: "text", text: "." },
       ],
     },
+    { type: "paragraph", content: [{ type: "text", text: "Hartley Barn holds 120 people and needs a £500 deposit by Friday." }] },
     { type: "paragraph" },
   ],
 };
