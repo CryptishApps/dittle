@@ -21,7 +21,7 @@ export type ValueContext = {
 export type SpottedValue = { quote: string; kind: TagKind; name: string };
 export type DescribedValue = SpottedValue & ValueContext;
 
-type Timed = { where: InferenceWhere; ms: number };
+type Timed = { where: InferenceWhere; ms: number; fallbackReason?: string };
 export type FindResult = { values: SpottedValue[]; requests: string[] } & Timed;
 export type DescribeResult = { values: DescribedValue[] } & Timed;
 
@@ -68,13 +68,15 @@ Paragraph: Book club meets at 7pm every second Tuesday.
 Values: 7pm
 Answer: {"values":[{"quote":"7pm","kind":"date","name":"meeting_time","about":"book club","event":false,"when":"","grain":"none","conditions":["every second Tuesday"],"remarks":[]}]}`;
 
-const PHRASES = { type: "array", items: { type: "string" } };
+const PHRASES = { type: "array", items: { type: "string" }, maxItems: 3 };
+const MAX_VALUES = 12;
 
 const FIND_SCHEMA = {
   type: "object",
   properties: {
     values: {
       type: "array",
+      maxItems: MAX_VALUES,
       items: {
         type: "object",
         properties: { quote: { type: "string" }, kind: { type: "string", enum: [...VALUE_KINDS] }, name: { type: "string" } },
@@ -91,6 +93,7 @@ const DESCRIBE_SCHEMA = {
   properties: {
     values: {
       type: "array",
+      maxItems: MAX_VALUES,
       items: {
         type: "object",
         properties: {
@@ -118,19 +121,19 @@ export function createDescriber(mode: InferenceMode) {
   const describer = createHybrid("Describe values", mode, DESCRIBE_INSTRUCTIONS, DESCRIBE_SCHEMA);
 
   const find = async ({ paragraph }: ParagraphInput): Promise<FindResult> => {
-    const { text, where, ms } = await finder.ask(`Paragraph: ${paragraph}`);
-    return { ...parseFound(text, paragraph), where, ms };
+    const { text, ...timed } = await finder.ask(`Paragraph: ${paragraph}`);
+    return { ...parseFound(text, paragraph), ...timed };
   };
 
   const describe = async ({ paragraph, noteTitle, today = new Date(), quotes }: ParagraphInput & { quotes: string[] }): Promise<DescribeResult> => {
     const prompt = [datesLine(today), `Note: ${noteTitle || "Untitled"}`, `Paragraph: ${paragraph}`, `Values: ${quotes.join(" | ")}`].join("\n");
-    const { text, where, ms } = await describer.ask(prompt);
-    return { values: parseDescribed(text, quotes), where, ms };
+    const { text, ...timed } = await describer.ask(prompt);
+    return { values: parseDescribed(text, quotes), ...timed };
   };
 
   const tag = async (input: ParagraphInput & { tagged: string }): Promise<DescribedValue & Timed> => {
-    const { values, where, ms } = await describe({ ...input, quotes: [input.tagged] });
-    return { ...values[0]!, where, ms };
+    const { values, ...timed } = await describe({ ...input, quotes: [input.tagged] });
+    return { ...values[0]!, ...timed };
   };
 
   return { model: finder.model, find, describe, tag };

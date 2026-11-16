@@ -35,6 +35,8 @@ function params(mode: InferenceMode, instructions: string, schema: Record<string
   };
 }
 
+const CALL_TIMEOUT_MS = 30_000;
+
 export function createHybrid(task: string, mode: InferenceMode, instructions: string, schema: Record<string, unknown>): Hybrid {
   const model = getGenerativeModel(ai, params(mode, instructions, schema));
   const cloud = mode === InferenceMode.ONLY_IN_CLOUD ? model : getGenerativeModel(ai, params(InferenceMode.ONLY_IN_CLOUD, instructions, schema));
@@ -42,7 +44,11 @@ export function createHybrid(task: string, mode: InferenceMode, instructions: st
 
   const run = async (target: GenerativeModel, prompt: string): Promise<HybridAnswer> => {
     const started = performance.now();
-    const result = await target.generateContent(prompt);
+    let timer: number | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = window.setTimeout(() => reject(new Error(`${task} took longer than ${CALL_TIMEOUT_MS / 1000} s`)), CALL_TIMEOUT_MS);
+    });
+    const result = await Promise.race([target.generateContent(prompt), timeout]).finally(() => window.clearTimeout(timer));
     return { text: result.response.text(), where: result.response.inferenceSource ?? "in_cloud", ms: Math.round(performance.now() - started) };
   };
 

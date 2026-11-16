@@ -101,7 +101,7 @@ function DescribePage() {
         values,
         context: Object.fromEntries(fields.map(({ field, ok, total }) => [field, `${ok}/${total}`])),
         contextCases: contextRows.map((row) => ({ id: row.id, where: row.where, findMs: row.findMs, describeMs: row.ms, error: row.error, wrong: row.score?.checks.filter((check) => !check.ok) })),
-        valueSamples: valueRows.map((row) => ({ id: row.id, where: row.result?.where, ms: row.result?.ms, error: row.error, requests: row.result?.requests, requestOk: row.score?.requestOk, missed: row.score?.missed.map((value) => value.quote), extra: row.score?.verdicts.filter((verdict) => verdict.verdict !== "match" && verdict.verdict !== "optional").map((verdict) => verdict.value.quote) })),
+        valueSamples: valueRows.map((row) => ({ id: row.id, where: row.result?.where, ms: row.result?.ms, fallback: row.result?.fallbackReason, error: row.error, requests: row.result?.requests, requestOk: row.score?.requestOk, missed: row.score?.missed.map((value) => value.quote), extra: row.score?.verdicts.filter((verdict) => verdict.verdict !== "match" && verdict.verdict !== "optional").map((verdict) => verdict.value.quote) })),
       },
       null,
       2,
