@@ -21,6 +21,8 @@ export function menuItems(values: TrackedValue[], query: string): MenuItem[] {
   return text && !exact ? [...matches, { kind: "new", text }] : matches;
 }
 
+const menuContext = (value: TrackedValue) => [value.subject?.label, ...(value.conditions ?? [])].filter(Boolean).join(" · ");
+
 export function ValueMenu({ items, command, query, ref }: ValueMenuProps) {
   const [cursor, setCursor] = useState({ query, index: 0 });
   const index = cursor.query === query ? Math.min(cursor.index, items.length - 1) : 0;
@@ -60,7 +62,10 @@ export function ValueMenu({ items, command, query, ref }: ValueMenuProps) {
               </>
             ) : (
               <>
-                <span className="truncate text-ink">{item.value.text}</span>
+                <span className="min-w-0">
+                  <span className="block truncate text-ink">{item.value.text}</span>
+                  {menuContext(item.value) && <span className="block truncate text-[11px] text-faint">{menuContext(item.value)}</span>}
+                </span>
                 <span className="shrink-0 truncate text-[11px] text-faint">{item.value.name?.replaceAll("_", " ") ?? "unnamed"}</span>
               </>
             )}

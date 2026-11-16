@@ -1,23 +1,14 @@
 import { hashKey, type QueryClient } from "@tanstack/react-query";
 import { useSyncExternalStore } from "react";
-import type { InferenceWhere } from "@/features/ai/hybrid";
-import type { TagKind } from "@/features/ai/name-value";
 import { valuesQuery, type writes } from "@/features/notes/api";
-import type { StoredValue } from "@/features/notes/store";
+import type { FactFields, StoredValue } from "@/features/notes/fact";
 
-export type TrackedValue = {
-  id: string;
-  text: string;
-  kind?: TagKind;
-  name?: string;
-  naming: boolean;
-  namedBy?: { where: InferenceWhere; ms: number };
-};
+export type TrackedValue = StoredValue & { naming: boolean };
 
 export type ValueStore = {
   list: () => TrackedValue[];
   get: (id: string) => TrackedValue | undefined;
-  add: (text: string) => TrackedValue;
+  add: (text: string, fields?: Omit<FactFields, "text">) => TrackedValue;
   update: (id: string, patch: Partial<Omit<TrackedValue, "id">>) => void;
   subscribe: (listener: () => void) => () => void;
 };
@@ -30,8 +21,8 @@ export function createValueStore(initial: TrackedValue[] = []): ValueStore {
   return {
     list: () => values,
     get: (id) => values.find((value) => value.id === id),
-    add: (text) => {
-      const value: TrackedValue = { id: crypto.randomUUID(), text, naming: false };
+    add: (text, fields) => {
+      const value: TrackedValue = { ...fields, id: crypto.randomUUID(), text, naming: false };
       values = [...values, value];
       emit();
       return value;
@@ -73,8 +64,8 @@ export function createSyncedValueStore(client: QueryClient, uid: string, writes:
   return {
     list,
     get: (id) => list().find((value) => value.id === id),
-    add: (text) => {
-      const value = { id: crypto.randomUUID(), text };
+    add: (text, fields) => {
+      const value = { ...fields, id: crypto.randomUUID(), text };
       writes.createValue(uid, value);
       return { ...value, naming: false };
     },
@@ -103,12 +94,27 @@ export function useValues(store: ValueStore): TrackedValue[] {
   return useSyncExternalStore(store.subscribe, store.list);
 }
 
-export function nameInBackground(store: ValueStore, value: TrackedValue, sentence: string): void {
-  store.update(value.id, { naming: true });
-  void import("@/features/ai/name-value")
-    .then(({ nameValue }) => nameValue(sentence, value.text))
+export type TagContext = { sentence: string; noteTitle: string; noteId?: string };
+
+export function describeInBackground(store: ValueStore, value: TrackedValue, { sentence, noteTitle, noteId }: TagContext): void {
+  store.update(value.id, { naming: true, origin: { noteId, sentence } });
+  void import("@/features/ai/describe")
+    .then(({ describeTag, DESCRIBE_PROMPT_VERSION }) =>
+      describeTag({ paragraph: sentence, noteTitle, tagged: value.text }).then((described) => ({ described, v: DESCRIBE_PROMPT_VERSION })),
+    )
     .then(
-      ({ kind, name, where, ms }) => store.update(value.id, { kind, name, naming: false, namedBy: { where, ms } }),
+      ({ described: { kind, name, about, event, when, conditions, remarks, where, ms }, v }) =>
+        store.update(value.id, {
+          kind,
+          name,
+          subject: about ? { label: about } : undefined,
+          event,
+          when,
+          conditions,
+          remarks,
+          naming: false,
+          describedBy: { where, ms, v },
+        }),
       () => store.update(value.id, { naming: false }),
     );
 }

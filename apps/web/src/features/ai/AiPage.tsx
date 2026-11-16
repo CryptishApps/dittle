@@ -161,8 +161,8 @@ function TryIt() {
   const run = async () => {
     setBusy(true);
     try {
-      const { nameValue } = await import("./name-value");
-      const named = await nameValue("Booked the barn for 14 June.", "14 June");
+      const { describeTag } = await import("./describe");
+      const named = await describeTag({ paragraph: "Booked the barn for 14 June.", noteTitle: "Wedding", tagged: "14 June" });
       setResult(`Named "14 June" as ${named.name.replaceAll("_", " ")} (${named.kind}) ${named.where === "on_device" ? "on this device" : "in the cloud"} in ${(named.ms / 1000).toFixed(1)} s.`);
     } catch (error) {
       setResult(error instanceof Error ? error.message : String(error));

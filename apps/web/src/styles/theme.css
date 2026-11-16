@@ -452,3 +452,29 @@ body {
 .spin-current .t-check-mark {
   stroke: var(--spin-mark, var(--page));
 }
+
+.value-found {
+  border-radius: 2px;
+  background-color: color-mix(in oklab, var(--chip) 65%, transparent);
+  text-decoration: underline dotted var(--faint);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 5px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  cursor: pointer;
+  animation: value-found-in 420ms ease-out;
+  transition: background-color 160ms ease;
+}
+.value-found:hover {
+  background-color: var(--chip-hover);
+}
+@keyframes value-found-in {
+  from {
+    background-color: transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .value-found {
+    animation: none;
+  }
+}

@@ -70,9 +70,9 @@ function EditorPage() {
                     (value.name ?? "unnamed")
                   )}
                 </div>
-                {value.namedBy && (
+                {value.describedBy && (
                   <div className="mt-0.5 text-[11px] text-faint">
-                    {value.namedBy.where === "on_device" ? "On device" : "Cloud"} · {(value.namedBy.ms / 1000).toFixed(1)} s
+                    {value.describedBy.where === "on_device" ? "On device" : "Cloud"} · {(value.describedBy.ms / 1000).toFixed(1)} s
                   </div>
                 )}
               </li>

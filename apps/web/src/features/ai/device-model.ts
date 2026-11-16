@@ -29,22 +29,30 @@ export async function checkDeviceModel(): Promise<void> {
   }
 }
 
+function ensureChecked() {
+  if (checked) return;
+  checked = true;
+  void checkDeviceModel();
+  document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && void checkDeviceModel());
+}
+
+export function deviceModelStatus(): DeviceModelStatus {
+  ensureChecked();
+  return state.status;
+}
+
 export function useDeviceModel(): DeviceModelState {
   return useSyncExternalStore(
     (listener) => {
       listeners.add(listener);
-      if (!checked) {
-        checked = true;
-        void checkDeviceModel();
-        document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && void checkDeviceModel());
-      }
+      ensureChecked();
       return () => listeners.delete(listener);
     },
     () => state,
   );
 }
 
-export const loadDeviceModel = () => import("./name-value").then((module) => module.deviceModel);
+export const loadDeviceModel = () => import("./describe").then((module) => module.deviceModel);
 
 export async function downloadDeviceModel(): Promise<void> {
   set({ status: "downloading", progress: 0 });

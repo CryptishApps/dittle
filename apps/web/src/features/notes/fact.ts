@@ -1,0 +1,17 @@
+import type { Grain, TagKind } from "@/features/ai/describe";
+import type { InferenceWhere } from "@/features/ai/hybrid";
+
+export type FactFields = {
+  text: string;
+  kind?: TagKind;
+  name?: string;
+  subject?: { label: string; entityId?: string };
+  event?: boolean;
+  when?: { on: string; grain: Grain };
+  conditions?: string[];
+  remarks?: string[];
+  origin?: { noteId?: string; sentence: string };
+  describedBy?: { where: InferenceWhere; ms: number; v: string };
+};
+
+export type StoredValue = { id: string } & FactFields;

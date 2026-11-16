@@ -1,8 +1,7 @@
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { EditorContent } from "@tiptap/react";
 import { useEffect, useRef, useState } from "react";
-import { useNoteEditor } from "@/features/editor/NoteEditor";
+import { NoteEditorView, useNoteEditor } from "@/features/editor/NoteEditor";
 import { createSyncedValueStore } from "@/features/editor/values";
 import { MIcon } from "@/ui/kit";
 import { noteQuery, writes } from "./api";
@@ -42,6 +41,7 @@ function OpenNote({ uid, noteId, doc, pending }: { uid: string; noteId: string; 
     store,
     content: initial,
     label: "Note",
+    noteId,
     autofocus: summarise(doc).title === "",
     onUpdate: (current) => {
       unsaved.current = toNoteDoc(current.getJSON());
@@ -74,7 +74,7 @@ function OpenNote({ uid, noteId, doc, pending }: { uid: string; noteId: string; 
       <NoteBar />
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto max-w-[680px] px-6 pt-10 pb-32 sm:px-10">
-          <EditorContent editor={editor} />
+          <NoteEditorView editor={editor} store={store} />
         </div>
       </div>
     </>

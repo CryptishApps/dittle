@@ -15,15 +15,14 @@ import {
   type DocumentSnapshot,
   type Timestamp,
 } from "firebase/firestore";
-import type { InferenceWhere } from "@/features/ai/hybrid";
-import type { TagKind } from "@/features/ai/name-value";
 import { db } from "@/lib/firestore";
 import type { Listen } from "@/lib/live-query";
+import type { StoredValue } from "./fact";
 import { EMPTY_NOTE, summarise, type NoteDoc } from "./note-doc";
 
 export type NoteSummary = { id: string; title: string; preview: string; updatedAt: number; pending: boolean };
 export type Note = NoteSummary & { doc: NoteDoc };
-export type StoredValue = { id: string; text: string; kind?: TagKind; name?: string; namedBy?: { where: InferenceWhere; ms: number } };
+export type { StoredValue } from "./fact";
 
 const notes = (uid: string) => collection(db, "users", uid, "notes");
 const values = (uid: string) => collection(db, "users", uid, "values");

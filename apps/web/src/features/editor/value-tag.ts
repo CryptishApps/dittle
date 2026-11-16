@@ -2,13 +2,13 @@ import { Mention, type MentionOptions } from "@tiptap/extension-mention";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import { ReactRenderer, type Editor, type Range } from "@tiptap/react";
 import { menuItems, ValueMenu, type MenuHandle, type MenuItem } from "./ValueMenu";
-import type { TrackedValue, ValueStore } from "./values";
+import type { TagContext, TrackedValue, ValueStore } from "./values";
 
 export const VALUE_NODE = "value";
 
 type ValueTagOptions = {
   store: ValueStore;
-  onCreate: (value: TrackedValue, sentence: string) => void;
+  onCreate: (value: TrackedValue, context: Omit<TagContext, "noteId">) => void;
 };
 
 function sentenceWith(editor: Editor, range: Range, text: string, store: ValueStore): string {
@@ -66,7 +66,7 @@ export function ValueTag({ store, onCreate }: ValueTagOptions) {
             { type: "text", text: " " },
           ])
           .run();
-        if (item.kind === "new") onCreate(value, sentence);
+        if (item.kind === "new") onCreate(value, { sentence, noteTitle: editor.state.doc.firstChild?.textContent ?? "" });
       },
       render: () => {
         let menu: ReactRenderer<MenuHandle> | undefined;
