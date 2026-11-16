@@ -21,7 +21,7 @@ function SignInPreview() {
   return (
     <AuthPage
       mode={mode}
-      actions={{ google: wait, email: wait, guest: wait, reset: wait, checkPassword }}
+      actions={{ google: wait, email: wait, reset: wait, checkPassword }}
       links={{
         home: { href: "/dev/designs/welcome", go: () => undefined },
         signin: { href: "#signin", go: () => setMode("signin") },

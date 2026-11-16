@@ -9,8 +9,6 @@ import { Floating, Reveal, Rise, ScrollWords, StickySteps, TiltedShot, useSmooth
 type WelcomeProps = {
   onStart: () => void;
   onSignIn: () => void;
-  busy?: boolean;
-  error?: string;
 };
 
 const REPO_URL = "https://github.com/CryptishApps/dittle";
@@ -66,7 +64,7 @@ const MODELS: { job: string; model: string; where: string; how: string }[] = [
 
 const FIREBASE = ["AI Logic", "Firestore", "Authentication", "App Check", "Remote Config", "Hosting"];
 
-export function Welcome({ onStart, onSignIn, busy = false, error }: WelcomeProps) {
+export function Welcome({ onStart, onSignIn }: WelcomeProps) {
   useSmoothScroll();
   const navDark = useNavOverDark();
   const [found, setFound] = useState(false);
@@ -108,10 +106,9 @@ export function Welcome({ onStart, onSignIn, busy = false, error }: WelcomeProps
           <button
             type="button"
             onClick={onStart}
-            disabled={busy}
-            className="inline-flex h-9 items-center gap-2 bg-ink px-4 text-[11px] tracking-[0.06em] text-page uppercase transition-opacity hover:opacity-90 disabled:opacity-60"
+            className="inline-flex h-9 items-center gap-2 bg-ink px-4 text-[11px] tracking-[0.06em] text-page uppercase transition-opacity hover:opacity-90"
           >
-            Open Dittle
+            Start writing
             <MIcon name="right" className="size-3.5" />
           </button>
           </div>
@@ -148,8 +145,7 @@ export function Welcome({ onStart, onSignIn, busy = false, error }: WelcomeProps
               <button
                 type="button"
                 onClick={onStart}
-                disabled={busy}
-                className="inline-flex h-11 items-center gap-2 bg-ink px-5 text-[12px] tracking-[0.06em] text-page uppercase transition-opacity hover:opacity-90 disabled:opacity-60"
+                className="inline-flex h-11 items-center gap-2 bg-ink px-5 text-[12px] tracking-[0.06em] text-page uppercase transition-opacity hover:opacity-90"
               >
                 Start writing
                 <MIcon name="right" className="size-3.5" />
@@ -162,12 +158,7 @@ export function Welcome({ onStart, onSignIn, busy = false, error }: WelcomeProps
                 Sign in
               </button>
             </div>
-            <p className="mt-3 text-[11px] tracking-[0.06em] text-faint uppercase">No account needed · Free · Apache 2.0</p>
-            {error && (
-              <p role="alert" className="mt-3 text-[13px] text-accent-ink">
-                {error}
-              </p>
-            )}
+            <p className="mt-3 text-[11px] tracking-[0.06em] text-faint uppercase">Free · Works offline · Apache 2.0</p>
           </Rise>
         </div>
 
@@ -289,8 +280,7 @@ export function Welcome({ onStart, onSignIn, busy = false, error }: WelcomeProps
               <button
                 type="button"
                 onClick={onStart}
-                disabled={busy}
-                className="inline-flex h-11 items-center gap-2 bg-ink px-5 text-[12px] tracking-[0.06em] text-page uppercase transition-opacity hover:opacity-90 disabled:opacity-60"
+                className="inline-flex h-11 items-center gap-2 bg-ink px-5 text-[12px] tracking-[0.06em] text-page uppercase transition-opacity hover:opacity-90"
               >
                 Start writing
                 <MIcon name="right" className="size-3.5" />

@@ -1,21 +1,19 @@
-import { FirebaseError } from "firebase/app";
 import {
+  applyActionCode,
   browserPopupRedirectResolver,
+  checkActionCode,
+  confirmPasswordReset,
   createUserWithEmailAndPassword,
-  EmailAuthProvider,
   GoogleAuthProvider,
-  linkWithCredential,
-  linkWithPopup,
   onIdTokenChanged,
   sendEmailVerification,
   sendPasswordResetEmail,
-  signInAnonymously,
-  signInWithCredential,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut as firebaseSignOut,
   updateProfile,
   validatePassword,
+  verifyPasswordResetCode,
   type User,
 } from "firebase/auth";
 import { auth } from "./firebase";
@@ -30,26 +28,8 @@ export async function ready(): Promise<Session> {
   return session;
 }
 
-export async function startAsGuest(): Promise<void> {
-  await signInAnonymously(auth);
-}
-
 export async function continueWithGoogle(): Promise<void> {
-  const provider = new GoogleAuthProvider();
-  const current = auth.currentUser;
-  if (!current?.isAnonymous) {
-    await signInWithPopup(auth, provider, browserPopupRedirectResolver);
-    return;
-  }
-  try {
-    await linkWithPopup(current, provider, browserPopupRedirectResolver);
-    await current.getIdToken(true);
-  } catch (error) {
-    const existing =
-      error instanceof FirebaseError && error.code === "auth/credential-already-in-use" ? GoogleAuthProvider.credentialFromError(error) : null;
-    if (!existing) throw error;
-    await signInWithCredential(auth, existing);
-  }
+  await signInWithPopup(auth, new GoogleAuthProvider(), browserPopupRedirectResolver);
 }
 
 export async function signInWithEmail(email: string, password: string): Promise<void> {
@@ -57,18 +37,16 @@ export async function signInWithEmail(email: string, password: string): Promise<
 }
 
 export async function signUpWithEmail(name: string, email: string, password: string): Promise<void> {
-  const current = auth.currentUser;
-  const { user } = current?.isAnonymous
-    ? await linkWithCredential(current, EmailAuthProvider.credential(email, password))
-    : await createUserWithEmailAndPassword(auth, email, password);
-  if (name) await updateProfile(user, { displayName: name });
-  await user.getIdToken(true);
-  publishSession(toSession(user));
-  void sendEmailVerification(user).catch(() => undefined);
+  const { user } = await createUserWithEmailAndPassword(auth, email, password);
+  if (name) {
+    await updateProfile(user, { displayName: name });
+    publishSession(toSession(user));
+  }
+  void sendEmailVerification(user, { url: `${location.origin}/notes` }).catch(() => undefined);
 }
 
 export async function sendPasswordReset(email: string): Promise<void> {
-  await sendPasswordResetEmail(auth, email);
+  await sendPasswordResetEmail(auth, email, { url: `${location.origin}/signin` });
 }
 
 export type PasswordRule = { label: string; met: boolean };
@@ -84,8 +62,28 @@ export async function checkPassword(password: string): Promise<PasswordCheck> {
   add("Uppercase", status.containsUppercaseLetter);
   add("Number", status.containsNumericCharacter);
   add("Symbol", status.containsNonAlphanumericCharacter);
-  add(`At most ${options.maxPasswordLength} characters`, status.meetsMaxPasswordLength);
+  if (status.meetsMaxPasswordLength === false) add(`At most ${options.maxPasswordLength} characters`, false);
   return { valid: status.isValid, rules };
+}
+
+export async function emailForPasswordReset(code: string): Promise<string> {
+  return verifyPasswordResetCode(auth, code);
+}
+
+export async function resetPassword(code: string, email: string, password: string): Promise<void> {
+  await confirmPasswordReset(auth, code, password);
+  await signInWithEmailAndPassword(auth, email, password);
+}
+
+export async function verifyEmail(code: string): Promise<void> {
+  await applyActionCode(auth, code);
+  await auth.currentUser?.reload();
+}
+
+export async function recoverEmail(code: string): Promise<string | undefined> {
+  const info = await checkActionCode(auth, code);
+  await applyActionCode(auth, code);
+  return info.data.email ?? undefined;
 }
 
 export async function signOut(): Promise<void> {
@@ -93,6 +91,5 @@ export async function signOut(): Promise<void> {
 }
 
 function toSession(user: User | null): Session {
-  if (!user) return { kind: "signedOut" };
-  return user.isAnonymous ? { kind: "guest", user } : { kind: "member", user };
+  return user ? { kind: "signedIn", user } : { kind: "signedOut" };
 }

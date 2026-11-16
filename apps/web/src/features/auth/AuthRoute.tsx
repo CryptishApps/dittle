@@ -1,6 +1,6 @@
 import { useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { loadAuth, sessionHint, useSession } from "@/lib/session";
+import { loadAuth } from "@/lib/session";
 import { AuthPage, type AuthActions, type AuthMode } from "./AuthPage";
 
 const checkPassword = async (password: string) => (await loadAuth()).checkPassword(password);
@@ -8,7 +8,6 @@ const checkPassword = async (password: string) => (await loadAuth()).checkPasswo
 export function AuthRoute({ mode, redirectTo }: { mode: AuthMode; redirectTo?: string }) {
   const router = useRouter();
   const navigate = useNavigate();
-  const isGuest = (useSession()?.kind ?? sessionHint()) === "guest";
   useEffect(() => void loadAuth().catch(() => undefined), []);
 
   const done = () => router.history.push(redirectTo ?? "/notes");
@@ -25,10 +24,6 @@ export function AuthRoute({ mode, redirectTo }: { mode: AuthMode; redirectTo?: s
       else await auth.signUpWithEmail(name, email, password);
       done();
     },
-    guest: async () => {
-      await (await loadAuth()).startAsGuest();
-      done();
-    },
     reset: async (email) => (await loadAuth()).sendPasswordReset(email),
     checkPassword,
   };
@@ -37,9 +32,8 @@ export function AuthRoute({ mode, redirectTo }: { mode: AuthMode; redirectTo?: s
     <AuthPage
       mode={mode}
       actions={actions}
-      isGuest={isGuest}
       links={{
-        home: isGuest ? { href: "/notes", go: () => void navigate({ to: "/notes" }) } : { href: "/", go: () => void navigate({ to: "/" }) },
+        home: { href: "/", go: () => void navigate({ to: "/" }) },
         signin: { href: "/signin", go: () => void navigate({ to: "/signin", search }) },
         signup: { href: "/signup", go: () => void navigate({ to: "/signup", search }) },
       }}

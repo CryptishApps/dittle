@@ -2,7 +2,7 @@ import type { User } from "firebase/auth";
 import { useSyncExternalStore } from "react";
 import { SESSION_HINT_KEY } from "./session-key";
 
-export type Session = { kind: "signedOut" } | { kind: "guest"; user: User } | { kind: "member"; user: User };
+export type Session = { kind: "signedOut" } | { kind: "signedIn"; user: User };
 export type SessionKind = Session["kind"];
 
 let current: Session | undefined;
@@ -11,7 +11,7 @@ const listeners = new Set<() => void>();
 export function sessionHint(): SessionKind {
   try {
     const stored = localStorage.getItem(SESSION_HINT_KEY);
-    return stored === "guest" || stored === "member" ? stored : "signedOut";
+    return stored === "signedIn" ? stored : "signedOut";
   } catch {
     return "signedOut";
   }

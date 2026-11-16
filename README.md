@@ -35,7 +35,7 @@ The cloud never sees full notes for Collections, only the values Dittle extracte
 |---|---|
 | [Firebase AI Logic](https://firebase.google.com/docs/ai-logic) | Every AI call, on-device first with cloud fallback |
 | [App Check](https://firebase.google.com/docs/app-check) | Keeps AI Logic and Firestore for this app only: reCAPTCHA Enterprise on web, Play Integrity on Android |
-| [Authentication](https://firebase.google.com/docs/auth) | Start writing with no account, then keep your notes with email and password or Google. The guest account is linked rather than replaced, so its notes carry over |
+| [Authentication](https://firebase.google.com/docs/auth) | Email and password or Google. Verification and password-reset links open a Dittle page at `/auth/action` instead of Firebase's default one |
 | [Cloud Firestore](https://firebase.google.com/docs/firestore) | Notes, variables and collections, with an offline cache that syncs when you reconnect |
 | [Remote Config](https://firebase.google.com/docs/remote-config) | Prompts, the cloud model name, the typing-pause delay and a switch for cloud calls |
 | [Hosting](https://firebase.google.com/docs/hosting) | Serves the web app at [dittle.app](https://dittle.app) |
@@ -51,7 +51,7 @@ Without on-device AI, the app still works: every call goes to the cloud.
 
 ## Run it locally
 
-You need [Bun](https://bun.sh) 1.3 or later and a Firebase project with AI Logic, Authentication (Anonymous, Email/Password and Google), Firestore and App Check (reCAPTCHA Enterprise) turned on.
+You need [Bun](https://bun.sh) 1.3 or later and a Firebase project with AI Logic, Authentication (Email/Password and Google), Firestore and App Check (reCAPTCHA Enterprise) turned on.
 
 ```sh
 bun install
@@ -59,7 +59,7 @@ cp apps/web/.env.example apps/web/.env.local   # fill in your Firebase web app s
 bun run dev                                    # http://localhost:5180
 ```
 
-App Check is optional until AI Logic is wired up: leave `VITE_RECAPTCHA_ENTERPRISE_SITE_KEY` empty to run without it. Once it's set, development uses a debug token. Leave `VITE_APPCHECK_DEBUG_TOKEN` empty the first time, copy the token the browser console prints, and add it in the Firebase console under App Check > Manage debug tokens.
+App Check starts only when the app first uses AI Logic or Firestore, so sign-in pages never load reCAPTCHA. Leave `VITE_RECAPTCHA_ENTERPRISE_SITE_KEY` empty to run without it. Once it's set, development uses a debug token. Leave `VITE_APPCHECK_DEBUG_TOKEN` empty the first time, copy the token the browser console prints, and add it in the Firebase console under App Check > Manage debug tokens.
 
 Design previews live at `http://localhost:5180/dev/designs`: the notes app filled with sample notes, the homepage and the sign-in page. They exist only in development and are left out of production builds.
 
