@@ -24,7 +24,7 @@ const TEXT_EN = [{ type: "text", languages: ["en"] }];
 const pause = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 async function withRetry<T>(call: () => Promise<T>): Promise<T> {
-  const { isRateLimited } = await import("@/features/ai/detect");
+  const { isRateLimited } = await import("@/features/ai/hybrid");
   for (let attempt = 0; ; attempt += 1) {
     try {
       return await call();

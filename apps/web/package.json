@@ -11,7 +11,14 @@
     "shots:encode": "bun scripts/encode-shots.ts"
   },
   "dependencies": {
+    "@floating-ui/dom": "^1.8.0",
     "@tanstack/react-router": "^1.170.46",
+    "@tiptap/extension-mention": "^3.34.0",
+    "@tiptap/extensions": "^3.34.0",
+    "@tiptap/pm": "^3.34.0",
+    "@tiptap/react": "^3.34.0",
+    "@tiptap/starter-kit": "^3.34.0",
+    "@tiptap/suggestion": "^3.34.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.2",
     "firebase": "^13.3.0",

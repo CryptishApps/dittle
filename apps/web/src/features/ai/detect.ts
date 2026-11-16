@@ -1,11 +1,10 @@
-import { AIError, getGenerativeModel, InferenceMode, type GenerativeModel, type HybridParams, type LanguageModelPromptOptions } from "firebase/ai";
-import { ai, CLOUD_MODEL } from "@/lib/ai";
+import type { GenerativeModel, InferenceMode } from "firebase/ai";
+import { createHybrid, type InferenceWhere } from "./hybrid";
 
 export const VALUE_KINDS = ["money", "count", "number", "date", "duration", "percent", "person", "place"] as const;
 export type ValueKind = (typeof VALUE_KINDS)[number];
 
 export type DetectedValue = { quote: string; kind: ValueKind; name: string; existing: string };
-export type InferenceWhere = "on_device" | "in_cloud";
 
 export type DetectResult = {
   values: DetectedValue[];
@@ -40,8 +39,6 @@ Answer: {"values":[{"quote":"12","kind":"count","name":"dinner_guests","existing
 Paragraph: Still 80 guests for the wedding, so 10 tables. Remember to ask Sam about the cake.
 Answer: {"values":[{"quote":"80","kind":"count","name":"guest_count","existing":"guest_count"},{"quote":"10","kind":"count","name":"table_count","existing":"none"},{"quote":"Sam","kind":"person","name":"cake_contact","existing":"none"}],"requests":[]}`;
 
-const TEXT_EN = [{ type: "text" as const, languages: ["en"] }];
-
 function schema(existing: string[]) {
   return {
     type: "object",
@@ -65,65 +62,22 @@ function schema(existing: string[]) {
   };
 }
 
-type ChromePromptOptions = LanguageModelPromptOptions & { omitResponseConstraintInput: boolean };
-
-function params(mode: InferenceMode, existing: string[]): HybridParams {
-  const responseSchema = schema(existing);
-  const promptOptions: ChromePromptOptions = { responseConstraint: responseSchema, omitResponseConstraintInput: true };
-  return {
-    mode,
-    onDeviceParams: {
-      createOptions: {
-        expectedInputs: TEXT_EN,
-        expectedOutputs: TEXT_EN,
-        initialPrompts: [{ role: "system", content: [{ type: "text", value: INSTRUCTIONS }] }],
-      },
-      promptOptions,
-    },
-    inCloudParams: {
-      model: CLOUD_MODEL,
-      systemInstruction: INSTRUCTIONS,
-      generationConfig: { responseMimeType: "application/json", responseJsonSchema: responseSchema, temperature: 0 },
-    },
-  };
-}
-
 export type Detector = {
   model: GenerativeModel;
   detect: (paragraph: string) => Promise<DetectResult>;
 };
 
 export function createDetector(mode: InferenceMode, known: KnownVariable[]): Detector {
-  const names = known.map((variable) => variable.name);
-  const model = getGenerativeModel(ai, params(mode, names));
-  const cloud = mode === InferenceMode.ONLY_IN_CLOUD ? model : getGenerativeModel(ai, params(InferenceMode.ONLY_IN_CLOUD, names));
+  const hybrid = createHybrid(mode, INSTRUCTIONS, schema(known.map((variable) => variable.name)));
   const listed = known.length ? known.map((variable) => `- ${variable.name} = ${variable.value} (${variable.note})`).join("\n") : "none";
-  const prompt = (paragraph: string) => `Known variables:\n${listed}\n\nParagraph:\n${paragraph}`;
-
-  const run = async (target: GenerativeModel, paragraph: string): Promise<DetectResult> => {
-    const started = performance.now();
-    const result = await target.generateContent(prompt(paragraph));
-    const ms = Math.round(performance.now() - started);
-    const parsed = parse(result.response.text());
-    return { ...parsed, where: result.response.inferenceSource ?? "in_cloud", ms };
-  };
 
   return {
-    model,
+    model: hybrid.model,
     detect: async (paragraph) => {
-      try {
-        return await run(model, paragraph);
-      } catch (error) {
-        if (mode !== InferenceMode.PREFER_ON_DEVICE || error instanceof AIError) throw error;
-        const fallback = await run(cloud, paragraph);
-        return { ...fallback, fallbackReason: error instanceof Error ? error.message : String(error) };
-      }
+      const { text, ...meta } = await hybrid.ask(`Known variables:\n${listed}\n\nParagraph:\n${paragraph}`);
+      return { ...parse(text), ...meta };
     },
   };
-}
-
-export function isRateLimited(error: unknown): boolean {
-  return error instanceof AIError && error.customErrorData?.status === 429;
 }
 
 function parse(text: string): Pick<DetectResult, "values" | "requests"> {
