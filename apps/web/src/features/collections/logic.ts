@@ -67,3 +67,55 @@ export function rowForPlacement(collection: Collection, value: StoredValue, fiel
   const existing = rows.find((row) => row.id === id);
   return existing ?? { id, collectionId: collection.id, label: period, period };
 }
+
+export type FactGroup = { key: string; about: string; period?: string; facts: StoredValue[] };
+
+export function groupsOf(values: StoredValue[]): FactGroup[] {
+  const groups = new Map<string, FactGroup>();
+  for (const value of values) {
+    const about = value.subject?.label;
+    const noteId = value.origin?.noteId;
+    if (value.field || !value.kind || !about || !noteId) continue;
+    const period = value.event ? periodOf(value) : undefined;
+    const key = value.event ? `${noteId}|${period}` : `${noteId}|${about}`;
+    const group = groups.get(key) ?? { key, about, period, facts: [] };
+    group.facts.push(value);
+    groups.set(key, group);
+  }
+  return [...groups.values()].sort((a, b) => (b.period ?? "").localeCompare(a.period ?? ""));
+}
+
+type ProposalShape = { name: string; rowLabel: string; per: "day" | "name"; fields: { name: string; kind: CollectionField["kind"]; sources: string[] }[]; groups: number[] };
+
+const fieldId = (name: string) => name.trim().toLowerCase().replaceAll(/\s+/g, "_");
+
+export function planFromProposal(proposal: ProposalShape, groups: FactGroup[]): CollectionPlan {
+  const id = crypto.randomUUID();
+  const fields: CollectionField[] = [
+    ...(proposal.per === "day" ? [{ id: "date", name: "date", kind: "date" as const }] : []),
+    ...proposal.fields.map((field) => ({ id: fieldId(field.name), name: field.name, kind: field.kind })),
+  ];
+  const rows: Omit<Row, "createdAt">[] = [];
+  const cells: CellPlan[] = [];
+  for (const index of proposal.groups) {
+    const group = groups[index];
+    if (!group) continue;
+    const row: Omit<Row, "createdAt"> =
+      proposal.per === "day" && group.period
+        ? { id: freeRowId(`${id}.${group.period}`, (rowId) => rows.some((taken) => taken.id === rowId)), collectionId: id, label: group.period, period: group.period }
+        : { id: `${id}.${crypto.randomUUID()}`, collectionId: id, label: group.about };
+    rows.push(row);
+    const filled = new Set<string>();
+    for (const fact of group.facts) {
+      const field = proposal.fields.find((candidate) => fact.name && candidate.sources.includes(fact.name));
+      if (!field || filled.has(fieldId(field.name))) continue;
+      filled.add(fieldId(field.name));
+      cells.push({ valueId: fact.id, rowId: row.id, fieldId: fieldId(field.name) });
+    }
+  }
+  return {
+    collection: { id, name: proposal.name, rowLabel: proposal.rowLabel, fields, key: proposal.per === "day" ? { by: "when", grain: "day" } : { by: "name" } },
+    rows,
+    cells,
+  };
+}

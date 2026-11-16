@@ -7,7 +7,8 @@ import { useDeviceModel, type DeviceModelStatus } from "@/features/ai/device-mod
 import { loadAuth } from "@/lib/session";
 import { Btn, ease, MIcon } from "@/ui/kit";
 import { Wordmark } from "@/ui/Wordmark";
-import { collectionsQuery, foldersQuery, loadStore, notesQuery, rowsQuery, startNote, writes } from "./api";
+import { useCollectionSuggestions } from "@/features/collections/suggestions";
+import { collectionsQuery, foldersQuery, loadStore, notesQuery, rowsQuery, startNote, valuesQuery, writes } from "./api";
 import { NoteTree } from "./NoteTree";
 import { dismissToast, showToast, useToast } from "./toast";
 import type { Folder, NoteSummary } from "./store";
@@ -30,12 +31,23 @@ export function NotesShell({ user }: { user: User }) {
   const { data: folders } = useSuspenseQuery(foldersQuery(user.uid));
   const { data: collections } = useSuspenseQuery(collectionsQuery(user.uid));
   const { data: rows } = useSuspenseQuery(rowsQuery(user.uid));
+  const { data: values } = useSuspenseQuery(valuesQuery(user.uid));
   const [creatingFolder, setCreatingFolder] = useState(false);
   const { noteId, collectionId } = useParams({ strict: false });
   const detail = Boolean(noteId || collectionId);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const online = useOnline();
+  const suggestions = useCollectionSuggestions(values, online);
+
+  const createSuggested = (id: string) => {
+    const accepted = suggestions.accept(id);
+    if (!accepted) return;
+    const { collection, rows: newRows, cells } = accepted.plan;
+    writes.createCollection(user.uid, collection, newRows, cells);
+    showToast(`Created ${collection.name} with ${newRows.length} rows`);
+    void navigate({ to: "/notes/collections/$collectionId", params: { collectionId: collection.id } });
+  };
   const [leaving, setLeaving] = useState(false);
 
   const router = useRouter();
@@ -93,6 +105,42 @@ export function NotesShell({ user }: { user: User }) {
         </div>
 
         <nav aria-label="Notes" className="min-h-0 flex-1 overflow-y-auto py-2">
+          {suggestions.suggestions.length > 0 && (
+            <div className="mb-2 border-b border-line pb-2">
+              <p className="flex items-center gap-2 px-4 pt-1 pb-1 text-[10.5px] tracking-[0.06em] text-faint uppercase">
+                <span aria-hidden className="size-1.5 bg-accent" />
+                Suggested collections
+              </p>
+              <ul>
+                {suggestions.suggestions.map((suggestion) => (
+                  <li key={suggestion.id} className="px-4 py-1.5">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="truncate text-[13px] text-ink">{suggestion.proposal.name}</span>
+                      <span className="shrink-0 text-[10.5px] text-faint">{suggestion.rowCount} rows</span>
+                    </div>
+                    <p className="mt-0.5 truncate text-[12px] text-soft">{suggestion.plan.collection.fields.map((field) => field.name).join(", ")}</p>
+                    <div className="mt-1.5 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => createSuggested(suggestion.id)}
+                        className="bg-ink px-2 py-1 text-[10.5px] tracking-[0.06em] text-page uppercase hover:opacity-90"
+                      >
+                        Create
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => suggestions.dismiss(suggestion.id)}
+                        aria-label={`Dismiss ${suggestion.proposal.name}`}
+                        className="border border-line-strong px-2 py-1 text-[10.5px] tracking-[0.06em] text-soft uppercase hover:border-ink hover:text-ink"
+                      >
+                        Not now
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {collections.length > 0 && (
             <div className="mb-2 border-b border-line pb-2">
               <p className="px-4 pt-1 pb-1 text-[10.5px] tracking-[0.06em] text-faint uppercase">Collections</p>
