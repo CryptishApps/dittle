@@ -5,6 +5,8 @@ import { useEffect, useRef } from "react";
 import { StarterKit } from "@tiptap/starter-kit";
 import { deviceModelStatus } from "@/features/ai/device-model";
 import { findLinks, repoint } from "./linking";
+import { Requests } from "./requests";
+import { RequestPreview } from "./RequestPreview";
 import type { EditorServices } from "./services";
 import { Spotting, type FoundValue } from "./spotting";
 import { TitleDocument, TitleKeys } from "./title-body";
@@ -78,6 +80,10 @@ export function useNoteEditor({ store, content, label, services = {}, autofocus 
         describe: (input) => import("@/features/ai/describe").then(({ describeValues }) => describeValues(input)),
         continuous: () => deviceModelStatus() === "available",
         link: linkFound,
+        onRequests: (block, requests) => holder.current?.storage.requests.found(block, requests),
+      }),
+      Requests.configure({
+        write: (input) => import("@/features/ai/write").then(({ writeRequest }) => writeRequest(input)),
       }),
       ValueTag({ store, onCreate: (value, context) => describeInBackground(store, value, { ...context, noteId }, (described) => void linkTag(described).catch(() => undefined)) }),
     ],
@@ -99,6 +105,7 @@ export function NoteEditorView({ editor, store, services }: NoteEditorViewProps)
     <>
       <EditorContent editor={editor} />
       {editor && <ValueCard editor={editor} store={store} services={services} />}
+      {editor && <RequestPreview editor={editor} />}
     </>
   );
 }

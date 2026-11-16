@@ -492,3 +492,55 @@ body {
 .value-found[data-link="same"] {
   text-decoration-style: solid;
 }
+
+.value-request {
+  color: var(--soft);
+  text-decoration: underline dashed var(--line-strong);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 5px;
+}
+.request-button {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.6em;
+  padding: 1px 8px;
+  border: 1px solid var(--line-strong);
+  background: var(--card);
+  color: var(--ink);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  line-height: 1.7;
+  vertical-align: 1px;
+  cursor: pointer;
+  user-select: none;
+  animation: request-button-in 320ms ease-out;
+}
+.request-button:hover:not(:disabled) {
+  border-color: var(--ink);
+}
+.request-button:disabled {
+  cursor: default;
+  color: var(--faint);
+}
+@keyframes request-button-in {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+}
+.note-editor .just-inserted {
+  animation: just-inserted 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes just-inserted {
+  from {
+    opacity: 0;
+    filter: blur(4px);
+    transform: translateY(-4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .request-button,
+  .note-editor .just-inserted {
+    animation: none;
+  }
+}

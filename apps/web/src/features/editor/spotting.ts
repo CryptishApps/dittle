@@ -19,6 +19,7 @@ export type SpottingOptions = {
   find: (input: { paragraph: string; noteTitle: string }) => Promise<FindResult>;
   describe: (input: { paragraph: string; noteTitle: string; quotes: string[] }) => Promise<DescribeResult>;
   link?: (sentence: string, values: FoundValue[]) => Promise<(LinkTarget | null)[]>;
+  onRequests?: (block: { from: number; to: number }, requests: { from: number; to: number; text: string }[]) => void;
   continuous: () => boolean;
 };
 
@@ -285,6 +286,12 @@ class Scheduler {
     }
     const meta: SetMeta = { block: { from: mapped.pos, to: mapped.pos + block.nodeSize }, placements };
     this.editor.view.dispatch(state.tr.setMeta(spottingKey, meta).setMeta("addToHistory", false));
+    const requests = result.requests.flatMap((request) => {
+      const index = text.indexOf(request);
+      const range = index === -1 ? undefined : docRange(segments, index, index + request.length);
+      return range ? [{ ...range, text: request }] : [];
+    });
+    this.options.onRequests?.(meta.block, requests);
     return placements.map((placement) => placement.value);
   }
 }
