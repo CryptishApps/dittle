@@ -88,11 +88,23 @@ How:
 
 - **Firebase loads only when it's needed.** The homepage and sign-in page don't wait for it. A small flag in local storage remembers whether you were signed in, so only returning users wait for Firebase before the first screen, and the app sends them straight to their notes. Everyone else gets the page at once, while Firebase downloads in the background when the browser is idle.
 - **Auth set up the lean way.** `initializeAuth` with only the persistence Dittle uses, and the popup resolver passed to the Google sign-in call itself, as in Firebase's [custom dependencies guide](https://firebase.google.com/docs/auth/web/custom-dependencies). Pages no longer load Google's sign-in iframe at startup.
-- **Each page's code is fetched up front.** A small build step ([route-preload.ts](apps/web/build/route-preload.ts)) puts a short script in the HTML. It tells the browser which code chunks the current page needs before the main script runs, and adds the Firebase chunk for signed-in visitors.
+- **Each page's code is fetched up front.** A small build step ([route-preload.ts](apps/web/build/route-preload.ts)) puts a short script in the HTML. It tells the browser which code chunks the current page needs before the main script runs, including pages with an ID in the address such as `/notes/abc`. Signed-in visitors also get the Auth chunk, and on `/notes` the Firestore chunk, so nothing waits in a chain.
 - **Animation code is loaded in the background.** Motion's `LazyMotion` with `m` components loads its animation features separately (about 18 KB compressed) instead of putting them in every page's code.
 - **React Compiler** memoises components at build time.
 - **Self-hosted, preloaded font.** Geist Mono's Latin subset (23 KB) is preloaded from the same domain. There is no Google Fonts request.
 - **AVIF and WebP screenshots at two sizes**, with `srcset`, set dimensions (no layout shift) and lazy loading below the fold.
+
+## Offline and sync
+
+Notes and tagged values live in Firestore with its persistent local cache, so they open, save and change with no connection.
+
+- **Firestore listeners feed TanStack Query.** Each query starts an `onSnapshot` listener the first time it's used, and every later snapshot is written into the query cache ([live-query.ts](apps/web/src/lib/live-query.ts)). Route loaders call `ensureQueryData`, so a note opens from the local cache before any network request. The listener stops when the query leaves the cache.
+- **Writes are never awaited.** Firestore applies a write to the local cache straight away, and the listener shows it at once. A write's promise only settles when the server confirms it, which never happens offline.
+- **The save status comes from Firestore itself.** `hasPendingWrites` shows "Saving", "Saved on this device" when offline, and "Synced" once the server has the change.
+- **Only new things animate.** Notes already in the list at load appear without animation. A note created here or on another device slides in.
+- **Notes are saved 0.8 s after you stop typing**, and when the tab is hidden or closed. That stays under Firestore's guideline of about one write per second for each document.
+- **Signing out wipes this device's copy** (`terminate` then `clearIndexedDbPersistence`).
+- **A shared format for both apps.** Notes are stored as NoteDoc v1 ([note-doc.ts](apps/web/src/features/notes/note-doc.ts)), a small typed format the Android app will read too. The web editor converts to and from it.
 
 ## Repository
 

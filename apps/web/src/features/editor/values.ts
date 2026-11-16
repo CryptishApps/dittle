@@ -1,6 +1,9 @@
+import { hashKey, type QueryClient } from "@tanstack/react-query";
 import { useSyncExternalStore } from "react";
 import type { InferenceWhere } from "@/features/ai/hybrid";
 import type { TagKind } from "@/features/ai/name-value";
+import { valuesQuery, type writes } from "@/features/notes/api";
+import type { StoredValue } from "@/features/notes/store";
 
 export type TrackedValue = {
   id: string;
@@ -40,6 +43,58 @@ export function createValueStore(initial: TrackedValue[] = []): ValueStore {
     subscribe: (listener) => {
       listeners.add(listener);
       return () => listeners.delete(listener);
+    },
+  };
+}
+
+type ValueWrites = Pick<typeof writes, "createValue" | "updateValue">;
+
+export function createSyncedValueStore(client: QueryClient, uid: string, writes: ValueWrites): ValueStore {
+  const { queryKey } = valuesQuery(uid);
+  const queryHash = hashKey(queryKey);
+  const naming = new Set<string>();
+  const listeners = new Set<() => void>();
+  let source: StoredValue[] | undefined;
+  let values: TrackedValue[] = [];
+
+  const emit = () => {
+    source = undefined;
+    listeners.forEach((listener) => listener());
+  };
+  const list = () => {
+    const current = client.getQueryData(queryKey) ?? [];
+    if (current !== source) {
+      source = current;
+      values = current.map((value) => ({ ...value, naming: naming.has(value.id) }));
+    }
+    return values;
+  };
+
+  return {
+    list,
+    get: (id) => list().find((value) => value.id === id),
+    add: (text) => {
+      const value = { id: crypto.randomUUID(), text };
+      writes.createValue(uid, value);
+      return { ...value, naming: false };
+    },
+    update: (id, { naming: isNaming, ...patch }) => {
+      if (isNaming !== undefined) {
+        if (isNaming) naming.add(id);
+        else naming.delete(id);
+      }
+      if (Object.keys(patch).length > 0) writes.updateValue(uid, id, patch);
+      emit();
+    },
+    subscribe: (listener) => {
+      listeners.add(listener);
+      const stop = client.getQueryCache().subscribe((event) => {
+        if (event.type === "updated" && event.query.queryHash === queryHash) listener();
+      });
+      return () => {
+        listeners.delete(listener);
+        stop();
+      };
     },
   };
 }

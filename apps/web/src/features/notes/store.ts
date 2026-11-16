@@ -1,0 +1,89 @@
+import {
+  clearIndexedDbPersistence,
+  collection,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+  terminate,
+  updateDoc,
+  type DocumentData,
+  type DocumentSnapshot,
+  type Timestamp,
+} from "firebase/firestore";
+import type { InferenceWhere } from "@/features/ai/hybrid";
+import type { TagKind } from "@/features/ai/name-value";
+import { db } from "@/lib/firestore";
+import type { Listen } from "@/lib/live-query";
+import { EMPTY_NOTE, summarise, type NoteDoc } from "./note-doc";
+
+export type NoteSummary = { id: string; title: string; preview: string; updatedAt: number; pending: boolean };
+export type Note = NoteSummary & { doc: NoteDoc };
+export type StoredValue = { id: string; text: string; kind?: TagKind; name?: string; namedBy?: { where: InferenceWhere; ms: number } };
+
+const notes = (uid: string) => collection(db, "users", uid, "notes");
+const values = (uid: string) => collection(db, "users", uid, "values");
+
+const write = (pending: Promise<void>) => void pending.catch((error: unknown) => console.error("Dittle could not save", error));
+
+const millis = (value: unknown) => (value as Timestamp | null)?.toMillis?.() ?? Date.now();
+
+function summary(snapshot: DocumentSnapshot<DocumentData>): NoteSummary {
+  const data = snapshot.data({ serverTimestamps: "estimate" }) ?? {};
+  return {
+    id: snapshot.id,
+    title: String(data.title ?? ""),
+    preview: String(data.preview ?? ""),
+    updatedAt: millis(data.updatedAt),
+    pending: snapshot.metadata.hasPendingWrites,
+  };
+}
+
+export const listenNotes =
+  (uid: string): Listen<NoteSummary[]> =>
+  async (next, fail) =>
+    onSnapshot(query(notes(uid), orderBy("updatedAt", "desc")), (snapshot) => next(snapshot.docs.map(summary)), fail);
+
+export const listenNote =
+  (uid: string, id: string): Listen<Note | null> =>
+  async (next, fail) =>
+    onSnapshot(
+      doc(notes(uid), id),
+      { includeMetadataChanges: true },
+      (snapshot) => next(snapshot.exists() ? { ...summary(snapshot), doc: (snapshot.data().doc as NoteDoc | undefined) ?? EMPTY_NOTE } : null),
+      fail,
+    );
+
+export const listenValues =
+  (uid: string): Listen<StoredValue[]> =>
+  async (next, fail) =>
+    onSnapshot(values(uid), (snapshot) => next(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as StoredValue)), fail);
+
+export function createNote(uid: string, id: string): void {
+  write(setDoc(doc(notes(uid), id), { schemaVersion: 1, doc: EMPTY_NOTE, ...summarise(EMPTY_NOTE), createdAt: serverTimestamp(), updatedAt: serverTimestamp() }));
+}
+
+export function saveNote(uid: string, id: string, note: NoteDoc): void {
+  write(updateDoc(doc(notes(uid), id), { schemaVersion: 1, doc: note, ...summarise(note), updatedAt: serverTimestamp() }));
+}
+
+export function deleteNote(uid: string, id: string): void {
+  write(deleteDoc(doc(notes(uid), id)));
+}
+
+export function createValue(uid: string, value: StoredValue): void {
+  const { id, ...fields } = value;
+  write(setDoc(doc(values(uid), id), { ...fields, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }));
+}
+
+export function updateValue(uid: string, id: string, patch: Partial<Omit<StoredValue, "id">>): void {
+  write(updateDoc(doc(values(uid), id), { ...patch, updatedAt: serverTimestamp() }));
+}
+
+export async function forgetThisDevice(): Promise<void> {
+  await terminate(db);
+  await clearIndexedDbPersistence(db);
+}

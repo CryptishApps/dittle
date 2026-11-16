@@ -1,3 +1,4 @@
+import type { QueryClient } from "@tanstack/react-query";
 import { createRootRouteWithContext, Link, Outlet, type ErrorComponentProps } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { FirebaseNotConfigured } from "@/lib/firebase-config";
@@ -6,6 +7,7 @@ import { Wordmark } from "@/ui/Wordmark";
 
 export type RouterContext = {
   session: { hint: () => SessionKind; read: () => Promise<Session> };
+  queryClient: QueryClient;
 };
 
 export const Route = createRootRouteWithContext<RouterContext>()({

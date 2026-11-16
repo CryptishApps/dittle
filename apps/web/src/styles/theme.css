@@ -300,11 +300,26 @@ body {
   list-style: square;
   padding-left: 1.25rem;
 }
-.note-editor ol {
-  list-style: decimal;
-  padding-left: 1.5rem;
+.note-editor ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
 }
-.note-editor p.is-editor-empty:first-child::before {
+.note-editor ul[data-type="taskList"] li {
+  display: flex;
+  gap: 0.6rem;
+}
+.note-editor ul[data-type="taskList"] li > label {
+  user-select: none;
+  padding-top: 0.15em;
+}
+.note-editor ul[data-type="taskList"] input[type="checkbox"] {
+  accent-color: var(--ink);
+}
+.note-editor ul[data-type="taskList"] li[data-checked="true"] > div {
+  color: var(--faint);
+  text-decoration: line-through;
+}
+.note-editor .is-empty::before {
   content: attr(data-placeholder);
   float: left;
   height: 0;

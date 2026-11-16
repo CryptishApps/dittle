@@ -3,9 +3,9 @@ import type { Plugin, Rolldown } from "vite";
 type OutputBundle = Rolldown.OutputBundle;
 type OutputChunk = Rolldown.OutputChunk;
 
-type Options = { routesDir: string; authModule: string; sessionKey: string; everyPage: string[] };
+type Options = { routesDir: string; authModule: string; sessionKey: string; everyPage: string[]; app: { paths: string[]; modules: string[] } };
 
-export function routePreload({ routesDir, authModule, sessionKey, everyPage }: Options): Plugin {
+export function routePreload({ routesDir, authModule, sessionKey, everyPage, app }: Options): Plugin {
   return {
     name: "dittle:route-preload",
     apply: "build",
@@ -23,7 +23,7 @@ export function routePreload({ routesDir, authModule, sessionKey, everyPage }: O
           const id = chunk.facadeModuleId ?? "";
           if (!id.startsWith(routesDir) || !id.includes("tsr-split=component")) continue;
           const path = urlPath(id.slice(routesDir.length).replace(/\?.*$/, ""));
-          if (path) routes[path] = [...closure(bundle, chunk.fileName)].filter((file) => !loaded.has(file)).map((file) => `/${file}`);
+          if (path) routes[path] = [...(routes[path] ?? []), ...[...closure(bundle, chunk.fileName)].filter((file) => !loaded.has(file)).map((file) => `/${file}`)];
         }
         const filesFor = (moduleIds: string[]) =>
           chunks
@@ -32,19 +32,35 @@ export function routePreload({ routesDir, authModule, sessionKey, everyPage }: O
             .filter((file, index, all) => !loaded.has(file) && all.indexOf(file) === index)
             .map((file) => `/${file}`);
 
-        const script = `(${preload})(${JSON.stringify(routes)},${JSON.stringify(filesFor(everyPage))},${JSON.stringify(filesFor([authModule]))},${JSON.stringify(sessionKey)})`;
+        const signedIn = { auth: filesFor([authModule]), appPaths: app.paths, app: filesFor(app.modules) };
+        const script = `(${preload})(${JSON.stringify(routes)},${JSON.stringify(filesFor(everyPage))},${JSON.stringify(signedIn)},${JSON.stringify(sessionKey)})`;
         return [{ tag: "script", children: script, injectTo: "head-prepend" }];
       },
     },
   };
 }
 
-function preload(routes: Record<string, string[]>, always: string[], auth: string[], key: string) {
-  let files = always.concat(routes[location.pathname] ?? []);
+function preload(
+  routes: Record<string, string[]>,
+  always: string[],
+  signedIn: { auth: string[]; appPaths: string[]; app: string[] },
+  key: string,
+) {
+  const path = location.pathname.replace(/\/$/, "") || "/";
+  const parts = path.split("/");
+  const matches = (pattern: string) => {
+    const want = pattern.split("/");
+    if (pattern !== "/" ? want.length > parts.length : path !== "/") return false;
+    return want.every((segment, index) => segment === parts[index] || segment.startsWith("$"));
+  };
+  let files = always.concat(...Object.keys(routes).filter(matches).map((pattern) => routes[pattern]!));
   try {
-    if (localStorage.getItem(key)) files = files.concat(auth);
+    if (localStorage.getItem(key)) {
+      files = files.concat(signedIn.auth);
+      if (signedIn.appPaths.some((prefix) => path.startsWith(prefix))) files = files.concat(signedIn.app);
+    }
   } catch {}
-  for (const href of files) {
+  for (const href of new Set(files)) {
     const link = document.createElement("link");
     link.rel = "modulepreload";
     link.href = href;
@@ -69,6 +85,6 @@ function urlPath(file: string): string | undefined {
     .replace(/\.tsx?$/, "")
     .split(/[/.]/)
     .filter((segment) => !segment.startsWith("_") && segment !== "index");
-  if (segments.some((segment) => segment.startsWith("$") || segment.startsWith("("))) return undefined;
+  if (segments.some((segment) => segment.startsWith("("))) return undefined;
   return `/${segments.join("/")}`;
 }

@@ -26,6 +26,7 @@ export default defineConfig(({ command }) => {
         authModule: fileURLToPath(new URL("./src/lib/auth.ts", import.meta.url)),
         sessionKey: SESSION_HINT_KEY,
         everyPage: [fileURLToPath(new URL("./src/ui/motion-features.ts", import.meta.url))],
+        app: { paths: ["/notes"], modules: [fileURLToPath(new URL("./src/features/notes/store.ts", import.meta.url))] },
       }),
     ],
     resolve: {
