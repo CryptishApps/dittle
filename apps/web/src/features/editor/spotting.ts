@@ -244,7 +244,7 @@ class Scheduler {
         });
         if (this.options.link && described.length) return this.options.link(paragraph, described).then((links) => this.applyLinks(described, links));
       })
-      .catch(() => undefined);
+      .catch((error: unknown) => console.warn("Dittle could not describe or link spotted values", error));
   }
 
   private applyLinks(values: FoundValue[], links: (LinkTarget | null)[]) {
