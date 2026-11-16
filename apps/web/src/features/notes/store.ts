@@ -11,6 +11,7 @@ import {
   setDoc,
   terminate,
   updateDoc,
+  writeBatch,
   type DocumentData,
   type DocumentSnapshot,
   type Timestamp,
@@ -20,12 +21,14 @@ import type { Listen } from "@/lib/live-query";
 import type { StoredValue } from "./fact";
 import { EMPTY_NOTE, summarise, type NoteDoc } from "./note-doc";
 
-export type NoteSummary = { id: string; title: string; preview: string; updatedAt: number; pending: boolean };
+export type NoteSummary = { id: string; title: string; preview: string; updatedAt: number; pending: boolean; folderId: string | null };
+export type Folder = { id: string; name: string; createdAt: number };
 export type Note = NoteSummary & { doc: NoteDoc };
 export type { StoredValue } from "./fact";
 
 const notes = (uid: string) => collection(db, "users", uid, "notes");
 const values = (uid: string) => collection(db, "users", uid, "values");
+const folders = (uid: string) => collection(db, "users", uid, "folders");
 
 const write = (pending: Promise<void>) => void pending.catch((error: unknown) => console.error("Dittle could not save", error));
 
@@ -39,6 +42,7 @@ function summary(snapshot: DocumentSnapshot<DocumentData>): NoteSummary {
     preview: String(data.preview ?? ""),
     updatedAt: millis(data.updatedAt),
     pending: snapshot.metadata.hasPendingWrites,
+    folderId: typeof data.folderId === "string" ? data.folderId : null,
   };
 }
 
@@ -62,8 +66,59 @@ export const listenValues =
   async (next, fail) =>
     onSnapshot(values(uid), (snapshot) => next(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as StoredValue)), fail);
 
-export function createNote(uid: string, id: string): void {
-  write(setDoc(doc(notes(uid), id), { schemaVersion: 1, doc: EMPTY_NOTE, ...summarise(EMPTY_NOTE), createdAt: serverTimestamp(), updatedAt: serverTimestamp() }));
+export const listenFolders =
+  (uid: string): Listen<Folder[]> =>
+  async (next, fail) =>
+    onSnapshot(
+      folders(uid),
+      (snapshot) =>
+        next(
+          snapshot.docs
+            .map((item) => {
+              const data = item.data({ serverTimestamps: "estimate" });
+              return { id: item.id, name: String(data.name ?? ""), createdAt: millis(data.createdAt) };
+            })
+            .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true })),
+        ),
+      fail,
+    );
+
+export function createNote(uid: string, id: string, folderId: string | null = null): void {
+  write(
+    setDoc(doc(notes(uid), id), {
+      schemaVersion: 1,
+      doc: EMPTY_NOTE,
+      ...summarise(EMPTY_NOTE),
+      folderId,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    }),
+  );
+}
+
+export function moveNote(uid: string, id: string, folderId: string | null): void {
+  write(updateDoc(doc(notes(uid), id), { folderId }));
+}
+
+export function createFolder(uid: string, id: string, name: string): void {
+  write(setDoc(doc(folders(uid), id), { name, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }));
+}
+
+export function renameFolder(uid: string, id: string, name: string): void {
+  write(updateDoc(doc(folders(uid), id), { name, updatedAt: serverTimestamp() }));
+}
+
+export function deleteFolder(uid: string, folder: Folder, noteIds: string[]): () => void {
+  const batch = writeBatch(db);
+  batch.delete(doc(folders(uid), folder.id));
+  noteIds.forEach((noteId) => batch.update(doc(notes(uid), noteId), { folderId: null }));
+  write(batch.commit());
+  return () => {
+    const undo = writeBatch(db);
+    undo.set(doc(folders(uid), folder.id), { name: folder.name, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    noteIds.forEach((noteId) => undo.update(doc(notes(uid), noteId), { folderId: folder.id }));
+    write(undo.commit());
+  };
 }
 
 export function saveNote(uid: string, id: string, note: NoteDoc): void {
