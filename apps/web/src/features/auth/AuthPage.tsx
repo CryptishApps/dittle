@@ -21,14 +21,11 @@ export type AuthActions = {
 
 type Pending = "google" | "email" | "guest" | "reset";
 
-export type AuthAside = "peek" | "note";
-
 type AuthPageProps = {
   mode: AuthMode;
   actions: AuthActions;
   isGuest?: boolean;
   links: { home: Nav; signin: Nav; signup: Nav };
-  aside?: AuthAside;
 };
 
 type Nav = { href: string; go: () => void };
@@ -38,7 +35,7 @@ const COPY = {
   signup: { title: "Start writing.", submit: "Create account", busy: "Creating account" },
 } as const;
 
-export function AuthPage({ mode, actions, isGuest = false, links, aside = "peek" }: AuthPageProps) {
+export function AuthPage({ mode, actions, isGuest = false, links }: AuthPageProps) {
   const copy = COPY[mode];
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -236,7 +233,7 @@ export function AuthPage({ mode, actions, isGuest = false, links, aside = "peek"
         <div aria-hidden className="h-8" />
       </div>
 
-      {aside === "peek" ? <AsidePeek /> : <AsideNote />}
+      <AppPeek />
     </div>
   );
 }
@@ -313,7 +310,7 @@ function GoogleMark() {
   );
 }
 
-function AsidePeek() {
+function AppPeek() {
   return (
     <aside aria-hidden className="relative hidden overflow-hidden border-l border-line bg-side lg:block">
       <div className="hatch absolute inset-0 opacity-50" />
@@ -322,63 +319,5 @@ function AsidePeek() {
       </div>
       <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-b from-transparent to-side" />
     </aside>
-  );
-}
-
-const money = (n: number) => `£${n.toLocaleString("en-GB")}`;
-const GUESTS = 80;
-
-function AsideNote() {
-  const [found, setFound] = useState(false);
-  useEffect(() => {
-    const timer = window.setTimeout(() => setFound(true), 500);
-    return () => window.clearTimeout(timer);
-  }, []);
-
-  const value = (n: number) => (
-    <span className="token text-soft" data-found={found}>
-      {n}
-    </span>
-  );
-  const rows: { title: string; body: ReactNode }[] = [
-    { title: "Budget", body: <>Food: {value(GUESTS)} × £38 = {money(GUESTS * 38)}</> },
-    { title: "Chair hire", body: <>{value(GUESTS)} chairs, plus 4 spare</> },
-    { title: "Email to Sam", body: <>We're expecting {value(GUESTS)} people</> },
-  ];
-
-  return (
-    <aside aria-hidden className="relative hidden items-center justify-center overflow-hidden border-l border-line bg-side px-12 lg:flex">
-      <div className="hatch absolute inset-0 opacity-50" />
-      <div className="relative w-full max-w-[420px] border border-line bg-card text-soft shadow-pop">
-        <Bar left="Catering quote" right="4 values" />
-        <p className="px-5 pt-1 pb-5 text-[14px] leading-[1.9]">
-          Rosa's Kitchen can do a buffet for {value(GUESTS)} guests at{" "}
-          <span className="token" data-found={found}>
-            £38
-          </span>{" "}
-          a head.
-        </p>
-        <div className="divide-y divide-line border-t border-line bg-panel">
-          {rows.map((row) => (
-            <div key={row.title}>
-              <Bar left={row.title} right="In step" />
-              <p className="px-5 pt-0.5 pb-4 text-[12.5px] leading-[1.8]">{row.body}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </aside>
-  );
-}
-
-function Bar({ left, right }: { left: string; right: ReactNode }) {
-  return (
-    <div className="flex items-center justify-between gap-3 px-5 pt-4 pb-1.5 text-[10.5px] tracking-[0.05em] uppercase">
-      <span className="flex items-center gap-2 font-medium text-ink/80">
-        <MIcon name="file" className="size-3.5 text-faint" />
-        {left}
-      </span>
-      <span className="text-faint">{right}</span>
-    </div>
   );
 }
