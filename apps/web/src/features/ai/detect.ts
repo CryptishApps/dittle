@@ -1,4 +1,4 @@
-import { AIError, getGenerativeModel, InferenceMode, type GenerativeModel, type HybridParams } from "firebase/ai";
+import { AIError, getGenerativeModel, InferenceMode, type GenerativeModel, type HybridParams, type LanguageModelPromptOptions } from "firebase/ai";
 import { ai, CLOUD_MODEL } from "@/lib/ai";
 
 export const VALUE_KINDS = ["money", "count", "number", "date", "duration", "percent", "person", "place"] as const;
@@ -15,15 +15,15 @@ export type DetectResult = {
   fallbackReason?: string;
 };
 
-export const DETECT_PROMPT_VERSION = "v3";
+export const DETECT_PROMPT_VERSION = "v4";
 
 export type KnownVariable = { name: string; value: string; note: string };
 
 const INSTRUCTIONS = `You read one paragraph from someone's notes and list the concrete values in it: amounts of money, counts, other numbers and measurements, dates and times, durations, percentages, and the names of people and places.
 
 For each value give:
-- "quote": only the value itself, copied exactly from the paragraph. Keep a currency sign or unit attached to it (£38, 250g, 45 minutes, 14 June). Leave out the thing being counted and the words around it: "80 guests" gives "80", "£38 a head" gives "£38", "£182 return" gives "£182".
-- "kind": money, count, number, date, duration, percent, person or place.
+- "quote": only the value itself, copied exactly from the paragraph. Always keep the currency sign, % sign or unit (£189, 60%, 250g, 7 nights, 45 minutes, 14 June). Leave out the thing being counted and the words around it: "80 guests" gives "80", "£38 a head" gives "£38", "£182 return" gives "£182".
+- "kind": money, count, number, date, duration, percent, person or place. Times of day (10am, 9:30) are dates. A length of time (7 nights, two weeks) is a duration.
 - "name": a short snake_case name for what the value means.
 - "existing": the name of a known variable only if this value is about that same thing in the same context: the same value, or the paragraph says the value has changed ("now 95 guests, not 80" for the wedding guest count). A value from a different topic, or a different date, price or count, is "none".
 
@@ -31,12 +31,14 @@ For each value give:
 
 Ordinary words are never values. If there are no values, return an empty list.
 
-Example
+Examples
 Known variables:
 - guest_count = 80 (Wedding: catering)
 - wedding_date = 14 June (Wedding: venue)
 Paragraph: Dinner for 12 people on 3 May with Ana at Casa Lola, about £30 each. Add a shopping list here.
-Answer: {"values":[{"quote":"12","kind":"count","name":"dinner_guests","existing":"none"},{"quote":"3 May","kind":"date","name":"dinner_date","existing":"none"},{"quote":"Ana","kind":"person","name":"host","existing":"none"},{"quote":"Casa Lola","kind":"place","name":"restaurant","existing":"none"},{"quote":"£30","kind":"money","name":"price_per_person","existing":"none"}],"requests":["Add a shopping list here."]}`;
+Answer: {"values":[{"quote":"12","kind":"count","name":"dinner_guests","existing":"none"},{"quote":"3 May","kind":"date","name":"dinner_date","existing":"none"},{"quote":"Ana","kind":"person","name":"host","existing":"none"},{"quote":"Casa Lola","kind":"place","name":"restaurant","existing":"none"},{"quote":"£30","kind":"money","name":"price_per_person","existing":"none"}],"requests":["Add a shopping list here."]}
+Paragraph: Still 80 guests for the wedding, so 10 tables. Remember to ask Sam about the cake.
+Answer: {"values":[{"quote":"80","kind":"count","name":"guest_count","existing":"guest_count"},{"quote":"10","kind":"count","name":"table_count","existing":"none"},{"quote":"Sam","kind":"person","name":"cake_contact","existing":"none"}],"requests":[]}`;
 
 const TEXT_EN = [{ type: "text" as const, languages: ["en"] }];
 
@@ -63,8 +65,11 @@ function schema(existing: string[]) {
   };
 }
 
+type ChromePromptOptions = LanguageModelPromptOptions & { omitResponseConstraintInput: boolean };
+
 function params(mode: InferenceMode, existing: string[]): HybridParams {
   const responseSchema = schema(existing);
+  const promptOptions: ChromePromptOptions = { responseConstraint: responseSchema, omitResponseConstraintInput: true };
   return {
     mode,
     onDeviceParams: {
@@ -73,7 +78,7 @@ function params(mode: InferenceMode, existing: string[]): HybridParams {
         expectedOutputs: TEXT_EN,
         initialPrompts: [{ role: "system", content: [{ type: "text", value: INSTRUCTIONS }] }],
       },
-      promptOptions: { responseConstraint: responseSchema },
+      promptOptions,
     },
     inCloudParams: {
       model: CLOUD_MODEL,
