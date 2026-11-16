@@ -6,7 +6,7 @@ import type { FactFields } from "@/features/notes/fact";
 import { ease } from "@/ui/kit";
 import { foundValueAt, spottingKey } from "./spotting";
 import { VALUE_NODE } from "./value-tag";
-import { useValues, type ValueStore } from "./values";
+import { describeInBackground, useValues, type ValueStore } from "./values";
 
 type Target = { kind: "tag" | "found"; id: string; element: HTMLElement };
 
@@ -34,6 +34,14 @@ export function ValueCard({ editor, store }: { editor: Editor; store: ValueStore
   const card = useRef<HTMLDivElement>(null);
   const hideTimer = useRef<number | undefined>(undefined);
   const values = useValues(store);
+  const [, setVersion] = useState(0);
+
+  useEffect(() => {
+    if (target?.kind !== "found") return;
+    const bump = () => setVersion((version) => version + 1);
+    editor.on("transaction", bump);
+    return () => void editor.off("transaction", bump);
+  }, [editor, target]);
 
   useEffect(() => {
     const dom = editor.view.dom;
@@ -79,8 +87,14 @@ export function ValueCard({ editor, store }: { editor: Editor; store: ValueStore
     if (!target) return;
     const hit = foundValueAt(editor.state, target.id);
     if (!hit) return setTarget(undefined);
-    const { quote, kind, name, about, event, when, conditions, remarks } = hit.value;
-    const value = store.add(quote, { kind, name, subject: about ? { label: about } : undefined, event, when, conditions, remarks });
+    const { quote, kind, name, about, event, when, conditions, remarks, described } = hit.value;
+    const value = described
+      ? store.add(quote, { kind, name, subject: about ? { label: about } : undefined, event, when, conditions, remarks })
+      : store.add(quote, { kind, name });
+    if (!described) {
+      const sentence = editor.state.doc.resolve(hit.from).parent.textContent;
+      describeInBackground(store, value, { sentence, noteTitle: editor.state.doc.firstChild?.textContent ?? "" });
+    }
     editor
       .chain()
       .focus()
@@ -108,7 +122,7 @@ export function ValueCard({ editor, store }: { editor: Editor; store: ValueStore
           <p className="text-[10.5px] tracking-[0.06em] text-faint uppercase">
             {[shown.name?.replaceAll("_", " "), shown.kind, shown.event === undefined ? undefined : shown.event ? "event" : "ongoing"].filter(Boolean).join(" · ")}
           </p>
-          {tag?.naming ? (
+          {tag?.naming || (found && !found.described) ? (
             <p className="mt-1">
               <span className="t-shimmer-text" data-text="Describing">
                 Describing

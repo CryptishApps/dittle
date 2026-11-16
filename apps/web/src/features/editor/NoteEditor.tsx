@@ -43,7 +43,8 @@ export function useNoteEditor({ store, content, label, noteId, autofocus = false
         placeholder: ({ pos }) => (pos === 0 ? "Untitled" : "Write here. Type @ to tag a value."),
       }),
       Spotting.configure({
-        describe: (input) => import("@/features/ai/describe").then(({ describeParagraph }) => describeParagraph(input)),
+        find: (input) => import("@/features/ai/describe").then(({ findValues }) => findValues(input)),
+        describe: (input) => import("@/features/ai/describe").then(({ describeValues }) => describeValues(input)),
         continuous: () => deviceModelStatus() === "available",
       }),
       ValueTag({ store, onCreate: (value, context) => describeInBackground(store, value, { ...context, noteId }) }),

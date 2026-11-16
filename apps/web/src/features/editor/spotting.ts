@@ -3,19 +3,20 @@ import type { Node as PMNode } from "@tiptap/pm/model";
 import { Plugin, PluginKey, type EditorState, type Transaction } from "@tiptap/pm/state";
 import { Mapping } from "@tiptap/pm/transform";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
-import type { DescribedValue, DescribeResult } from "@/features/ai/describe";
+import type { DescribeResult, FindResult, SpottedValue, ValueContext } from "@/features/ai/describe";
 import { VALUE_NODE } from "./value-tag";
 
-export type FoundValue = DescribedValue & { id: string };
+export type FoundValue = SpottedValue & Partial<ValueContext> & { id: string; described: boolean };
 
 type SpottingState = { decorations: DecorationSet; found: Map<string, FoundValue> };
 type Placement = { from: number; to: number; value: FoundValue };
-type SetMeta = { block: { from: number; to: number }; placements: Placement[] };
+type SetMeta = { block: { from: number; to: number }; placements: Placement[] } | { context: Map<string, ValueContext> };
 
 export const spottingKey = new PluginKey<SpottingState>("spotting");
 
 export type SpottingOptions = {
-  describe: (input: { paragraph: string; noteTitle: string }) => Promise<DescribeResult>;
+  find: (input: { paragraph: string; noteTitle: string }) => Promise<FindResult>;
+  describe: (input: { paragraph: string; noteTitle: string; quotes: string[] }) => Promise<DescribeResult>;
   continuous: () => boolean;
 };
 
@@ -72,6 +73,14 @@ function spottingPlugin() {
         }
         const meta = tr.getMeta(spottingKey) as SetMeta | undefined;
         if (!meta) return { decorations, found: previous.found };
+        if ("context" in meta) {
+          const found = new Map(previous.found);
+          meta.context.forEach((context, id) => {
+            const value = found.get(id);
+            if (value) found.set(id, { ...value, ...context, described: true });
+          });
+          return { decorations, found };
+        }
         decorations = decorations.remove(decorations.find(meta.block.from, meta.block.to));
         const found = new Map(previous.found);
         const added = meta.placements
@@ -184,8 +193,11 @@ class Scheduler {
     const noteTitle = this.editor.state.doc.firstChild?.textContent ?? "";
     let failed = false;
     this.options
-      .describe({ paragraph: checked, noteTitle })
-      .then((result) => this.place(blockStart, running.mapping, checked, result))
+      .find({ paragraph: checked, noteTitle })
+      .then((result) => {
+        const placed = this.place(blockStart, running.mapping, checked, result);
+        if (placed.length) this.describe(checked, noteTitle, placed);
+      })
       .catch(() => {
         failed = true;
         this.dirty.add(running.mapping.map(blockStart));
@@ -198,13 +210,28 @@ class Scheduler {
       });
   }
 
-  private place(blockStart: number, mapping: Mapping, checked: string, result: DescribeResult) {
-    if (this.editor.isDestroyed) return;
+  private describe(paragraph: string, noteTitle: string, placed: FoundValue[]) {
+    this.options
+      .describe({ paragraph, noteTitle, quotes: placed.map((value) => value.quote) })
+      .then(({ values }) => {
+        if (this.editor.isDestroyed) return;
+        const context = new Map<string, ValueContext>();
+        placed.forEach((value, index) => {
+          const described = values[index];
+          if (described) context.set(value.id, { about: described.about, event: described.event, when: described.when, conditions: described.conditions, remarks: described.remarks });
+        });
+        this.editor.view.dispatch(this.editor.state.tr.setMeta(spottingKey, { context }).setMeta("addToHistory", false));
+      })
+      .catch(() => undefined);
+  }
+
+  private place(blockStart: number, mapping: Mapping, checked: string, result: FindResult): FoundValue[] {
+    if (this.editor.isDestroyed) return [];
     const mapped = mapping.mapResult(blockStart);
-    if (mapped.deleted) return;
+    if (mapped.deleted) return [];
     const { state } = this.editor;
     const block = state.doc.nodeAt(mapped.pos);
-    if (!block?.isTextblock) return;
+    if (!block?.isTextblock) return [];
     const segments = segmentsOf(block, mapped.pos);
     const text = textOf(segments);
     if (!text.startsWith(checked) && text !== checked) this.dirty.add(mapped.pos);
@@ -222,7 +249,7 @@ class Scheduler {
         const unfinished = range && caret >= range.from && caret <= range.to && !/\s/.test(text.slice(index + value.quote.length, index + value.quote.length + 1) || "x");
         if (range && free && !unfinished) {
           used.push(range);
-          placements.push({ ...range, value: { ...value, id: crypto.randomUUID() } });
+          placements.push({ ...range, value: { ...value, id: crypto.randomUUID(), described: false } });
           break;
         }
         index = text.indexOf(value.quote, index + 1);
@@ -230,6 +257,7 @@ class Scheduler {
     }
     const meta: SetMeta = { block: { from: mapped.pos, to: mapped.pos + block.nodeSize }, placements };
     this.editor.view.dispatch(state.tr.setMeta(spottingKey, meta).setMeta("addToHistory", false));
+    return placements.map((placement) => placement.value);
   }
 }
 
@@ -237,7 +265,8 @@ export const Spotting = Extension.create<SpottingOptions, { scheduler?: Schedule
   name: "spotting",
 
   addOptions() {
-    return { describe: () => Promise.reject(new Error("No describer")), continuous: () => false };
+    const missing = () => Promise.reject(new Error("Spotting needs find and describe"));
+    return { find: missing, describe: missing, continuous: () => false };
   },
 
   addStorage() {

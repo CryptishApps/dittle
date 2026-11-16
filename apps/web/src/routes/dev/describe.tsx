@@ -16,7 +16,7 @@ export const Route = createFileRoute("/dev/describe")({
 
 type Describer = ReturnType<typeof createDescriber>;
 type ValueRow = { id: string; result?: DetectResult; score?: SampleScore; error?: string };
-type ContextRow = { id: string; values?: DescribedValue[]; where?: string; ms?: number; score?: ContextScore; error?: string };
+type ContextRow = { id: string; values?: DescribedValue[]; where?: string; ms?: number; findMs?: number; score?: ContextScore; error?: string };
 
 const pause = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
@@ -60,15 +60,17 @@ function DescribePage() {
     const active = await describer(mode);
     for (const sample of CONTEXT_CASES) {
       try {
-        const result = await withRetry(() => active.paragraph({ paragraph: sample.text, noteTitle: sample.note, today: CONTEXT_TODAY }));
-        setContextRows((rows) => [...rows, { id: sample.id, values: result.values, where: result.where, ms: result.ms, score: scoreContext(sample, result.values) }]);
+        const input = { paragraph: sample.text, noteTitle: sample.note, today: CONTEXT_TODAY };
+        const found = await withRetry(() => active.find(input));
+        const result = found.values.length ? await withRetry(() => active.describe({ ...input, quotes: found.values.map((value) => value.quote) })) : { values: [], where: found.where, ms: 0 };
+        setContextRows((rows) => [...rows, { id: sample.id, values: result.values, where: result.where, ms: result.ms, findMs: found.ms, score: scoreContext(sample, result.values) }]);
       } catch (error) {
         setContextRows((rows) => [...rows, { id: sample.id, error: message(error) }]);
       }
     }
     for (const sample of SAMPLES) {
       try {
-        const result = await withRetry(() => active.paragraph({ paragraph: sample.text, noteTitle: sample.topic, today: CONTEXT_TODAY }));
+        const result = await withRetry(() => active.find({ paragraph: sample.text, noteTitle: sample.topic }));
         const asDetect: DetectResult = { ...result, values: result.values.map((value) => ({ quote: value.quote, kind: value.kind === "text" ? "number" : value.kind, name: value.name, existing: "none" })) };
         setValueRows((rows) => [...rows, { id: sample.id, result: asDetect, score: scoreSample({ ...sample, values: sample.values.map(({ existing: _, ...rest }) => rest) }, asDetect) }]);
       } catch (error) {
@@ -92,13 +94,13 @@ function DescribePage() {
     JSON.stringify(
       {
         when: new Date().toISOString(),
-        prompt: "v5",
+        prompt: "v6",
         mode,
         availability: model.status,
         userAgent: navigator.userAgent,
         values,
         context: Object.fromEntries(fields.map(({ field, ok, total }) => [field, `${ok}/${total}`])),
-        contextCases: contextRows.map((row) => ({ id: row.id, where: row.where, ms: row.ms, error: row.error, wrong: row.score?.checks.filter((check) => !check.ok) })),
+        contextCases: contextRows.map((row) => ({ id: row.id, where: row.where, findMs: row.findMs, describeMs: row.ms, error: row.error, wrong: row.score?.checks.filter((check) => !check.ok) })),
         valueSamples: valueRows.map((row) => ({ id: row.id, where: row.result?.where, ms: row.result?.ms, error: row.error, requests: row.result?.requests, requestOk: row.score?.requestOk, missed: row.score?.missed.map((value) => value.quote), extra: row.score?.verdicts.filter((verdict) => verdict.verdict !== "match" && verdict.verdict !== "optional").map((verdict) => verdict.value.quote) })),
       },
       null,
@@ -115,7 +117,7 @@ function DescribePage() {
     <div className="min-h-dvh bg-page text-[13px]">
       <header className="flex flex-wrap items-center gap-4 border-b border-line px-6 py-3">
         <Wordmark className="text-[14px]" />
-        <span className="text-[11px] tracking-[0.06em] text-faint uppercase">Describe test · prompt v5</span>
+        <span className="text-[11px] tracking-[0.06em] text-faint uppercase">Describe test · prompt v6</span>
         <span className="text-[11px] tracking-[0.06em] text-soft uppercase">Gemini Nano: {model.status}</span>
         <select value={mode} onChange={(event) => setMode(event.target.value as InferenceMode)} className="ml-auto border border-line-strong bg-card px-2 py-1">
           <option value={InferenceMode.PREFER_ON_DEVICE}>Prefer device</option>
@@ -166,7 +168,7 @@ function DescribePage() {
                     ))}
                   {row.where && (
                     <p className="text-[11px] text-faint">
-                      {row.where === "on_device" ? "On device" : "Cloud"} · {((row.ms ?? 0) / 1000).toFixed(1)} s
+                      {row.where === "on_device" ? "On device" : "Cloud"} · find {((row.findMs ?? 0) / 1000).toFixed(1)} s · describe {((row.ms ?? 0) / 1000).toFixed(1)} s
                     </p>
                   )}
                 </li>
