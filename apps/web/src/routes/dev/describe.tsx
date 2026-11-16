@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import type { DescribedValue, createDescriber } from "@/features/ai/describe";
 import type { DetectResult } from "@/features/ai/detect";
 import { useDeviceModel } from "@/features/ai/device-model";
+import { DESCRIBE_PROMPT_VERSION } from "@/features/ai/prompt-versions";
 import { CONTEXT_CASES, CONTEXT_TODAY } from "@/features/spike/context-samples";
 import { LINK_CASES } from "@/features/spike/link-samples";
 import { scoreContext, type ContextScore } from "@/features/spike/context-score";
@@ -112,7 +113,7 @@ function DescribePage() {
     JSON.stringify(
       {
         when: new Date().toISOString(),
-        prompt: "v6.1",
+        prompt: DESCRIBE_PROMPT_VERSION,
         mode,
         availability: model.status,
         userAgent: navigator.userAgent,
@@ -137,7 +138,7 @@ function DescribePage() {
     <div className="min-h-dvh bg-page text-[13px]">
       <header className="flex flex-wrap items-center gap-4 border-b border-line px-6 py-3">
         <Wordmark className="text-[14px]" />
-        <span className="text-[11px] tracking-[0.06em] text-faint uppercase">Describe test · prompt v6.1</span>
+        <span className="text-[11px] tracking-[0.06em] text-faint uppercase">Describe test · prompt {DESCRIBE_PROMPT_VERSION}</span>
         <span className="text-[11px] tracking-[0.06em] text-soft uppercase">Gemini Nano: {model.status}</span>
         <select value={mode} onChange={(event) => setMode(event.target.value as InferenceMode)} className="ml-auto border border-line-strong bg-card px-2 py-1">
           <option value={InferenceMode.PREFER_ON_DEVICE}>Prefer device</option>

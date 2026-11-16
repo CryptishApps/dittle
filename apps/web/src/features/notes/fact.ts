@@ -16,6 +16,10 @@ export type FactFields = {
   history?: { text: string; at: number }[];
   notSame?: string[];
   proposal?: { factId: string } | null;
+  amount?: number;
+  before?: string;
+  after?: string;
+  formula?: { expr: string; inputs: string[] };
   updatedAt?: number;
 };
 

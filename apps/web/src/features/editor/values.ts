@@ -114,8 +114,8 @@ export function describeInBackground(store: ValueStore, value: TrackedValue, { s
       describeTag({ paragraph: sentence, noteTitle, tagged: value.text }).then((described) => ({ described, v: DESCRIBE_PROMPT_VERSION })),
     )
     .then(
-      ({ described: { kind, name, about, event, when, conditions, remarks, where, ms }, v }) => {
-        const context = { kind, name, subject: about ? { label: about } : undefined, event, when, conditions, remarks };
+      ({ described: { kind, name, about, event, when, conditions, remarks, amount, before, after, where, ms }, v }) => {
+        const context = { kind, name, subject: about ? { label: about } : undefined, event, when, conditions, remarks, amount, before, after };
         store.update(value.id, { ...context, naming: false, describedBy: { where, ms, v } });
         onDescribed?.({ ...value, ...context, naming: false, origin: { noteId, sentence } });
       },

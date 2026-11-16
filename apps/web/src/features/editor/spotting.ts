@@ -245,7 +245,10 @@ class Scheduler {
         const context = new Map<string, ValueContext>();
         placed.forEach((value, index) => {
           const described = values[index];
-          if (described) context.set(value.id, { about: described.about, event: described.event, when: described.when, conditions: described.conditions, remarks: described.remarks });
+          if (described) {
+            const { about, event, when, conditions, remarks, amount, before, after } = described;
+            context.set(value.id, { about, event, when, conditions, remarks, amount, before, after });
+          }
         });
         this.editor.view.dispatch(this.editor.state.tr.setMeta(spottingKey, { context }).setMeta("addToHistory", false));
         const described = placed.flatMap((value) => {

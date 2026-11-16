@@ -16,6 +16,9 @@ export type ValueContext = {
   when?: { on: string; grain: Grain };
   conditions: string[];
   remarks: string[];
+  amount?: number;
+  before?: string;
+  after?: string;
 };
 
 export type SpottedValue = { quote: string; kind: TagKind; name: string };
@@ -55,6 +58,9 @@ For each value give:
 - "conditions": phrases copied from the paragraph that limit when or for whom the value is true, such as "on Saturdays" or "for members". A repeating time is a condition, never "when". Empty if none.
 - "remarks": words copied from the paragraph that say something notable about the value without limiting it, such as "fastest", "roughly" or "quoted". A unit is never a remark. Empty if none.
 
+- "amount": for money, counts, numbers, durations and percentages, the number written in digits only, with no separators or units, such as "3040", "2.5", or "2" for "two". Empty for dates, people, places and anything else.
+- "before" and "after": the exact text before and after the number inside the quote, such as "£" and "" for "£3,040", or "" and " km" for "5 km". Empty when there is none.
+
 Words that say when, such as "today", "yesterday" or "on Friday", only ever set "when". They are never conditions or remarks.
 
 Examples
@@ -62,13 +68,13 @@ Dates: today Mon 2026-03-09. Fri 2026-03-06, Sat 2026-03-07, Sun 2026-03-08, Tue
 Note: Garden
 Paragraph: Paid Tom £45 on Friday for mowing, roughly an hour. He charges £50 on weekends, up from £40 in January.
 Values: £45 | an hour | £50 | £40
-Answer: {"values":[{"quote":"£45","kind":"money","name":"mowing_payment","about":"mowing","event":true,"when":"2026-03-06","grain":"day","conditions":[],"remarks":[]},{"quote":"an hour","kind":"duration","name":"mowing_time","about":"mowing","event":true,"when":"2026-03-06","grain":"day","conditions":[],"remarks":["roughly"]},{"quote":"£50","kind":"money","name":"mowing_price","about":"Tom","event":false,"when":"","grain":"none","conditions":["on weekends"],"remarks":[]},{"quote":"£40","kind":"money","name":"mowing_price","about":"Tom","event":false,"when":"2026-01","grain":"month","conditions":[],"remarks":[]}]}
+Answer: {"values":[{"quote":"£45","kind":"money","name":"mowing_payment","about":"mowing","event":true,"when":"2026-03-06","grain":"day","conditions":[],"remarks":[],"amount":"45","before":"£","after":""},{"quote":"an hour","kind":"duration","name":"mowing_time","about":"mowing","event":true,"when":"2026-03-06","grain":"day","conditions":[],"remarks":["roughly"],"amount":"1","before":"","after":" hour"},{"quote":"£50","kind":"money","name":"mowing_price","about":"Tom","event":false,"when":"","grain":"none","conditions":["on weekends"],"remarks":[],"amount":"50","before":"£","after":""},{"quote":"£40","kind":"money","name":"mowing_price","about":"Tom","event":false,"when":"2026-01","grain":"month","conditions":[],"remarks":[],"amount":"40","before":"£","after":""}]}
 
 Dates: today Thu 2026-07-02. Tue 2026-06-30, Wed 2026-07-01, Fri 2026-07-03.
 Note: Book club
 Paragraph: Book club meets at 7pm every second Tuesday.
 Values: 7pm
-Answer: {"values":[{"quote":"7pm","kind":"date","name":"meeting_time","about":"book club","event":false,"when":"","grain":"none","conditions":["every second Tuesday"],"remarks":[]}]}`;
+Answer: {"values":[{"quote":"7pm","kind":"date","name":"meeting_time","about":"book club","event":false,"when":"","grain":"none","conditions":["every second Tuesday"],"remarks":[],"amount":"","before":"","after":""}]}`;
 
 const PHRASES = { type: "array", items: { type: "string" }, maxItems: 3 };
 const MAX_VALUES = 12;
@@ -108,8 +114,11 @@ const DESCRIBE_SCHEMA = {
           grain: { type: "string", enum: [...GRAINS, "none"] },
           conditions: PHRASES,
           remarks: PHRASES,
+          amount: { type: "string" },
+          before: { type: "string" },
+          after: { type: "string" },
         },
-        required: ["quote", "kind", "name", "about", "event", "when", "grain", "conditions", "remarks"],
+        required: ["quote", "kind", "name", "about", "event", "when", "grain", "conditions", "remarks", "amount", "before", "after"],
       },
     },
   },
@@ -206,6 +215,13 @@ function parseDescribed(text: string, quotes: string[]): DescribedValue[] {
       when: validWhen(raw.when, raw.grain),
       conditions: strings(raw.conditions),
       remarks: strings(raw.remarks),
+      ...amountOf(raw),
     };
   });
+}
+
+function amountOf(raw: Record<string, unknown>): Pick<ValueContext, "amount" | "before" | "after"> {
+  const amount = typeof raw.amount === "string" && raw.amount.trim() !== "" ? Number(raw.amount) : Number.NaN;
+  if (!Number.isFinite(amount)) return {};
+  return { amount, before: typeof raw.before === "string" ? raw.before : "", after: typeof raw.after === "string" ? raw.after : "" };
 }

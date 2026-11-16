@@ -4,6 +4,7 @@ import { AnimatePresence, m } from "motion/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { FactFields } from "@/features/notes/fact";
 import { ease } from "@/ui/kit";
+import { describeFormula, formatAmount } from "@/features/formulas/apply";
 import { changeEverywhere, relabelInEditor, repoint } from "./linking";
 import { foundValueAt, spottingKey } from "./spotting";
 import { VALUE_NODE } from "./value-tag";
@@ -99,12 +100,12 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
     setTarget(undefined);
   };
 
-  const saveEdit = (value: TrackedValue, text: string, scope: "everywhere" | "here") => {
+  const saveEdit = (value: TrackedValue, text: string, scope: "everywhere" | "here", amount?: number) => {
     close();
     if (text === value.text) return;
-    if (scope === "everywhere") return applyEverywhere(value.id, text);
+    if (scope === "everywhere") return applyEverywhere(value.id, text, amount);
     const { id: _id, text: _text, naming: _naming, proposal: _proposal, updatedAt: _updatedAt, ...context } = value;
-    const forked = store.add(text, { ...context, notSame: [...(value.notSame ?? []), value.id], history: [{ text: value.text, at: Date.now() }] });
+    const forked = store.add(text, { ...context, ...(amount !== undefined && { amount }), formula: undefined, notSame: [...(value.notSame ?? []), value.id], history: [{ text: value.text, at: Date.now() }] });
     repoint(editor, value.id, forked.id, text);
     store.update(value.id, { notSame: [...(value.notSame ?? []), forked.id] });
   };
@@ -117,20 +118,21 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
   const insertTag = (from: number, to: number, id: string, label: string) =>
     editor.chain().focus().insertContentAt({ from, to }, { type: VALUE_NODE, attrs: { id, label, mentionSuggestionChar: "@" } }).run();
 
-  const applyEverywhere = (factId: string, text: string) => {
-    changeEverywhere(store, factId, text);
-    relabelInEditor(editor, factId, text);
-    onChanged?.(factId, text);
+  const applyEverywhere = (factId: string, text: string, amount?: number) => {
+    for (const change of changeEverywhere(store, factId, text, amount)) {
+      relabelInEditor(editor, change.id, change.text);
+      onChanged?.(change.id, change.text);
+    }
   };
 
   const trackFound = (how: "new" | "same" | "update" | "separate") => {
     const hit = target && foundValueAt(editor.state, target.id);
     setTarget(undefined);
     if (!hit) return;
-    const { quote, kind, name, about, event, when, conditions, remarks, described, link } = hit.value;
+    const { quote, kind, name, about, event, when, conditions, remarks, amount, before, after, described, link } = hit.value;
     if (link && (how === "same" || how === "update")) {
       insertTag(hit.from, hit.to, link.factId, quote);
-      if (how === "update") applyEverywhere(link.factId, quote);
+      if (how === "update") applyEverywhere(link.factId, quote, amount);
       return;
     }
     const notSame = how === "separate" && link ? [link.factId] : undefined;
@@ -138,7 +140,9 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
     const origin = { noteId, sentence };
     const value = store.add(
       quote,
-      described ? { kind, name, subject: about ? { label: about } : undefined, event, when, conditions, remarks, notSame, origin } : { kind, name, notSame, origin },
+      described
+        ? { kind, name, subject: about ? { label: about } : undefined, event, when, conditions, remarks, amount, before, after, notSame, origin }
+        : { kind, name, notSame, origin },
     );
     insertTag(hit.from, hit.to, value.id, quote);
     if (described) onNewFact?.(value);
@@ -151,7 +155,7 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
     if (!factId) return;
     if (!accept) return store.update(value.id, { proposal: undefined, notSame: [...(value.notSame ?? []), factId] });
     repoint(editor, value.id, factId, value.text);
-    applyEverywhere(factId, value.text);
+    applyEverywhere(factId, value.text, value.amount);
     store.remove(value.id);
   };
 
@@ -188,7 +192,10 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
           <p className="text-[10.5px] tracking-[0.06em] text-faint uppercase">
             {[nameOf(shown), shown.kind, shown.event === undefined ? undefined : shown.event ? "event" : "ongoing"].filter(Boolean).join(" · ")}
           </p>
-          {tag && editing && !tag.proposal && <EditValue value={tag} count={usage(tag.id)} onSave={(text, scope) => saveEdit(tag, text, scope)} onCancel={close} />}
+          {tag && editing && !tag.proposal && !tag.formula && (
+            <EditValue value={tag} count={usage(tag.id)} onSave={(text, scope, amount) => saveEdit(tag, text, scope, amount)} onCancel={close} />
+          )}
+          {tag?.formula && <p className="mt-1 text-soft">= {describeFormula(tag, (id) => store.get(id)) ?? "a formula"}</p>}
           {tag && !editing && tag.history?.length ? <p className="mt-1 text-faint">Was {tag.history.at(-1)!.text}</p> : null}
           {describing ? (
             <p className="mt-1">
@@ -255,7 +262,7 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
           </Actions>
           {tag && !tag.proposal && tag.describedBy && (
             <p className="mt-2 border-t border-line pt-2 text-faint">
-              Click to change · described {tag.describedBy.where === "on_device" ? "on this device" : "in the cloud"} in {(tag.describedBy.ms / 1000).toFixed(1)} s
+              {tag.formula ? "Calculated" : "Click to change"} · described {tag.describedBy.where === "on_device" ? "on this device" : "in the cloud"} in {(tag.describedBy.ms / 1000).toFixed(1)} s
             </p>
           )}
         </m.div>
@@ -321,42 +328,68 @@ function StartCollection({ value, onStart }: { value: TrackedValue; onStart: (na
   );
 }
 
-function EditValue({ value, count, onSave, onCancel }: { value: TrackedValue; count: number; onSave: (text: string, scope: "everywhere" | "here") => void; onCancel: () => void }) {
-  const [text, setText] = useState(value.text);
+function EditValue({
+  value,
+  count,
+  onSave,
+  onCancel,
+}: {
+  value: TrackedValue;
+  count: number;
+  onSave: (text: string, scope: "everywhere" | "here", amount?: number) => void;
+  onCancel: () => void;
+}) {
+  const numeric = value.amount !== undefined;
+  const [text, setText] = useState(numeric ? String(value.amount) : value.text);
   const [asking, setAsking] = useState(false);
+  const next = () => {
+    if (!numeric) return { text: text.trim(), amount: undefined };
+    const amount = Number(text);
+    return Number.isFinite(amount) && text.trim() !== "" ? { text: formatAmount(value, amount), amount } : undefined;
+  };
   const submit = () => {
-    const next = text.trim();
-    if (!next || next === value.text) return onCancel();
+    const result = next();
+    if (!result?.text || result.text === value.text) return onCancel();
     if (count > 1) setAsking(true);
-    else onSave(next, "everywhere");
+    else onSave(result.text, "everywhere", result.amount);
+  };
+  const save = (scope: "everywhere" | "here") => {
+    const result = next();
+    if (result) onSave(result.text, scope, result.amount);
   };
   return (
     <div className="mt-2">
-      <input
-        autoFocus
-        aria-label={`Change ${nameOf(value)}`}
-        value={text}
-        onChange={(event) => {
-          setText(event.target.value);
-          setAsking(false);
-        }}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            submit();
-          }
-          if (event.key === "Escape") onCancel();
-        }}
-        className="h-8 w-full border border-accent bg-card px-2 text-[13px] outline-none"
-      />
+      <div className="flex h-8 items-center border border-accent bg-card px-2 text-[13px]">
+        {numeric && value.before && <span className="text-soft">{value.before}</span>}
+        <input
+          autoFocus
+          type={numeric ? "number" : "text"}
+          step="any"
+          aria-label={`Change ${nameOf(value)}`}
+          value={text}
+          onChange={(event) => {
+            setText(event.target.value);
+            setAsking(false);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              submit();
+            }
+            if (event.key === "Escape") onCancel();
+          }}
+          className="h-full min-w-0 flex-1 bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+        />
+        {numeric && value.after && <span className="text-soft">{value.after}</span>}
+      </div>
       {asking ? (
         <div className="mt-2">
           <p className="text-accent-ink">
             {value.text} is used in {notes(count)}.
           </p>
           <div className="mt-2 flex flex-wrap justify-end gap-2">
-            <Action onClick={() => onSave(text.trim(), "here")}>Only in this note</Action>
-            <Action primary onClick={() => onSave(text.trim(), "everywhere")}>
+            <Action onClick={() => save("here")}>Only in this note</Action>
+            <Action primary onClick={() => save("everywhere")}>
               Update all {count}
             </Action>
           </div>

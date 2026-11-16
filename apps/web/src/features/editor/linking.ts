@@ -1,6 +1,7 @@
 import type { Editor } from "@tiptap/core";
 import type { LinkFact } from "@/features/ai/link";
 import { periodOf } from "@/features/collections/logic";
+import { recompute } from "@/features/formulas/apply";
 import type { FactFields } from "@/features/notes/fact";
 import { VALUE_NODE } from "./value-tag";
 import type { TrackedValue, ValueStore } from "./values";
@@ -84,8 +85,21 @@ export function relabelInEditor(editor: Editor, valueId: string, label: string):
   if (tr.docChanged) editor.view.dispatch(tr);
 }
 
-export function changeEverywhere(store: ValueStore, factId: string, text: string): void {
+export type Change = { id: string; text: string; amount?: number };
+
+export function changeEverywhere(store: ValueStore, factId: string, text: string, amount?: number): Change[] {
   const fact = store.get(factId);
-  if (!fact || fact.text === text) return;
-  store.update(factId, { text, history: [...(fact.history ?? []), { text: fact.text, at: Date.now() }].slice(-10) });
+  if (!fact || (fact.text === text && fact.amount === amount)) return [];
+  const changes: Change[] = [{ id: factId, text, amount }];
+  if (amount !== undefined) changes.push(...recompute(factId, store.list(), new Map([[factId, amount]])));
+  for (const change of changes) {
+    const current = store.get(change.id);
+    if (!current) continue;
+    store.update(change.id, {
+      text: change.text,
+      ...(change.amount !== undefined && { amount: change.amount }),
+      history: [...(current.history ?? []), { text: current.text, at: Date.now() }].slice(-10),
+    });
+  }
+  return changes;
 }

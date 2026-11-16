@@ -1,6 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { dayLabel, rowLabel } from "@/features/collections/format";
 import { planCollection, rowForPlacement } from "@/features/collections/logic";
+import { acceptFormula, describeFormula, inputsFor } from "@/features/formulas/apply";
 import type { EditorServices } from "@/features/editor/services";
 import type { TrackedValue, ValueStore } from "@/features/editor/values";
 import { collectionsQuery, notesQuery, rowsQuery, writes } from "./api";
@@ -33,6 +34,23 @@ export function createEditorServices({ queryClient, uid, noteId, store }: Servic
     showToast(`Added to ${collection.name} · ${dayLabel(row.period)}`, undo);
   };
 
+  const findFormula = async (value: TrackedValue) => {
+    const fact = { ...store.get(value.id), ...value };
+    if (fact.amount === undefined || fact.formula) return;
+    const inputs = inputsFor(fact, store.list());
+    if (inputs.length === 0) return;
+    const { suggestFormula } = await import("@/features/ai/formula");
+    const suggested = await suggestFormula({
+      sentence: fact.origin?.sentence ?? fact.text,
+      value: { name: fact.name ?? "value", text: fact.text, amount: fact.amount },
+      inputs: inputs.map((input) => ({ name: input.name ?? "value", text: input.text, amount: input.amount! })),
+    });
+    const formula = acceptFormula(suggested, fact.amount, inputs);
+    if (!formula) return;
+    store.update(fact.id, { formula });
+    showToast(`${fact.text} now follows ${describeFormula({ ...fact, formula }, (id) => store.get(id)) ?? "a formula"}`);
+  };
+
   return {
     noteId,
     noteTitleOf: (id) => notes().find((note) => note.id === id)?.title || undefined,
@@ -46,7 +64,10 @@ export function createEditorServices({ queryClient, uid, noteId, store }: Servic
           .filter((note) => note.id !== noteId && note.valueIds.includes(factId))
           .map((note) => note.id),
       ),
-    onNewFact: (value) => void place(value).catch((error: unknown) => console.warn("Dittle could not place a value in a collection", error)),
+    onNewFact: (value) => {
+      void place(value).catch((error: unknown) => console.warn("Dittle could not place a value in a collection", error));
+      void findFormula(value).catch((error: unknown) => console.warn("Dittle could not check for a formula", error));
+    },
     placementOf: (value) => {
       const row = rows().find((item) => item.id === value.subject?.entityId);
       const collection = row && collections().find((item) => item.id === row.collectionId);
