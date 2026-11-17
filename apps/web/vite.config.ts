@@ -5,6 +5,7 @@ import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import { routePreload } from "./build/route-preload.ts";
+import { serviceWorker } from "./build/service-worker.ts";
 import { SESSION_HINT_KEY } from "./src/lib/session-key.ts";
 
 const buildRouteTree = "./src/routeTree.build.gen.ts";
@@ -28,6 +29,7 @@ export default defineConfig(({ command }) => {
         everyPage: [fileURLToPath(new URL("./src/ui/motion-features.ts", import.meta.url))],
         app: { paths: ["/notes"], modules: [fileURLToPath(new URL("./src/features/notes/store.ts", import.meta.url))] },
       }),
+      serviceWorker({ fileName: "sw.js", skip: (path) => path.startsWith("/shots/") || path === "/llms.txt" || path === "/robots.txt" }),
     ],
     resolve: {
       alias: [
