@@ -3,7 +3,7 @@ import type { LinkFact } from "@/features/ai/link";
 import { periodOf } from "@/features/collections/logic";
 import { recompute } from "@/features/formulas/apply";
 import type { FactFields } from "@/features/notes/fact";
-import { VALUE_NODE } from "./value-tag";
+import { VALUE_NODE } from "./value-node";
 import type { TrackedValue, ValueStore } from "./values";
 
 export const MAX_CANDIDATES = 12;

@@ -1,6 +1,6 @@
 import { Extension } from "@tiptap/core";
 import type { Node as PMNode } from "@tiptap/pm/model";
-import { VALUE_NODE } from "./value-tag";
+import { VALUE_NODE } from "./value-node";
 import type { TrackedValue, ValueStore } from "./values";
 
 type Options = {

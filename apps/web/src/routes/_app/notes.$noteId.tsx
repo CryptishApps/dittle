@@ -1,16 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { noteQuery, valuesQuery } from "@/features/notes/api";
+import { cachedThenLive, noteQuery, valuesQuery } from "@/features/notes/api";
 import { NotePage } from "@/features/notes/NotePage";
 
 export const Route = createFileRoute("/_app/notes/$noteId")({
-  loader: async ({ context: { queryClient, user }, params }) => {
-    await Promise.all([queryClient.ensureQueryData(noteQuery(user.uid, params.noteId)), queryClient.ensureQueryData(valuesQuery(user.uid))]);
+  loader: async ({ context: { queryClient, account }, params }) => {
+    await Promise.all([cachedThenLive(queryClient, noteQuery(account.uid, params.noteId)), cachedThenLive(queryClient, valuesQuery(account.uid))]);
   },
   component: NoteRoute,
 });
 
 function NoteRoute() {
-  const { user } = Route.useRouteContext();
+  const { account } = Route.useRouteContext();
   const { noteId } = Route.useParams();
-  return <NotePage key={noteId} uid={user.uid} noteId={noteId} />;
+  return <NotePage key={noteId} uid={account.uid} noteId={noteId} />;
 }

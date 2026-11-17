@@ -2,7 +2,7 @@ import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, m } from "motion/react";
 import { useEffect, useRef, useState } from "react";
-import { EditValue } from "@/features/editor/ValueCard";
+import { EditValue } from "@/features/editor/EditValue";
 import { createSyncedValueStore, useValues, type TrackedValue } from "@/features/editor/values";
 import { collectionsQuery, notesQuery, rowsQuery, valuesQuery, writes } from "@/features/notes/api";
 import { changeOutsideEditor } from "@/features/notes/editor-services";

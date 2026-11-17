@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import type { JSONContent } from "@tiptap/react";
 import { useState } from "react";
 import { NoteEditor } from "@/features/editor/NoteEditor";
-import { VALUE_NODE } from "@/features/editor/value-tag";
+import { VALUE_NODE } from "@/features/editor/value-node";
 import { createValueStore, useValues, type TrackedValue } from "@/features/editor/values";
 import { Wordmark } from "@/ui/Wordmark";
 

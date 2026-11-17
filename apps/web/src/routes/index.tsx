@@ -4,10 +4,8 @@ import { preloadAuthWhenIdle } from "@/lib/session";
 import { Welcome } from "@/features/welcome/Welcome";
 
 export const Route = createFileRoute("/")({
-  beforeLoad: async ({ context }) => {
-    if (context.session.hint() === "signedOut") return;
-    const session = await context.session.read();
-    if (session.kind === "signedIn") throw redirect({ to: "/notes" });
+  beforeLoad: ({ context }) => {
+    if (context.session.hint().kind === "signedIn") throw redirect({ to: "/notes" });
   },
   component: WelcomeRoute,
 });

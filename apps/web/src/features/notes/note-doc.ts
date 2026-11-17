@@ -1,5 +1,5 @@
 import type { JSONContent } from "@tiptap/react";
-import { VALUE_NODE } from "@/features/editor/value-tag";
+import { VALUE_NODE } from "@/features/editor/value-node";
 
 export type Inline = { t: "text"; text: string; bold?: true; italic?: true } | { t: "value"; id: string; label: string };
 

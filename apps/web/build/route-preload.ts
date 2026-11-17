@@ -3,9 +3,10 @@ import type { Plugin, Rolldown } from "vite";
 type OutputBundle = Rolldown.OutputBundle;
 type OutputChunk = Rolldown.OutputChunk;
 
-type Options = { routesDir: string; authModule: string; sessionKey: string; everyPage: string[]; app: { paths: string[]; modules: string[] } };
+type SignedIn = { home: string; paths: string[]; first: string[]; later: string[] };
+type Options = { routesDir: string; sessionKey: string; everyPage: string[]; signedIn: SignedIn };
 
-export function routePreload({ routesDir, authModule, sessionKey, everyPage, app }: Options): Plugin {
+export function routePreload({ routesDir, sessionKey, everyPage, signedIn }: Options): Plugin {
   return {
     name: "dittle:route-preload",
     apply: "build",
@@ -18,54 +19,66 @@ export function routePreload({ routesDir, authModule, sessionKey, everyPage, app
         if (!entry) return;
         const loaded = closure(bundle, entry.fileName);
 
-        const routes: Record<string, string[]> = {};
+        const files: string[] = [];
+        const numbered = (names: Iterable<string>) => [...new Set(names)].filter((file) => !loaded.has(file)).map((file) => (files.includes(file) ? files.indexOf(file) : files.push(file) - 1));
+
+        const byRoute: Record<string, string[]> = {};
         for (const chunk of chunks) {
           const id = chunk.facadeModuleId ?? "";
           if (!id.startsWith(routesDir) || !id.includes("tsr-split=component")) continue;
           const path = urlPath(id.slice(routesDir.length).replace(/\?.*$/, ""));
-          if (path) routes[path] = [...(routes[path] ?? []), ...[...closure(bundle, chunk.fileName)].filter((file) => !loaded.has(file)).map((file) => `/${file}`)];
+          if (path) byRoute[path] = [...(byRoute[path] ?? []), ...closure(bundle, chunk.fileName)];
         }
+        const routes = Object.fromEntries(Object.entries(byRoute).map(([path, names]) => [path, numbered(names)]));
         const filesFor = (moduleIds: string[]) =>
-          chunks
-            .filter((chunk) => chunk.facadeModuleId && moduleIds.includes(chunk.facadeModuleId))
-            .flatMap((chunk) => [...closure(bundle, chunk.fileName)])
-            .filter((file, index, all) => !loaded.has(file) && all.indexOf(file) === index)
-            .map((file) => `/${file}`);
+          numbered(chunks.filter((chunk) => chunk.facadeModuleId && moduleIds.includes(chunk.facadeModuleId)).flatMap((chunk) => [...closure(bundle, chunk.fileName)]));
 
-        const signedIn = { auth: filesFor([authModule]), appPaths: app.paths, app: filesFor(app.modules) };
-        const script = `(${preload})(${JSON.stringify(routes)},${JSON.stringify(filesFor(everyPage))},${JSON.stringify(signedIn)},${JSON.stringify(sessionKey)})`;
-        return [{ tag: "script", children: script, injectTo: "head-prepend" }];
+        const plan = {
+          routes,
+          always: filesFor(everyPage),
+          signedIn: { home: signedIn.home, paths: signedIn.paths, first: filesFor(signedIn.first), later: filesFor(signedIn.later) },
+          files,
+          key: sessionKey,
+        };
+        return [{ tag: "script", children: `(${preload})(${JSON.stringify(plan)})`, injectTo: "head" }];
       },
     },
   };
 }
 
-function preload(
-  routes: Record<string, string[]>,
-  always: string[],
-  signedIn: { auth: string[]; appPaths: string[]; app: string[] },
-  key: string,
-) {
-  const path = location.pathname.replace(/\/$/, "") || "/";
+type Plan = {
+  routes: Record<string, number[]>;
+  always: number[];
+  signedIn: { home: string; paths: string[]; first: number[]; later: number[] };
+  files: string[];
+  key: string;
+};
+
+function preload({ routes, always, signedIn, files, key }: Plan) {
+  let hinted = false;
+  try {
+    hinted = Boolean(localStorage.getItem(key));
+  } catch {}
+  const visited = location.pathname.replace(/\/$/, "") || "/";
+  const path = hinted && visited === "/" ? signedIn.home : visited;
   const parts = path.split("/");
   const matches = (pattern: string) => {
     const want = pattern.split("/");
     if (pattern !== "/" ? want.length > parts.length : path !== "/") return false;
     return want.every((segment, index) => segment === parts[index] || segment.startsWith("$"));
   };
-  let files = always.concat(...Object.keys(routes).filter(matches).map((pattern) => routes[pattern]!));
-  try {
-    if (localStorage.getItem(key)) {
-      files = files.concat(signedIn.auth);
-      if (signedIn.appPaths.some((prefix) => path.startsWith(prefix))) files = files.concat(signedIn.app);
-    }
-  } catch {}
-  for (const href of new Set(files)) {
+  const inApp = hinted && signedIn.paths.some((prefix) => path.startsWith(prefix));
+  const now = new Set(always.concat(...Object.keys(routes).filter(matches).map((pattern) => routes[pattern]!), inApp ? signedIn.first : []));
+  const later = new Set(inApp ? signedIn.later.filter((file) => !now.has(file)) : []);
+  const add = (file: number, priority?: string) => {
     const link = document.createElement("link");
     link.rel = "modulepreload";
-    link.href = href;
+    link.href = `/${files[file]}`;
+    if (priority) link.setAttribute("fetchpriority", priority);
     document.head.appendChild(link);
-  }
+  };
+  now.forEach((file) => add(file));
+  later.forEach((file) => add(file, "low"));
 }
 
 function closure(bundle: OutputBundle, start: string): Set<string> {

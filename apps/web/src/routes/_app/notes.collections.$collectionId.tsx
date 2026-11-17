@@ -6,7 +6,7 @@ export const Route = createFileRoute("/_app/notes/collections/$collectionId")({
 });
 
 function CollectionRoute() {
-  const { user } = Route.useRouteContext();
+  const { account } = Route.useRouteContext();
   const { collectionId } = Route.useParams();
-  return <CollectionPage key={collectionId} uid={user.uid} collectionId={collectionId} />;
+  return <CollectionPage key={collectionId} uid={account.uid} collectionId={collectionId} />;
 }

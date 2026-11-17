@@ -1,4 +1,4 @@
-import { hashKey, type QueryClient, type QueryFunction, type QueryKey } from "@tanstack/react-query";
+import { hashKey, type FetchQueryOptions, type QueryClient, type QueryFunction, type QueryKey } from "@tanstack/react-query";
 
 export type Listen<T> = (next: (data: T) => void, fail: (error: Error) => void) => Promise<() => void>;
 
@@ -48,4 +48,11 @@ export function live<T, Key extends QueryKey>(listen: Listen<T>): QueryFunction<
       active.set(hash, stop);
     });
   };
+}
+
+export function ensureLive<T, Key extends QueryKey>(client: QueryClient, options: FetchQueryOptions<T, Error, T, Key>, quiet: () => Promise<void>): Promise<T> {
+  const cached = client.getQueryData<T>(options.queryKey);
+  if (cached === undefined) return client.ensureQueryData(options);
+  if (!active.has(hashKey(options.queryKey))) void quiet().then(() => client.prefetchQuery({ ...options, staleTime: 0 }));
+  return Promise.resolve(cached);
 }

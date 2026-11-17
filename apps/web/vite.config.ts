@@ -24,10 +24,14 @@ export default defineConfig(({ command }) => {
       tailwindcss(),
       routePreload({
         routesDir: fileURLToPath(new URL("./src/routes/", import.meta.url)),
-        authModule: fileURLToPath(new URL("./src/lib/auth.ts", import.meta.url)),
         sessionKey: SESSION_HINT_KEY,
         everyPage: [fileURLToPath(new URL("./src/ui/motion-features.ts", import.meta.url))],
-        app: { paths: ["/notes"], modules: [fileURLToPath(new URL("./src/features/notes/store.ts", import.meta.url))] },
+        signedIn: {
+          home: "/notes",
+          paths: ["/notes", "/ai"],
+          first: [fileURLToPath(new URL("./src/lib/query-cache.ts", import.meta.url))],
+          later: [fileURLToPath(new URL("./src/lib/auth.ts", import.meta.url)), fileURLToPath(new URL("./src/features/notes/store.ts", import.meta.url))],
+        },
       }),
       serviceWorker({ fileName: "sw.js", skip: (path) => path.startsWith("/shots/") || path === "/llms.txt" || path === "/robots.txt" }),
     ],

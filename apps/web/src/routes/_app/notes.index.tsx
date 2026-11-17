@@ -6,6 +6,6 @@ export const Route = createFileRoute("/_app/notes/")({
 });
 
 function Home() {
-  const { user } = Route.useRouteContext();
-  return <HomePage uid={user.uid} />;
+  const { account } = Route.useRouteContext();
+  return <HomePage uid={account.uid} />;
 }

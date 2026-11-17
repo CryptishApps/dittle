@@ -1,18 +1,18 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, Outlet, useNavigate, useRouter } from "@tanstack/react-router";
-import type { User } from "firebase/auth";
 import { AnimatePresence, m } from "motion/react";
 import { DropdownMenu } from "radix-ui";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import { useDeviceModel, type DeviceModelStatus } from "@/features/ai/device-model";
-import { loadAuth } from "@/lib/session";
+import { loadAuth, type Account } from "@/lib/session";
 import { Btn, ease, MIcon } from "@/ui/kit";
 import { Wordmark } from "@/ui/Wordmark";
-import { loadStore, startNote } from "./api";
-import { DeleteAccountDialog } from "./DeleteAccount";
+import { startNote } from "./api";
 import { MENU_CONTENT, MenuItem } from "./NoteTree";
 import { SearchDialog, useSearchShortcut } from "./Search";
 import { dismissToast, holdToast, useToast } from "./toast";
+
+const DeleteAccountDialog = lazy(() => import("./DeleteAccount").then((module) => ({ default: module.DeleteAccountDialog })));
 
 const subscribeOnline = (onChange: () => void) => {
   window.addEventListener("online", onChange);
@@ -27,32 +27,32 @@ export function useOnline(): boolean {
   return useSyncExternalStore(subscribeOnline, () => navigator.onLine);
 }
 
-export function NotesShell({ user }: { user: User }) {
+export function NotesShell({ account }: { account: Account }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const online = useOnline();
   const toast = useToast();
   const [leaving, setLeaving] = useState(false);
   const [searching, setSearching] = useState(false);
-  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteAccount, setDeleteAccount] = useState<"unopened" | "open" | "closed">("unopened");
   const accountButton = useRef<HTMLButtonElement>(null);
   const openSearch = useCallback(() => setSearching(true), []);
   useSearchShortcut(openSearch);
 
   const router = useRouter();
   useEffect(() => {
-    const id = window.requestIdleCallback?.(() => void router.loadRouteChunk(router.routesById["/_app/notes/$noteId"]));
+    const id = window.requestIdleCallback?.(() => {
+      void router.loadRouteChunk(router.routesById["/_app/notes/$noteId"]);
+      void router.loadRouteChunk(router.routesById["/_app/notes/collections/$collectionId"]);
+    });
     return () => window.cancelIdleCallback?.(id);
   }, [router]);
 
-  const newNote = () => void navigate({ to: "/notes/$noteId", params: { noteId: startNote(queryClient, user.uid) } });
+  const newNote = () => void navigate({ to: "/notes/$noteId", params: { noteId: startNote(queryClient, account.uid) } });
 
   const signOut = async () => {
     setLeaving(true);
-    queryClient.clear();
-    await (await loadStore()).forgetThisDevice();
     await (await loadAuth()).signOut();
-    window.location.assign("/");
   };
 
   return (
@@ -83,12 +83,12 @@ export function NotesShell({ user }: { user: User }) {
             New note
           </Btn>
           <AccountMenu
-            user={user}
+            account={account}
             online={online}
             leaving={leaving}
             trigger={accountButton}
             onSignOut={() => void signOut()}
-            onDeleteAccount={() => setDeletingAccount(true)}
+            onDeleteAccount={() => setDeleteAccount("open")}
           />
         </div>
       </header>
@@ -97,8 +97,18 @@ export function NotesShell({ user }: { user: User }) {
         <Outlet />
       </main>
 
-      <SearchDialog uid={user.uid} open={searching} onOpenChange={setSearching} />
-      <DeleteAccountDialog user={user} online={online} open={deletingAccount} onOpenChange={setDeletingAccount} returnFocus={() => accountButton.current?.focus()} />
+      <SearchDialog uid={account.uid} open={searching} onOpenChange={setSearching} />
+      {deleteAccount !== "unopened" && (
+        <Suspense>
+          <DeleteAccountDialog
+            uid={account.uid}
+            online={online}
+            open={deleteAccount === "open"}
+            onOpenChange={(open) => setDeleteAccount(open ? "open" : "closed")}
+            returnFocus={() => accountButton.current?.focus()}
+          />
+        </Suspense>
+      )}
 
       <AnimatePresence>
         {toast && (
@@ -137,7 +147,7 @@ export function NotesShell({ user }: { user: User }) {
 }
 
 type AccountMenuProps = {
-  user: User;
+  account: Account;
   online: boolean;
   leaving: boolean;
   trigger: RefObject<HTMLButtonElement | null>;
@@ -145,8 +155,8 @@ type AccountMenuProps = {
   onDeleteAccount: () => void;
 };
 
-function AccountMenu({ user, online, leaving, trigger, onSignOut, onDeleteAccount }: AccountMenuProps) {
-  const name = user.displayName ?? user.email ?? "Account";
+function AccountMenu({ account, online, leaving, trigger, onSignOut, onDeleteAccount }: AccountMenuProps) {
+  const name = account.name || "Account";
   return (
     <DropdownMenu.Root modal={false}>
       <DropdownMenu.Trigger

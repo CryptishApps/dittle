@@ -1,18 +1,21 @@
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import type { User } from "firebase/auth";
 import { Dialog } from "radix-ui";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { GoogleMark, PasswordInput } from "@/features/auth/parts";
 import { authMessage, isCancelled } from "@/lib/auth-errors";
-import { confirmMethod, loadAuth, signedInRecently } from "@/lib/session";
+import { confirmMethod, loadAuth, signedInRecently, useSession } from "@/lib/session";
 import { collectionsQuery, loadStore, notesQuery } from "./api";
 
 const LIST = new Intl.ListFormat("en-GB", { type: "conjunction" });
 
-type Props = { user: User; online: boolean; open: boolean; onOpenChange: (open: boolean) => void; returnFocus: () => void };
+type Props = { uid: string; online: boolean; open: boolean; onOpenChange: (open: boolean) => void; returnFocus: () => void };
 
-export function DeleteAccountDialog({ user, online, open, onOpenChange, returnFocus }: Props) {
+export function DeleteAccountDialog({ uid, online, open, onOpenChange, returnFocus }: Props) {
   const [busy, setBusy] = useState(false);
+  const [user, setUser] = useState<User>();
+  const session = useSession();
+  if (session?.kind === "signedIn" && session.user.uid === uid && session.user !== user) setUser(session.user);
   const holdWhileBusy = (event: Event) => busy && event.preventDefault();
   return (
     <Dialog.Root open={open} onOpenChange={(next) => !busy && onOpenChange(next)}>
@@ -27,7 +30,7 @@ export function DeleteAccountDialog({ user, online, open, onOpenChange, returnFo
           }}
           className="fixed top-1/2 left-1/2 z-50 w-[min(440px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 border border-line-strong bg-card p-5 shadow-pop data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:p-6"
         >
-          {open && <DeleteAccountBody user={user} online={online} busy={busy} setBusy={setBusy} />}
+          {open && (user ? <DeleteAccountBody user={user} online={online} busy={busy} setBusy={setBusy} /> : <CheckingSignIn />)}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
@@ -37,7 +40,6 @@ export function DeleteAccountDialog({ user, online, open, onOpenChange, returnFo
 type BodyProps = { user: User; online: boolean; busy: boolean; setBusy: (busy: boolean) => void };
 
 function DeleteAccountBody({ user, online, busy, setBusy }: BodyProps) {
-  const queryClient = useQueryClient();
   const { data: notes } = useSuspenseQuery(notesQuery(user.uid));
   const { data: collections } = useSuspenseQuery(collectionsQuery(user.uid));
   const [confirming, setConfirming] = useState(() => !signedInRecently(user));
@@ -63,11 +65,7 @@ function DeleteAccountBody({ user, online, busy, setBusy }: BodyProps) {
       if ((await auth.deleteSignedInUser(user)) === "confirm-identity") {
         setConfirming(true);
         setBusy(false);
-        return;
       }
-      queryClient.clear();
-      await store.forgetThisDevice();
-      window.location.assign("/");
     } catch (failure) {
       if (!isCancelled(failure)) setError(authMessage(failure));
       setBusy(false);
@@ -124,6 +122,18 @@ function DeleteAccountBody({ user, online, busy, setBusy }: BodyProps) {
         </button>
       </div>
     </form>
+  );
+}
+
+function CheckingSignIn() {
+  useEffect(() => void loadAuth().catch(() => undefined), []);
+  return (
+    <>
+      <Dialog.Title className="text-[16px] font-medium tracking-[-0.01em] text-ink">Delete your account?</Dialog.Title>
+      <Dialog.Description role="status" className="mt-2 text-[12.5px] leading-relaxed text-soft">
+        Checking your sign-in.
+      </Dialog.Description>
+    </>
   );
 }
 

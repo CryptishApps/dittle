@@ -179,15 +179,15 @@ function StepText({ step, index, total, onActive, active }: { step: Step; index:
   }, [inView, onActive]);
   return (
     <div ref={ref} className="flex min-h-[72vh] flex-col justify-center py-10 lg:py-0">
-      <div className={`transition-opacity duration-500 ${active ? "opacity-100" : "lg:opacity-25"}`}>
+      <div className={active ? "" : "lg:[&_h3]:text-faint lg:[&_p]:text-faint lg:[&_span]:text-faint"}>
         <p className="flex items-center gap-3 text-[11px] tracking-[0.06em] text-faint uppercase">
-          <span className="text-accent-ink">
+          <span className="text-accent-ink transition-colors duration-500">
             {String(index + 1).padStart(2, "0")}/{String(total).padStart(2, "0")}
           </span>
           {step.label}
         </p>
-        <h3 className="mt-5 text-[32px] leading-[1.08] font-medium tracking-[-0.045em] sm:text-[44px]">{step.title}</h3>
-        <p className="mt-5 max-w-[42ch] text-[15px] leading-[1.75] text-soft">{step.body}</p>
+        <h3 className="mt-5 text-[32px] leading-[1.08] font-medium tracking-[-0.045em] transition-colors duration-500 sm:text-[44px]">{step.title}</h3>
+        <p className="mt-5 max-w-[42ch] text-[15px] leading-[1.75] text-soft transition-colors duration-500">{step.body}</p>
         <div className="brackets mt-8 [--bracket-inset:-6px] lg:hidden">
           <div className="relative aspect-[16/11] overflow-hidden border border-line-strong bg-card">{step.visual}</div>
         </div>

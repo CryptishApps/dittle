@@ -72,11 +72,15 @@ function OpenNote({ uid, noteId, doc, pending }: { uid: string; noteId: string; 
   }, []);
 
   useEffect(() => {
-    if (!editor || pending || unsaved.current || editor.isFocused) return;
+    if (!editor || pending || unsaved.current) return;
     const incoming = canonical(doc);
     if (incoming === saved.current) return;
     saved.current = incoming;
+    const { from, to } = editor.state.selection;
     editor.commands.setContent(fromNoteDoc(doc), { emitUpdate: false });
+    if (!editor.isFocused) return;
+    const end = editor.state.doc.content.size;
+    editor.commands.setTextSelection({ from: Math.min(from, end), to: Math.min(to, end) });
   }, [editor, doc, pending]);
 
   return (

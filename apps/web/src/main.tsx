@@ -15,6 +15,7 @@ const router = createRouter({
   routeTree,
   context: { session: { hint: sessionHint, read: readSession }, queryClient },
   defaultPreload: "intent",
+  defaultPreloadStaleTime: 0,
   scrollRestoration: true,
 });
 

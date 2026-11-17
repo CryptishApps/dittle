@@ -1,9 +1,8 @@
 import { Mention, type MentionOptions } from "@tiptap/extension-mention";
 import { renderMenu } from "./suggestion-menu";
 import { menuItems, ValueMenu, type MenuItem } from "./ValueMenu";
+import { VALUE_NODE } from "./value-node";
 import type { TrackedValue, ValueStore } from "./values";
-
-export const VALUE_NODE = "value";
 
 type ValueTagOptions = {
   store: ValueStore;

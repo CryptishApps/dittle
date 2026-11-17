@@ -213,8 +213,8 @@ export const listenCollections =
         next(
           snapshot.docs
             .map((item) => {
-              const data = item.data({ serverTimestamps: "estimate" });
-              return { ...(data as Omit<Collection, "id" | "createdAt">), id: item.id, createdAt: millis(data.createdAt) };
+              const { createdAt, updatedAt: _updated, ...data } = item.data({ serverTimestamps: "estimate" });
+              return { ...(data as Omit<Collection, "id" | "createdAt">), id: item.id, createdAt: millis(createdAt) };
             })
             .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })),
         ),

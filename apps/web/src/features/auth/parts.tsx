@@ -128,12 +128,15 @@ export function GoogleMark() {
   );
 }
 
+const PEEK_SHOWN = "(min-width: 1024px)";
+
 function AppPeek() {
+  const [shown] = useState(() => window.matchMedia(PEEK_SHOWN).matches);
   return (
     <aside aria-hidden className="relative hidden overflow-hidden border-l border-line bg-side lg:block">
       <div className="hatch absolute inset-0 opacity-50" />
       <div className="absolute top-[16%] left-[14%] w-[150%] border border-line-strong bg-card p-1.5 shadow-pop">
-        <Shot name="hero" alt="" sizes="(min-width: 1024px) 80vw, 1px" />
+        <Shot name="hero" alt="" priority={shown} sizes={`${PEEK_SHOWN} 80vw, 1px`} />
       </div>
       <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-b from-transparent to-side" />
     </aside>

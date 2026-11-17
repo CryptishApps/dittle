@@ -3,25 +3,40 @@ import { useSyncExternalStore } from "react";
 import { SESSION_HINT_KEY } from "./session-key";
 
 export type Session = { kind: "signedOut" } | { kind: "signedIn"; user: User };
-export type SessionKind = Session["kind"];
+export type Account = { uid: string; name: string };
+export type SessionHint = { kind: "signedOut" } | { kind: "signedIn"; account: Account };
 
 let current: Session | undefined;
 const listeners = new Set<() => void>();
 
-export function sessionHint(): SessionKind {
+const NO_HINT: SessionHint = { kind: "signedOut" };
+
+export const accountOf = (user: User): Account => ({ uid: user.uid, name: user.displayName ?? user.email ?? "" });
+
+function isAccount(value: unknown): value is Account {
+  if (typeof value !== "object" || value === null) return false;
+  const { uid, name } = value as Partial<Account>;
+  return typeof uid === "string" && uid.length > 0 && typeof name === "string";
+}
+
+export function sessionHint(): SessionHint {
   try {
-    const stored = localStorage.getItem(SESSION_HINT_KEY);
-    return stored === "signedIn" ? stored : "signedOut";
+    const stored: unknown = JSON.parse(localStorage.getItem(SESSION_HINT_KEY) ?? "null");
+    return isAccount(stored) ? { kind: "signedIn", account: { uid: stored.uid, name: stored.name } } : NO_HINT;
   } catch {
-    return "signedOut";
+    return NO_HINT;
   }
+}
+
+export function sessionEnded(session: Session | undefined, account: Account): boolean {
+  return session !== undefined && (session.kind === "signedOut" || session.user.uid !== account.uid);
 }
 
 export function publishSession(session: Session): void {
   current = session;
   try {
     if (session.kind === "signedOut") localStorage.removeItem(SESSION_HINT_KEY);
-    else localStorage.setItem(SESSION_HINT_KEY, session.kind);
+    else localStorage.setItem(SESSION_HINT_KEY, JSON.stringify(accountOf(session.user)));
   } catch {}
   for (const listener of listeners) listener();
 }

@@ -5,7 +5,7 @@ import { Mapping } from "@tiptap/pm/transform";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import type { DescribeResult, FindResult, SpottedValue, ValueContext } from "@/features/ai/describe";
 import type { LinkTarget } from "./linking";
-import { VALUE_NODE } from "./value-tag";
+import { VALUE_NODE } from "./value-node";
 
 export type FoundValue = SpottedValue & Partial<ValueContext> & { id: string; described: boolean; link?: LinkTarget | null };
 

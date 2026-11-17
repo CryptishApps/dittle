@@ -1,0 +1,142 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`shapes kept on the device change KEPT_SHAPES_VERSION whenever this snapshot has to change 1`] = `
+{
+  "shapes": {
+    "collection": {
+      "createdAt": "number",
+      "fields": [
+        {
+          "id": "string",
+          "kind": "string",
+          "name": "string",
+        },
+      ],
+      "id": "string",
+      "key": {
+        "by": "string",
+        "grain": "string",
+      },
+      "name": "string",
+      "rowLabel": "string",
+    },
+    "folder": {
+      "createdAt": "number",
+      "id": "string",
+      "name": "string",
+    },
+    "note": {
+      "doc": {
+        "blocks": [
+          {
+            "c": [
+              {
+                "bold": "boolean",
+                "italic": "boolean",
+                "t": "string",
+                "text": "string",
+              },
+            ],
+            "level": "number",
+            "t": "string",
+          },
+          {
+            "c": [
+              {
+                "id": "string",
+                "label": "string",
+                "t": "string",
+              },
+            ],
+            "t": "string",
+          },
+          {
+            "items": [
+              {
+                "c": [],
+              },
+            ],
+            "t": "string",
+          },
+          {
+            "items": [
+              {
+                "c": [],
+                "done": "boolean",
+              },
+            ],
+            "t": "string",
+          },
+        ],
+        "v": "number",
+      },
+      "folderId": "object",
+      "id": "string",
+      "ignoredRequests": [],
+      "pending": "boolean",
+      "preview": "string",
+      "title": "string",
+      "updatedAt": "number",
+      "valueIds": [
+        "string",
+      ],
+    },
+    "row": {
+      "collectionId": "string",
+      "createdAt": "number",
+      "id": "string",
+      "label": "string",
+      "period": "string",
+    },
+    "value": {
+      "after": "string",
+      "amount": "number",
+      "before": "string",
+      "conditions": [],
+      "describedBy": {
+        "ms": "number",
+        "v": "string",
+        "where": "string",
+      },
+      "event": "boolean",
+      "field": "string",
+      "formula": {
+        "expr": "string",
+        "inputs": [
+          "string",
+        ],
+      },
+      "history": [
+        {
+          "at": "number",
+          "text": "string",
+        },
+      ],
+      "id": "string",
+      "kind": "string",
+      "name": "string",
+      "notSame": [],
+      "origin": {
+        "noteId": "string",
+        "sentence": "string",
+      },
+      "proposal": {
+        "factId": "string",
+      },
+      "remarks": [],
+      "seconds": "number",
+      "subject": {
+        "entityId": "string",
+        "label": "string",
+      },
+      "text": "string",
+      "updatedAt": "number",
+      "when": {
+        "grain": "string",
+        "on": "string",
+      },
+    },
+  },
+  "version": "1",
+}
+`;

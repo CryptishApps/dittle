@@ -5,6 +5,7 @@ import { Field, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/f
 import { Input } from "@/components/ui/input";
 import type { PasswordCheck } from "@/lib/auth";
 import { authMessage, isCancelled } from "@/lib/auth-errors";
+import { hasPainted } from "@/lib/first-paint";
 import { ease, MIcon, Scramble } from "@/ui/kit";
 import { SpinCheck } from "@/ui/SpinCheck";
 import { AuthShell, BUTTON, BusyLabel, GoogleMark, INPUT, LABEL, NavLink, PasswordInput, PasswordRules, usePasswordCheck, type Nav } from "./parts";
@@ -27,6 +28,8 @@ type AuthPageProps = {
   links: { home: Nav; signin: Nav; signup: Nav };
 };
 
+const ENTER = { opacity: 0, y: 12, filter: "blur(6px)" };
+
 const COPY = {
   signin: { title: "Welcome back.", submit: "Sign in", busy: "Signing in", done: "Opening your notes" },
   signup: { title: "Start writing.", submit: "Create account", busy: "Creating account", done: "Opening your notes" },
@@ -41,6 +44,7 @@ export function AuthPage({ mode, actions, links }: AuthPageProps) {
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
   const [signedIn, setSignedIn] = useState(false);
+  const [enter] = useState(() => (hasPainted() ? ENTER : false));
   const check = usePasswordCheck(mode === "signup" ? password : "", actions.checkPassword);
 
   const run = async (kind: Pending, action: () => Promise<void>, finish?: () => Promise<void>) => {
@@ -94,7 +98,7 @@ export function AuthPage({ mode, actions, links }: AuthPageProps) {
     <AuthShell home={links.home}>
           <m.div
             key={mode}
-            initial={{ opacity: 0, y: 12, filter: "blur(6px)" }}
+            initial={enter}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             transition={{ duration: 0.5, ease }}
             className="w-full max-w-[360px]"

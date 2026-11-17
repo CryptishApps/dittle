@@ -1,10 +1,16 @@
-import { queryOptions, type QueryClient } from "@tanstack/react-query";
-import { live } from "@/lib/live-query";
+import { queryOptions, type FetchQueryOptions, type QueryClient, type QueryKey } from "@tanstack/react-query";
+import { afterFirstPaint } from "@/lib/first-paint";
+import { ensureLive, live } from "@/lib/live-query";
 import { EMPTY_NOTE, summarise, type NoteDoc } from "./note-doc";
 import type { Collection, Row } from "./fact";
 import type { CellPlacement, CellWrite, Folder, Note, NoteSummary, StoredValue } from "./store";
 
 export const loadStore = () => import("./store");
+
+export const KEPT_SHAPES_VERSION = "1";
+
+export const cachedThenLive = <T, Key extends QueryKey>(queryClient: QueryClient, options: FetchQueryOptions<T, Error, T, Key>): Promise<T> =>
+  ensureLive(queryClient, options, afterFirstPaint);
 
 const forever = { staleTime: Number.POSITIVE_INFINITY, gcTime: 5 * 60_000 } as const;
 
@@ -84,6 +90,16 @@ export function startNote(queryClient: QueryClient, uid: string, folderId: strin
   const query = noteQuery(uid, id);
   const seed: Note = { id, ...summarise(start), updatedAt: Date.now(), pending: true, folderId, valueIds: [], doc: start, ignoredRequests: [] };
   queryClient.setQueryData<Note | null>(query.queryKey, seed);
-  void queryClient.prefetchQuery({ ...query, staleTime: 0 });
+  void cachedThenLive(queryClient, query);
   return id;
+}
+
+export async function keepNotesOnDevice(queryClient: QueryClient, uid: string): Promise<{ restored: boolean }> {
+  const { keepOnDevice } = await import("@/lib/query-cache");
+  await keepOnDevice(queryClient, { owner: uid, shapes: KEPT_SHAPES_VERSION });
+  return { restored: queryClient.getQueryData(notesQuery(uid).queryKey) !== undefined };
+}
+
+export async function forgetNotesOnDevice(): Promise<void> {
+  await Promise.allSettled([import("@/lib/query-cache").then((cache) => cache.forgetOnDevice()), loadStore().then((store) => store.forgetThisDevice())]);
 }

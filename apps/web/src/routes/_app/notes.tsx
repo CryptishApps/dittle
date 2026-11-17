@@ -1,23 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { collectionsQuery, foldersQuery, loadStore, notesQuery, rowsQuery, valuesQuery } from "@/features/notes/api";
+import { cachedThenLive, collectionsQuery, foldersQuery, notesQuery, rowsQuery, valuesQuery } from "@/features/notes/api";
 import { NotesShell } from "@/features/notes/NotesShell";
 
 export const Route = createFileRoute("/_app/notes")({
-  loader: async ({ context: { queryClient, user } }) => {
-    const { uid } = user;
+  loader: async ({ context: { queryClient, account } }) => {
+    const { uid } = account;
     await Promise.all([
-      loadStore(),
-      queryClient.ensureQueryData(notesQuery(uid)),
-      queryClient.ensureQueryData(valuesQuery(uid)),
-      queryClient.ensureQueryData(foldersQuery(uid)),
-      queryClient.ensureQueryData(collectionsQuery(uid)),
-      queryClient.ensureQueryData(rowsQuery(uid)),
+      cachedThenLive(queryClient, notesQuery(uid)),
+      cachedThenLive(queryClient, valuesQuery(uid)),
+      cachedThenLive(queryClient, foldersQuery(uid)),
+      cachedThenLive(queryClient, collectionsQuery(uid)),
+      cachedThenLive(queryClient, rowsQuery(uid)),
     ]);
   },
   component: NotesRoute,
 });
 
 function NotesRoute() {
-  const { user } = Route.useRouteContext();
-  return <NotesShell user={user} />;
+  const { account } = Route.useRouteContext();
+  return <NotesShell account={account} />;
 }

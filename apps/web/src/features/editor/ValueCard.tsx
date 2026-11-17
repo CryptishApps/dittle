@@ -1,15 +1,15 @@
 import { autoUpdate, computePosition, flip, offset, shift } from "@floating-ui/dom";
 import type { Editor } from "@tiptap/react";
 import { AnimatePresence, m } from "motion/react";
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { FactFields } from "@/features/notes/fact";
 import { ease } from "@/ui/kit";
-import { describeFormula, formatAmount } from "@/features/formulas/apply";
-import { formatDuration, joinDuration, splitDuration, type DurationParts } from "@/features/formulas/duration";
+import { describeFormula } from "@/features/formulas/apply";
 import { applyEverywhere as applyToNotes, changeValue, type ChangeScope } from "./change-value";
+import { Action, EditValue, nameOf, usedIn } from "./EditValue";
 import { repoint, type Quantity } from "./linking";
 import { foundValueAt, spottingKey } from "./spotting";
-import { VALUE_NODE } from "./value-tag";
+import { VALUE_NODE } from "./value-node";
 import type { EditorServices } from "./services";
 import { describeInBackground, useValues, type TrackedValue, type ValueStore } from "./values";
 
@@ -30,8 +30,6 @@ function showWhen(when: FactFields["when"]): string | undefined {
 export type Shown = Omit<FactFields, "text"> & { text: string };
 
 export const contextLine = (value: Shown) => [value.subject?.label, showWhen(value.when), ...(value.conditions ?? []), ...(value.remarks ?? [])].filter(Boolean).join(" · ");
-export const nameOf = (value: { name?: string } | undefined) => value?.name?.replaceAll("_", " ") ?? "value";
-const notes = (count: number) => `${count} ${count === 1 ? "note" : "notes"}`;
 
 type ValueCardProps = { editor: Editor; store: ValueStore; services?: EditorServices };
 
@@ -223,15 +221,15 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
 
           {changed && linked && (
             <p className="mt-2 text-accent-ink">
-              {nameOf(linked)} is {linked.text} in {notes(usage(linked.id))}. Change it to {shown.text}?
+              {nameOf(linked)} is {linked.text} in {usedIn(usage(linked.id))}. Change it to {shown.text}?
             </p>
           )}
           {!changed && linked && (
             <p className="mt-2 text-soft">
-              Same as {nameOf(linked)} in {notes(usage(linked.id))}
+              Same as {nameOf(linked)} in {usedIn(usage(linked.id))}
             </p>
           )}
-          {tag && !tag.proposal && usage(tag.id) > 1 && <p className="mt-2 text-soft">In {notes(usage(tag.id))}</p>}
+          {tag && !tag.proposal && usage(tag.id) > 1 && <p className="mt-2 text-soft">In {usedIn(usage(tag.id))}</p>}
           {tag && placementOf?.(tag) && <p className="mt-2 text-soft">{placementOf(tag)}</p>}
           {tag && !editing && !tag.proposal && !tag.naming && !tag.field && startCollection && (
             <StartCollection
@@ -285,24 +283,10 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
   );
 }
 
-const NUMBER_INPUT = "h-full min-w-0 bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none";
-
 function Actions({ children }: { children: ReactNode }) {
   const items = Array.isArray(children) ? children.filter(Boolean) : children;
   if (!items || (Array.isArray(items) && items.length === 0)) return null;
   return <div className="mt-2.5 flex flex-wrap items-center justify-end gap-2 border-t border-line pt-2">{children}</div>;
-}
-
-function Action({ primary, onClick, children }: { primary?: boolean; onClick: () => void; children: ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`px-2 py-1 text-[10.5px] tracking-[0.06em] uppercase ${primary ? "bg-ink text-page hover:opacity-90" : "border border-line-strong text-ink hover:border-ink"}`}
-    >
-      {children}
-    </button>
-  );
 }
 
 export function StartCollection({ value, onStart }: { value: TrackedValue; onStart: (name: string) => void }) {
@@ -341,133 +325,5 @@ export function StartCollection({ value, onStart }: { value: TrackedValue; onSta
       </div>
       <p className="mt-1.5 text-faint">{value.event ? "One row per day. Other values in this note from the same day become columns." : `One row per ${label}. Other values from the same sentence become columns.`}</p>
     </form>
-  );
-}
-
-type Edited = { text: string; quantity?: Quantity };
-
-const DURATION_UNITS = [
-  { part: "hours", label: "h" },
-  { part: "minutes", label: "min" },
-  { part: "seconds", label: "s" },
-] as const;
-
-type DurationDraft = Record<keyof DurationParts, string>;
-
-const durationDraft = (seconds: number | undefined): DurationDraft => {
-  if (seconds === undefined) return { hours: "", minutes: "", seconds: "" };
-  const parts = splitDuration(seconds);
-  return { hours: String(parts.hours), minutes: String(parts.minutes), seconds: String(parts.seconds) };
-};
-
-function durationFrom(draft: DurationDraft): Edited | undefined {
-  const parts = { hours: Number(draft.hours || 0), minutes: Number(draft.minutes || 0), seconds: Number(draft.seconds || 0) };
-  if (Object.values(parts).some((part) => !Number.isFinite(part) || part < 0)) return undefined;
-  const seconds = joinDuration(parts);
-  return seconds > 0 ? { text: formatDuration(seconds), quantity: { seconds } } : undefined;
-}
-
-export function EditValue({
-  value,
-  count,
-  onSave,
-  onCancel,
-  autoFocus = true,
-}: {
-  value: TrackedValue;
-  count: number;
-  onSave: (text: string, scope: ChangeScope, quantity?: Quantity) => void;
-  onCancel: () => void;
-  autoFocus?: boolean;
-}) {
-  const duration = value.kind === "duration";
-  const numeric = !duration && value.amount !== undefined;
-  const [text, setText] = useState(numeric ? String(value.amount) : value.text);
-  const [draft, setDraft] = useState(() => durationDraft(value.seconds));
-  const [asking, setAsking] = useState(false);
-  const next = (): Edited | undefined => {
-    if (duration) return durationFrom(draft);
-    if (!numeric) return { text: text.trim() };
-    const amount = Number(text);
-    return Number.isFinite(amount) && text.trim() !== "" ? { text: formatAmount(value, amount), quantity: { amount } } : undefined;
-  };
-  const submit = () => {
-    const result = next();
-    if (!result?.text || result.text === value.text || (duration && result.quantity?.seconds === value.seconds)) return onCancel();
-    if (count > 1) setAsking(true);
-    else onSave(result.text, "everywhere", result.quantity);
-  };
-  const save = (scope: ChangeScope) => {
-    const result = next();
-    if (result) onSave(result.text, scope, result.quantity);
-  };
-  const keys = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      submit();
-    }
-    if (event.key === "Escape") onCancel();
-  };
-  return (
-    <div className="mt-2">
-      {duration ? (
-        <div className="flex gap-1.5" role="group" aria-label={`Change ${nameOf(value)}`}>
-          {DURATION_UNITS.map(({ part, label }, index) => (
-            <label key={part} className="flex h-8 min-w-0 flex-1 items-center border border-accent bg-card px-2 text-[13px]">
-              <input
-                autoFocus={autoFocus && index === 0}
-                type="number"
-                min={0}
-                step={1}
-                inputMode="numeric"
-                aria-label={part}
-                placeholder="0"
-                value={draft[part]}
-                onChange={(event) => {
-                  setDraft((current) => ({ ...current, [part]: event.target.value }));
-                  setAsking(false);
-                }}
-                onKeyDown={keys}
-                className={`${NUMBER_INPUT} w-full text-right tabular-nums`}
-              />
-              <span className="ml-1 text-soft">{label}</span>
-            </label>
-          ))}
-        </div>
-      ) : (
-        <div className="flex h-8 items-center border border-accent bg-card px-2 text-[13px]">
-          {numeric && value.before && <span className="text-soft">{value.before}</span>}
-          <input
-            autoFocus={autoFocus}
-            type={numeric ? "number" : "text"}
-            step="any"
-            aria-label={`Change ${nameOf(value)}`}
-            value={text}
-            onChange={(event) => {
-              setText(event.target.value);
-              setAsking(false);
-            }}
-            onKeyDown={keys}
-            className={`${NUMBER_INPUT} flex-1`}
-          />
-          {numeric && value.after && <span className="text-soft">{value.after}</span>}
-        </div>
-      )}
-      {asking ? (
-        <div className="mt-2">
-          <p className="text-accent-ink">
-            {value.text} is used in {notes(count)}.
-          </p>
-          <div className="mt-2 flex flex-wrap justify-end gap-2">
-            <Action onClick={() => save("here")}>Only in this note</Action>
-            <Action primary onClick={() => save("everywhere")}>
-              Update all {count}
-            </Action>
-          </div>
-        </div>
-      ) : (
-        <p className="mt-1.5 text-faint">Enter to save · Esc to cancel</p>
-      )}
-    </div>
   );
 }
