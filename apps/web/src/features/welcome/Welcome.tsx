@@ -15,51 +15,51 @@ const REPO_URL = "https://github.com/CryptishApps/dittle";
 
 const STEPS: Step[] = [
   {
-    key: "found",
+    key: "hover",
     label: "On device",
-    title: "It spots the details that matter",
-    body: "As you type, Gemini Nano reads each paragraph and marks the counts, dates and prices. Hover one to see how it was worked out and which other notes mention it.",
-    visual: <Shot name="hover" theme="dark" alt="A note with values marked in grey and a card showing the food total and the other note that uses it." focus={{ x: 30, y: 9, zoom: 1.75 }} />,
+    title: "It knows what each value is",
+    body: "Type @ before a value to tag it. Gemini Nano names it, like guest count or buffet price, and notices when one is worked out from others. Hover a value to see what it is and how many notes use it.",
+    visual: <Shot name="hover" theme="dark" alt="A catering note with a card on £3,040 saying it is buffet price × guest count and appears in 2 notes." focus={{ x: 23, y: 14, zoom: 1.9 }} />,
+  },
+  {
+    key: "panel",
+    label: "On device",
+    title: "Click a value to see where it lives",
+    body: "A side panel shows the value, a field to change it, the notes that use it and its row in a collection. Three runs written in three notes line up in one Runs table.",
+    visual: <Shot name="panel" theme="dark" alt="A side panel for 12 km with a field to change it and a Runs table listing three runs with distance and time." focus={{ x: 53.5, y: 9, zoom: 2.15 }} />,
   },
   {
     key: "change",
     label: "On device",
     title: "Change it once",
-    body: "Edit a value and Dittle lists the notes that still have the old one. Update them all in one go, or keep the change to this note.",
-    visual: <Shot name="change" theme="dark" alt="The guest count changed from 80 to 95, with three notes listed as still saying 80." focus={{ x: 32, y: 13, zoom: 1.7 }} />,
+    body: "Change 80 guests to 95 and Dittle asks whether to update every note that uses it or only this one. Totals follow: £3,040 becomes £3,610, worked out by code, not by the model.",
+    visual: <Shot name="change" theme="dark" alt="The guest count changed from 80 to 95, with a note that 80 is used in 2 notes and a button to update both." focus={{ x: 56.5, y: 9, zoom: 2.3 }} />,
   },
   {
-    key: "stale",
-    label: "On device",
-    title: "Old values stand out",
-    body: "Open a note you skipped and the old value is marked in orange, with the new one a click away. Nothing changes without you seeing it.",
-    visual: <Shot name="stale" theme="dark" alt="The budget note with 80 marked in orange and a button to use 95 instead." focus={{ x: 34, y: 14, zoom: 1.55 }} />,
+    key: "home",
+    label: "On device, cloud for suggestions",
+    title: "Totals and dates on your home page",
+    body: "Each collection adds itself up, like the distance you ran this month. The next dates in your notes count down, and Dittle suggests a new collection when it sees a pattern.",
+    visual: <Shot name="home" theme="dark" alt="The home page with a Runs tile showing 23.4 km this month, a Coming up tile counting down 10 days, and a list of notes." focus={{ x: 19.5, y: 10, zoom: 1.65 }} />,
   },
   {
-    key: "inbox",
-    label: "Background",
-    title: "An inbox for the quiet work",
-    body: "Notes it sorted into buckets, totals it added up and notes that disagree with each other all land in one list, with a link back to each note.",
-    visual: <Shot name="inbox" theme="dark" alt="An inbox listing notes Dittle updated, sorted and added up." focus={{ x: 17, y: 0, zoom: 1.45 }} />,
-  },
-  {
-    key: "write",
-    label: "On device, cloud for long jobs",
+    key: "request",
+    label: "On device, cloud as fallback",
     title: "Ask in the note itself",
-    body: "Write “add in a list of meals here” and a button appears with the list already drafted. Hover to preview it, click to add it.",
-    visual: <Shot name="write" theme="dark" alt="A note offering to insert a list of seven meals, with a preview." focus={{ x: 31, y: 24, zoom: 1.75 }} />,
+    body: "Write “Write a packing list for a weekend in Lisbon” and a button appears with the list already written. Hover to preview it, then add it below or replace your request. Type / for the same thing from a menu.",
+    visual: <Shot name="request" theme="dark" alt="A Lisbon trip note with an Add a packing list button and a preview of ten checklist items." focus={{ x: 24, y: 12.5, zoom: 1.6 }} />,
   },
 ];
 
 const MODELS: { job: string; model: string; where: string; how: string }[] = [
   {
-    job: "Read notes, find values, sort into buckets, short inserts",
+    job: "Find and name values, link them across notes, file them into collections, spot formulas, write requests",
     model: "Gemini Nano",
     where: "On device",
-    how: "Chrome's Prompt API on the web, ML Kit on Android",
+    how: "Chrome's Prompt API, through Firebase AI Logic hybrid mode",
   },
-  { job: "Fallback when the device has no model", model: "Gemini Flash", where: "Cloud", how: "Firebase AI Logic, hybrid mode" },
-  { job: "Collections and long inserts", model: "Gemini Flash", where: "Cloud", how: "Only extracted values and titles are sent" },
+  { job: "The same jobs when the device has no model", model: "Gemini Flash-Lite", where: "Cloud", how: "Firebase AI Logic falls back to the cloud" },
+  { job: "Suggest collections across all your notes", model: "Gemini Flash-Lite", where: "Cloud", how: "Only the tracked values are sent, not the notes" },
 ];
 
 const FIREBASE = ["AI Logic", "Firestore", "Authentication", "App Check", "Remote Config", "Hosting"];
@@ -164,17 +164,17 @@ export function Welcome({ onStart, onSignIn }: WelcomeProps) {
 
         <Rise delay={0.3} className="mt-20 sm:mt-28">
           <div className="mb-3 flex items-center justify-between text-[11px] tracking-[0.06em] text-faint uppercase">
-            <span>Fig. 00 — A catering quote, read on device</span>
-            <span className="hidden sm:inline">1440 × 900</span>
+            <span>Fig. 00 — The guest count changed from 80 to 95</span>
+            <span className="hidden sm:inline">1280 × 800</span>
           </div>
           <TiltedShot
             floating={(progress) => (
               <>
                 <Floating progress={progress} distance={60} className="top-[30%] -left-3 hidden md:block lg:-left-10">
-                  <Note code="VF" title="Value found" detail="Guest count · 180 ms" />
+                  <Note code="FX" title="£3,610 follows the change" detail="Buffet price × guest count" />
                 </Floating>
                 <Floating progress={progress} distance={110} className="top-[48%] -right-3 hidden md:block lg:-right-10">
-                  <Note code="UP" title="3 notes still say 80" detail="Budget, Chair hire, Email" accent />
+                  <Note code="UP" title="95 guests in 2 notes" detail="Catering, Wedding budget" accent />
                 </Floating>
                 <Floating progress={progress} distance={80} className="-bottom-6 left-[38%] hidden md:block">
                   <Note code="ND" title="Read on this device" detail="Gemini Nano · Prompt API" />
@@ -183,7 +183,7 @@ export function Welcome({ onStart, onSignIn }: WelcomeProps) {
             )}
           >
             <div className="brackets border border-line-strong bg-card p-1.5 shadow-pop [--bracket-inset:-9px] [--bracket-size:16px]">
-              <Shot name="hero" priority alt="Dittle showing a catering quote where the guest count changed from 80 to 95, with three other notes marked as out of date." />
+              <Shot name="hero" priority alt="A catering note after the guest count changed from 80 to 95: the total now reads £3,610, and a side panel lists the two notes that use the guest count." />
             </div>
           </TiltedShot>
         </Rise>
@@ -253,7 +253,7 @@ export function Welcome({ onStart, onSignIn }: WelcomeProps) {
           </table>
         </Reveal>
         <Reveal delay={0.1} className="mt-px grid border border-t-0 border-line-strong sm:grid-cols-3">
-          <Fact title="Private" body="On-device jobs never send your note anywhere. Cloud jobs get values and titles, not whole notes." />
+          <Fact title="Private" body="On-device jobs keep your notes on your device. Cloud fallback sends one paragraph, or the note for a request. Collection suggestions send only values." />
           <Fact title="Offline" body="Notes save to your device first and sync when you're back. The on-device model works without a connection." />
           <Fact title="Open" body="The code is on GitHub under Apache 2.0. Read how every AI call is made, or run your own copy." />
         </Reveal>

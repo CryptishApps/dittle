@@ -61,9 +61,7 @@ bun run dev                                    # http://localhost:5180
 
 App Check starts only when the app first uses AI Logic or Firestore, so sign-in pages never load reCAPTCHA. Leave `VITE_RECAPTCHA_ENTERPRISE_SITE_KEY` empty to run without it. Once it's set, development uses a debug token. Leave `VITE_APPCHECK_DEBUG_TOKEN` empty the first time, copy the token the browser console prints, and add it in the Firebase console under App Check > Manage debug tokens.
 
-Design previews live at `http://localhost:5180/dev/designs`: the notes app filled with sample notes, the homepage and the sign-in page. They exist only in development and are left out of production builds.
-
-The homepage screenshots come from the notes app preview. `apps/web/shots` holds the PNG originals, and `apps/web/public/shots` holds the AVIF and WebP copies the site serves. To retake them, keep `bun run dev` running and run `CHROME_PATH=/path/to/chrome bun run --filter @dittle/web shots`.
+The homepage screenshots are taken from the real app. The script signs up a throwaway account, writes a few notes through the editor, takes each screenshot in light and dark, then deletes the account and its notes. It makes a few AI calls, some in the cloud. `apps/web/shots` holds the PNG originals, and `apps/web/public/shots` holds the AVIF and WebP copies the site serves. To retake them, keep `bun run dev` running and run `CHROME_PATH=/path/to/chrome bun run --filter @dittle/web shots`.
 
 Deploy to Firebase Hosting with the Firebase CLI:
 

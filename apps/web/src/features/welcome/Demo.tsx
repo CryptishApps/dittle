@@ -162,7 +162,7 @@ export function Demo() {
                         <Btn primary onClick={update}>
                           Update {stale.length} {stale.length === 1 ? "note" : "notes"}
                         </Btn>
-                        <Btn onClick={() => setSkipped(true)}>Only this note</Btn>
+                        <Btn onClick={() => setSkipped(true)}>Only in this note</Btn>
                       </div>
                     </>
                   )}
