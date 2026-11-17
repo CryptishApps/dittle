@@ -94,12 +94,16 @@ export function startNote(queryClient: QueryClient, uid: string, folderId: strin
   return id;
 }
 
-export async function keepNotesOnDevice(queryClient: QueryClient, uid: string): Promise<{ restored: boolean }> {
-  const { keepOnDevice } = await import("@/lib/query-cache");
-  await keepOnDevice(queryClient, { owner: uid, shapes: KEPT_SHAPES_VERSION });
-  return { restored: queryClient.getQueryData(notesQuery(uid).queryKey) !== undefined };
+let kept: { uid: string; restored: Promise<void> } | undefined;
+
+export function keepNotesOnDevice(queryClient: QueryClient, uid: string): Promise<{ restored: boolean }> {
+  if (kept?.uid !== uid) {
+    kept = { uid, restored: import("@/lib/query-cache").then((cache) => cache.keepOnDevice(queryClient, { owner: uid, shapes: KEPT_SHAPES_VERSION })) };
+  }
+  return kept.restored.then(() => ({ restored: queryClient.getQueryData(notesQuery(uid).queryKey) !== undefined }));
 }
 
 export async function forgetNotesOnDevice(): Promise<void> {
+  kept = undefined;
   await Promise.allSettled([import("@/lib/query-cache").then((cache) => cache.forgetOnDevice()), loadStore().then((store) => store.forgetThisDevice())]);
 }
