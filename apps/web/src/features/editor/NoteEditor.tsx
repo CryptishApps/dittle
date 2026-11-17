@@ -13,6 +13,7 @@ import { deviceModelStatus } from "@/features/ai/device-model";
 import { DESCRIBE_PROMPT_VERSION } from "@/features/ai/prompt-versions";
 import { findLinks, repoint } from "./linking";
 import { DescribeWhenPaused } from "./describe-when-paused";
+import { fileParagraph } from "./filing";
 import { Requests } from "./requests";
 import { RequestPreview } from "./RequestPreview";
 import { SlashCommands } from "./slash-commands";
@@ -109,6 +110,7 @@ export function useNoteEditor({ store, content, label, services = {}, autofocus 
       }),
       Requests.configure({
         write: (input) => import("@/features/ai/write").then(({ writeRequest }) => writeRequest(input)),
+        file: ({ at, list }) => (holder.current ? fileParagraph(holder.current, store, services, at, list) : Promise.resolve(false)),
         ignored: () => services.ignoredRequests?.() ?? [],
         onIgnore: (text) => services.ignoreRequest?.(text),
       }),

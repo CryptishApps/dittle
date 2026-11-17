@@ -41,14 +41,14 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
     });
   };
 
-  const place = async (value: TrackedValue) => {
+  const place = async (value: TrackedValue, sentence?: string): Promise<boolean> => {
     const fact = { ...store.get(value.id), ...value };
     const all = collections();
-    if (fact.field || all.length === 0) return;
+    if (fact.field || all.length === 0) return false;
     const options = all.map((collection) => (collection.key.by === "name" ? rowOptions(collection, rows()) : []));
     const { placeValue } = await import("@/features/ai/place");
     const result = await placeValue({
-      sentence: fact.origin?.sentence ?? fact.text,
+      sentence: sentence ?? fact.origin?.sentence ?? fact.text,
       item: { text: fact.text, kind: fact.kind, name: fact.name, about: fact.subject?.label },
       collections: all.map((collection, index) => ({
         name: collection.name,
@@ -57,28 +57,56 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
         rows: options[index]!.map((row) => row.label),
       })),
     });
-    if (result.collection === null || result.field === null) return;
+    if (result.collection === null || result.field === null) return false;
     const collection = all[result.collection]!;
     const field = collection.fields[result.field]!;
     const byDay = collection.key.by === "when";
-    if ((byDay && field.kind === "date") || (fact.kind && field.kind !== "text" && field.kind !== fact.kind)) return;
+    if ((byDay && field.kind === "date") || (fact.kind && field.kind !== "text" && field.kind !== fact.kind)) return false;
     const placement = byDay
       ? placeByDay(collection, fact, field.id, store.list(), rows())
       : result.row && placeByName(collection, result.row, options[result.collection]!, fact, field.id, store.list());
-    if (!placement) return;
+    if (!placement) return false;
     const { occupant, another } = placement;
-    if (!occupant) return put(collection, fact.id, field, placement);
+    if (!occupant) {
+      await put(collection, fact.id, field, placement);
+      return true;
+    }
     if (byDay && another) {
       askToast(`${collection.name} already has ${occupant.text} on ${dayLabel(placement.row.period)}`, [
         { label: "Skip" },
         { label: "Add another", primary: true, run: () => void put(collection, fact.id, field, another) },
       ]);
-      return;
+      return true;
     }
     askToast(`${collection.name} already has ${occupant.text} for ${placement.row.label}`, [
       { label: "Skip" },
       { label: `Use ${fact.text}`, primary: true, run: () => void put(collection, fact.id, field, placement, occupant.id) },
     ]);
+    return true;
+  };
+
+  const fileValues = async (values: TrackedValue[], list: string, sentence: string): Promise<boolean> => {
+    if (values.length === 0) {
+      showToast(`Nothing to add to ${list} yet. Write a value in this paragraph, like a distance or a price.`);
+      return false;
+    }
+    const filed = values.find((value) => value.field);
+    const row = filed && rows().find((item) => item.id === filed.subject?.entityId);
+    const home = row && collections().find((item) => item.id === row.collectionId);
+    if (home) {
+      showToast(`Already in ${home.name} · ${rowLabel(row)}`);
+      return true;
+    }
+    let placed = false;
+    for (const value of values) placed = (await place(value, sentence)) || placed;
+    if (placed) return true;
+    const lead = values.find((value) => value.event) ?? values[0]!;
+    const known = new Map(store.list().map((value) => [value.id, value]));
+    for (const value of values) known.set(value.id, { ...known.get(value.id), ...value });
+    const plan = planCollection(lead, [...known.values()], list, lead.event ? "day" : "name");
+    writes.createCollection(uid, plan.collection, plan.rows, plan.cells);
+    showToast(`Started ${list} with ${rowLabel(plan.rows[0]!)}`);
+    return true;
   };
 
   const findFormula = async (value: TrackedValue) => {
@@ -102,7 +130,7 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
     usage: (factId) => notes().filter((note) => note.valueIds.includes(factId)).length,
     onChanged: (factId, text) => relabelNotesUsing(queryClient, uid, factId, text, noteId),
     onNewFact: (value) => {
-      placing = placing.then(() => place(value)).catch((error: unknown) => console.warn("Dittle could not place a value in a collection", error));
+      placing = placing.then(() => void place(value)).catch((error: unknown) => console.warn("Dittle could not place a value in a collection", error));
       void findFormula(value).catch((error: unknown) => console.warn("Dittle could not check for a formula", error));
     },
     placementOf: (value) => {
@@ -114,6 +142,11 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
       const plan = planCollection(value, store.list(), name, per);
       writes.createCollection(uid, plan.collection, plan.rows, plan.cells);
       showToast(`Created ${name} with ${plan.cells.length} ${plan.cells.length === 1 ? "value" : "values"}`);
+    },
+    fileValues: (values, list, sentence) => {
+      const filing = placing.then(() => fileValues(values, list, sentence));
+      placing = filing.then(() => undefined).catch(() => undefined);
+      return filing;
     },
     ignoredRequests: () => queryClient.getQueryData(noteQuery(uid, noteId).queryKey)?.ignoredRequests ?? [],
     ignoreRequest: (text) => writes.ignoreRequest(uid, noteId, text),

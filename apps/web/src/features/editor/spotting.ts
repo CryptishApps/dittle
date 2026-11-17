@@ -19,7 +19,7 @@ export type SpottingOptions = {
   find: (input: { paragraph: string; noteTitle: string }) => Promise<FindResult>;
   describe: (input: { paragraph: string; noteTitle: string; quotes: string[] }) => Promise<DescribeResult>;
   link?: (sentence: string, values: FoundValue[]) => Promise<(LinkTarget | null)[]>;
-  onRequests?: (block: { from: number; to: number }, requests: { from: number; to: number; text: string }[]) => void;
+  onRequests?: (block: { from: number; to: number }, requests: { from: number; to: number; text: string; list?: string }[]) => void;
   continuous: () => boolean;
 };
 
@@ -298,12 +298,19 @@ class Scheduler {
     }
     const meta: SetMeta = { block: { from: mapped.pos, to: mapped.pos + block.nodeSize }, placements };
     this.editor.view.dispatch(state.tr.setMeta(spottingKey, meta).setMeta("addToHistory", false));
+    const locate = (sentence: string) => {
+      const index = text.indexOf(sentence);
+      return index === -1 ? undefined : docRange(segments, index, index + sentence.length);
+    };
     const requests = mapped.pos === 0 ? [] : result.requests.flatMap((request) => {
-      const index = text.indexOf(request);
-      const range = index === -1 ? undefined : docRange(segments, index, index + request.length);
+      const range = locate(request);
       return range ? [{ ...range, text: request }] : [];
     });
-    this.options.onRequests?.(meta.block, requests);
+    const filings = mapped.pos === 0 ? [] : (result.filings ?? []).flatMap((filing) => {
+      const range = locate(filing.sentence);
+      return range ? [{ ...range, text: filing.sentence, list: filing.list }] : [];
+    });
+    this.options.onRequests?.(meta.block, [...requests, ...filings]);
     return placements.map((placement) => placement.value);
   }
 }
