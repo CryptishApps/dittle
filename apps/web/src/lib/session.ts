@@ -38,6 +38,13 @@ export function useSession(): Session | undefined {
 
 export type ConfirmMethod = "password" | "google";
 
+const RECENT_SIGN_IN_MS = 4 * 60 * 1000;
+
+export function signedInRecently(user: User, now = Date.now()): boolean {
+  const at = Date.parse(user.metadata.lastSignInTime ?? "");
+  return Number.isFinite(at) && now - at < RECENT_SIGN_IN_MS;
+}
+
 export function confirmMethod(user: User): ConfirmMethod {
   return user.providerData.some((info) => info.providerId === "password") ? "password" : "google";
 }

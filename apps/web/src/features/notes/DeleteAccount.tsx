@@ -4,7 +4,7 @@ import { Dialog } from "radix-ui";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { GoogleMark, PasswordInput } from "@/features/auth/parts";
 import { authMessage, isCancelled } from "@/lib/auth-errors";
-import { confirmMethod, loadAuth } from "@/lib/session";
+import { confirmMethod, loadAuth, signedInRecently } from "@/lib/session";
 import { collectionsQuery, loadStore, notesQuery } from "./api";
 
 const LIST = new Intl.ListFormat("en-GB", { type: "conjunction" });
@@ -40,7 +40,8 @@ function DeleteAccountBody({ user, online, busy, setBusy }: BodyProps) {
   const queryClient = useQueryClient();
   const { data: notes } = useSuspenseQuery(notesQuery(user.uid));
   const { data: collections } = useSuspenseQuery(collectionsQuery(user.uid));
-  const [confirming, setConfirming] = useState(false);
+  const [confirming, setConfirming] = useState(() => !signedInRecently(user));
+  const [dataGone, setDataGone] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string>();
   const method = confirmMethod(user);
@@ -58,6 +59,7 @@ function DeleteAccountBody({ user, online, busy, setBusy }: BodyProps) {
       const [store, auth] = await Promise.all([loadStore(), loadAuth()]);
       if (confirming) await auth.confirmIdentity(user, password);
       await store.deleteEverything(user.uid);
+      setDataGone(true);
       if ((await auth.deleteSignedInUser(user)) === "confirm-identity") {
         setConfirming(true);
         setBusy(false);
@@ -81,13 +83,13 @@ function DeleteAccountBody({ user, online, busy, setBusy }: BodyProps) {
 
   return (
     <form ref={form} onSubmit={(event) => void run(event)}>
-      <Dialog.Title className="text-[16px] font-medium tracking-[-0.01em] text-ink">{confirming ? "Confirm it's you" : "Delete your account?"}</Dialog.Title>
+      <Dialog.Title className="text-[16px] font-medium tracking-[-0.01em] text-ink">{confirming && dataGone ? "Confirm it's you" : "Delete your account?"}</Dialog.Title>
       <Dialog.Description className="mt-2 text-[12.5px] leading-relaxed text-soft">
-        {confirming
+        {confirming && dataGone
           ? method === "password"
             ? "Your notes and values are deleted. For security, enter your password to finish deleting your sign-in."
             : "Your notes and values are deleted. For security, continue with Google to finish deleting your sign-in."
-          : `This permanently deletes ${deleted} from every device. It can't be undone.`}
+          : `This permanently deletes ${deleted} from every device. It can't be undone.${confirming ? (method === "password" ? " Enter your password to confirm." : " Continue with Google to confirm.") : ""}`}
       </Dialog.Description>
 
       {confirming && method === "password" && (
