@@ -13,8 +13,8 @@ import { showToast } from "./toast";
 import type { Folder, NoteSummary } from "./store";
 
 const EXAMPLES = [
-  { title: "Sunday run", body: "Ran 5 km along the canal in 27:40." },
-  { title: "Lisbon trip", body: "Flights land Fri 12 June, and the hotel is €140 a night." },
+  { title: "Villa", body: "The villa in Alfama is €1,680 for the 6 of us." },
+  { title: "Flights", body: "Flights land on 4 June, and seats are £118 each." },
   { title: "Catering", body: "Rosa's Kitchen quoted £38 a head for 80 guests." },
 ];
 
@@ -107,9 +107,9 @@ function FirstVisit({ onStart }: { onStart: (title?: string, body?: string) => v
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto max-w-[640px] px-5 pt-16 pb-24 sm:px-8 sm:pt-24">
-        <h1 className="text-[26px] leading-tight font-medium tracking-[-0.03em]">Write anything.</h1>
+        <h1 className="text-[26px] leading-tight font-medium tracking-[-0.03em]">Plan anything.</h1>
         <p className="mt-3 text-[13.5px] leading-[1.75] text-soft">
-          Dittle notices the dates, prices and amounts in your notes. Change one, and every note that mentions it updates.
+          Write the plan as notes: the trip, the wedding, the offsite. Dittle notices the dates, prices and headcounts in them. Change one, and every note that mentions it updates.
         </p>
         <div className="mt-8">
           <StartNote onStart={(title) => onStart(title)} autoFocus />

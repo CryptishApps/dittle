@@ -18,36 +18,36 @@ const STEPS: Step[] = [
     key: "hover",
     label: "On device",
     title: "It knows what each value is",
-    body: "Type @ before a value to tag it. Gemini Nano names it, like guest count or buffet price, and notices when one is worked out from others. Hover a value to see what it is and how many notes use it.",
-    visual: <Shot name="hover" theme="dark" alt="A catering note with a card on £3,040 saying it is buffet price × guest count and appears in 2 notes." focus={{ x: 23, y: 14, zoom: 1.9 }} />,
+    body: "Type @ before a value to tag it. Gemini Nano names it, like guest count or villa cost, and notices when one is worked out from others. Hover a value to see what it is and how many notes use it.",
+    visual: <Shot name="hover" theme="dark" alt="A villa note with a card on €280 saying it is the villa cost ÷ the guest count." focus={{ x: 23, y: 14, zoom: 1.9 }} />,
   },
   {
     key: "panel",
     label: "On device",
     title: "Click a value to see where it lives",
-    body: "A side panel shows the value, a field to change it, the notes that use it and its row in a collection. Three runs written in three notes line up in one Runs table.",
-    visual: <Shot name="panel" theme="dark" alt="A side panel for 12 km with a field to change it and a Runs table listing three runs with distance and time." focus={{ x: 53.5, y: 9, zoom: 2.15 }} />,
+    body: "A side panel shows the value, a field to change it, the notes that use it and its row in a collection. Three plans written in three notes line up in one Things to do table, with the cost each and the date.",
+    visual: <Shot name="panel" theme="dark" alt="A side panel for €45 with a field to change it and a Things to do table listing a fado night, Jerónimos Monastery and Pena Palace with their prices and dates." focus={{ x: 53.5, y: 9, zoom: 2.15 }} />,
   },
   {
     key: "change",
     label: "On device",
     title: "Change it once",
-    body: "Change 80 guests to 95 and Dittle asks whether to update every note that uses it or only this one. Totals follow: £3,040 becomes £3,610, worked out by code, not by the model.",
-    visual: <Shot name="change" theme="dark" alt="The guest count changed from 80 to 95, with a note that 80 is used in 2 notes and a button to update both." focus={{ x: 56.5, y: 9, zoom: 2.3 }} />,
+    body: "Two more friends are coming. Change 6 to 8 and Dittle asks whether to update every note that uses it or only this one. The sums follow: flights go from £708 to £944 and the villa from €280 each to €210, worked out by code, not by the model.",
+    visual: <Shot name="change" theme="dark" alt="The guest count changed from 6 to 8, with a note that 6 is used in 2 notes and a button to update both." focus={{ x: 56.5, y: 9, zoom: 2.3 }} />,
   },
   {
     key: "home",
     label: "On device, cloud for suggestions",
-    title: "Totals and dates on your home page",
-    body: "Each collection adds itself up, like the distance you ran this month. The next dates in your notes count down, and Dittle suggests a new collection when it sees a pattern.",
-    visual: <Shot name="home" theme="dark" alt="The home page with a Runs tile showing 23.4 km this month, a Coming up tile counting down 10 days, and a list of notes." focus={{ x: 19.5, y: 10, zoom: 1.65 }} />,
+    title: "The whole plan on your home page",
+    body: "Each collection adds itself up, like what the things to do cost each of you. The dates in your notes count down, and Dittle suggests a new collection when it sees a pattern.",
+    visual: <Shot name="home" theme="dark" alt="The home page with a Things to do tile showing €95 in total, a Coming up tile counting down 24 days to the flight, and a list of notes." focus={{ x: 19.5, y: 10, zoom: 1.65 }} />,
   },
   {
     key: "request",
     label: "On device, cloud as fallback",
     title: "Ask in the note itself",
-    body: "Write “Write a packing list for a weekend in Lisbon” and a button appears with the list already written. Hover to preview it, then add it below or replace your request. Type / for the same thing from a menu.",
-    visual: <Shot name="request" theme="dark" alt="A Lisbon trip note with an Add a packing list button and a preview of ten checklist items." focus={{ x: 24, y: 12.5, zoom: 1.6 }} />,
+    body: "Write “Write a packing list for a long weekend in Lisbon” and a button appears with the list already written. Hover to preview it, then add it below or replace your request. Type / for the same thing from a menu.",
+    visual: <Shot name="request" theme="dark" alt="The flights note with an Add a packing list button and a preview of the checklist." focus={{ x: 24, y: 12.5, zoom: 1.6 }} />,
   },
 ];
 
@@ -108,7 +108,7 @@ export function Welcome({ onStart, onSignIn }: WelcomeProps) {
             onClick={onStart}
             className="inline-flex h-9 items-center gap-2 bg-ink px-4 text-[11px] tracking-[0.06em] text-page uppercase transition-opacity hover:opacity-90"
           >
-            Start writing
+            Start planning
             <MIcon name="right" className="size-3.5" />
           </button>
           </div>
@@ -124,7 +124,7 @@ export function Welcome({ onStart, onSignIn }: WelcomeProps) {
           </span>
         </Rise>
         <h1 className="mt-8 text-[40px] leading-[1.06] font-medium tracking-[-0.06em] [--caret-w:0.32em] sm:text-[60px] lg:text-[76px]">
-          Notes that keep <br className="hidden sm:block" />
+          Plans that keep <br className="hidden sm:block" />
           themselves{" "}
           <span className="whitespace-nowrap">
             <span className="token" data-found={found}>
@@ -136,7 +136,7 @@ export function Welcome({ onStart, onSignIn }: WelcomeProps) {
         <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
           <Rise delay={0.16}>
             <p className="max-w-[50ch] text-[16px] leading-[1.75] text-soft sm:text-[17px]">
-              Change a date, price or headcount in one note, and Dittle updates every other note that mentions it.{" "}
+              Plan a trip, a wedding or a team offsite in plain notes. Change a date, price or headcount in one, and Dittle updates every other note that mentions it.{" "}
               <span className="text-ink">Private, instant, works offline.</span>
             </p>
           </Rise>
@@ -147,7 +147,7 @@ export function Welcome({ onStart, onSignIn }: WelcomeProps) {
                 onClick={onStart}
                 className="inline-flex h-11 items-center gap-2 bg-ink px-5 text-[12px] tracking-[0.06em] text-page uppercase transition-opacity hover:opacity-90"
               >
-                Start writing
+                Start planning
                 <MIcon name="right" className="size-3.5" />
               </button>
               <button
@@ -164,17 +164,17 @@ export function Welcome({ onStart, onSignIn }: WelcomeProps) {
 
         <Rise delay={0.3} className="mt-20 sm:mt-28">
           <div className="mb-3 flex items-center justify-between text-[11px] tracking-[0.06em] text-faint uppercase">
-            <span>Fig. 00 — The guest count changed from 80 to 95</span>
+            <span>Fig. 00 — Two more friends are coming to Lisbon</span>
             <span className="hidden sm:inline">1280 × 800</span>
           </div>
           <TiltedShot
             floating={(progress) => (
               <>
                 <Floating progress={progress} distance={60} className="top-[30%] -left-3 hidden md:block lg:-left-10">
-                  <Note code="FX" title="£3,610 follows the change" detail="Buffet price × guest count" />
+                  <Note code="FX" title="€210 each follows the change" detail="Villa cost ÷ guest count" />
                 </Floating>
                 <Floating progress={progress} distance={110} className="top-[48%] -right-3 hidden md:block lg:-right-10">
-                  <Note code="UP" title="95 guests in 2 notes" detail="Catering, Wedding budget" accent />
+                  <Note code="UP" title="8 people in 2 notes" detail="Villa, Flights" accent />
                 </Floating>
                 <Floating progress={progress} distance={80} className="-bottom-6 left-[38%] hidden md:block">
                   <Note code="ND" title="Read on this device" detail="Gemini Nano · Prompt API" />
@@ -183,7 +183,7 @@ export function Welcome({ onStart, onSignIn }: WelcomeProps) {
             )}
           >
             <div className="brackets border border-line-strong bg-card p-1.5 shadow-pop [--bracket-inset:-9px] [--bracket-size:16px]">
-              <Shot name="hero" priority alt="A catering note after the guest count changed from 80 to 95: the total now reads £3,610, and a side panel lists the two notes that use the guest count." />
+              <Shot name="hero" priority alt="A villa note after the group grew from 6 to 8: the cost each now reads €210, and a side panel lists the two notes that use the group size." />
             </div>
           </TiltedShot>
         </Rise>
@@ -196,7 +196,7 @@ export function Welcome({ onStart, onSignIn }: WelcomeProps) {
           </Reveal>
           <Reveal delay={0.08}>
             <p className="max-w-[46ch] text-[15px] leading-[1.75] text-soft lg:justify-self-end">
-              Change the guest count in the catering quote. The other three notes mention the same number, so Dittle offers to bring them along.
+              Two more friends are coming. Change the group size in the villa note. Three other notes mention the same number, so Dittle offers to bring them along.
             </p>
           </Reveal>
         </div>
@@ -206,7 +206,7 @@ export function Welcome({ onStart, onSignIn }: WelcomeProps) {
       </Section>
 
       <section className="mx-auto max-w-[1200px] px-6 py-32 sm:px-8 sm:py-44">
-        <ScrollWords text="Your notes repeat the same details: [a guest count], [a date], [a price]. Dittle notices them on your device and keeps every copy in step, so a change in one place is never forgotten in another." />
+        <ScrollWords text="Every plan repeats the same details: [how many are coming], [when], [what it costs]. Dittle notices them on your device and keeps every copy in step, so a change in one place is never forgotten in another." />
       </section>
 
       <div data-dark className="theme-dark bg-page text-ink">
@@ -274,7 +274,7 @@ export function Welcome({ onStart, onSignIn }: WelcomeProps) {
           <Reveal>
             <p className="text-[11px] tracking-[0.06em] text-faint uppercase">04 — Start</p>
             <h2 className="mt-6 max-w-[14ch] text-[44px] leading-[1.02] font-medium tracking-[-0.06em] sm:text-[88px]">
-              <InViewScramble text="Write it down once." />
+              <InViewScramble text="Plan it once." />
             </h2>
             <div className="mt-12 flex flex-wrap gap-2">
               <button
@@ -282,7 +282,7 @@ export function Welcome({ onStart, onSignIn }: WelcomeProps) {
                 onClick={onStart}
                 className="inline-flex h-11 items-center gap-2 bg-ink px-5 text-[12px] tracking-[0.06em] text-page uppercase transition-opacity hover:opacity-90"
               >
-                Start writing
+                Start planning
                 <MIcon name="right" className="size-3.5" />
               </button>
               <a
