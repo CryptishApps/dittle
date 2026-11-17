@@ -1,0 +1,3 @@
+<!-- ASTACK:CLAUDE:START -->
+@AGENTS.md
+<!-- ASTACK:CLAUDE:END -->

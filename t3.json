@@ -1,0 +1,87 @@
+{
+  "$schema": "./.agents/t3.schema.json",
+  "defaultThreadEnvMode": "worktree",
+  "scripts": [
+    {
+      "name": "Setup worktree",
+      "command": "bun scripts/astack/setup.ts",
+      "runOnWorktreeCreate": true,
+      "async": false
+    },
+    {
+      "name": "Start web",
+      "command": "bun scripts/astack/run.ts web"
+    },
+    {
+      "name": "Stop services",
+      "command": "bun scripts/astack/stop.ts --all",
+      "runOnSettle": true
+    }
+  ],
+  "astack": {
+    "version": 1,
+    "name": "Dittle",
+    "scope": "@dittle",
+    "packageManager": "bun",
+    "branches": {
+      "integration": "main",
+      "release": "main"
+    },
+    "packs": [],
+    "install": "bun install --frozen-lockfile",
+    "envFiles": [
+      {
+        "path": "apps/web/.env.local",
+        "mode": "link"
+      }
+    ],
+    "ports": {
+      "slots": 100,
+      "base": {
+        "web": 5180
+      }
+    },
+    "services": {
+      "web": {
+        "cwd": "apps/web",
+        "command": "bun run dev --port ${PORT_WEB} --strictPort",
+        "ready": {
+          "port": "web",
+          "timeoutSeconds": 60
+        },
+        "url": "http://localhost:${PORT_WEB}"
+      }
+    },
+    "checks": {
+      "focused": "bun run lint && bun run typecheck && bun run test",
+      "ci": "bun run lint"
+    },
+    "ci": {
+      "typecheckJobs": 1,
+      "testShards": {}
+    },
+    "evidence": {
+      "branch": "astack-evidence",
+      "maxFileMb": 25,
+      "uiPaths": [
+        "apps/web/src/**",
+        "apps/web/public/**",
+        "apps/web/index.html"
+      ],
+      "backendPaths": [
+        "firestore.rules",
+        "firestore.indexes.json",
+        "remoteconfig.template.json"
+      ]
+    },
+    "reaper": {
+      "idleHours": 3,
+      "intervalMinutes": 15
+    },
+    "merge": {
+      "label": "good-to-go",
+      "maxPRs": 10,
+      "deploy": ""
+    }
+  }
+}

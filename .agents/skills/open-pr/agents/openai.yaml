@@ -1,0 +1,6 @@
+interface:
+  display_name: "Open PR"
+  short_description: "Open a PR with checks, evidence, and the template"
+  default_prompt: "Use $open-pr to open a pull request for this branch with evidence."
+policy:
+  allow_implicit_invocation: false

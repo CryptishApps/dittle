@@ -1,0 +1,6 @@
+interface:
+  display_name: "Review"
+  short_description: "Review a branch locally before it becomes a PR"
+  default_prompt: "Use $review to review this branch and record the verdict."
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Inspect Project Architecture"
+  short_description: "Settle ownership and boundaries before coding"
+  default_prompt: "Use $inspect-project-architecture to settle the types, ownership, and module boundaries for this change."

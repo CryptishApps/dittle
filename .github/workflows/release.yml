@@ -1,0 +1,206 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      typecheck: ${{ steps.typecheck.outputs.typecheck }}
+      test: ${{ steps.test.outputs.test }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Group workspaces into parallel typecheck jobs
+        id: typecheck
+        run: bun scripts/astack/typecheck-matrix.ts >> "$GITHUB_OUTPUT"
+
+      - name: List the test jobs, one per workspace or shard
+        id: test
+        run: bun scripts/astack/test-matrix.ts >> "$GITHUB_OUTPUT"
+
+  types:
+    name: types (${{ matrix.group }})
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.changes.outputs.typecheck) }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - name: Install
+        run: sh -c "$(bun -p 'require("./t3.json").astack.install')"
+
+      - name: Typecheck ${{ matrix.workspaces }}
+        if: matrix.filters != ''
+        run: bun run ${{ matrix.filters }} typecheck -- --checkers 1
+
+  tests:
+    name: tests (${{ matrix.job }})
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.changes.outputs.test) }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - name: Install
+        run: sh -c "$(bun -p 'require("./t3.json").astack.install')"
+
+      - name: Test ${{ matrix.job }}
+        if: matrix.workspace != ''
+        env:
+          WORKSPACE: ${{ matrix.workspace }}
+        run: bun run --filter="$WORKSPACE" test
+
+  checks:
+    name: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - name: Install
+        run: sh -c "$(bun -p 'require("./t3.json").astack.install')"
+
+      - name: Run the other checks
+        run: sh -c "$(bun -p 'require("./t3.json").astack.checks.ci')"
+
+  ready:
+    name: ready
+    needs: [types, tests, checks]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every typecheck job, every test job and the checks job passed
+        env:
+          TYPES: ${{ needs.types.result }}
+          TESTS: ${{ needs.tests.result }}
+          CHECKS: ${{ needs.checks.result }}
+        run: test "$TYPES" = success && test "$TESTS" = success && test "$CHECKS" = success
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    env:
+      VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+      VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+      VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+      VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
+      VITE_RECAPTCHA_ENTERPRISE_SITE_KEY: ${{ vars.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - name: Install
+        run: sh -c "$(bun -p 'require("./t3.json").astack.install')"
+
+      - name: Require the Firebase web config and no App Check debug token
+        run: |
+          for name in VITE_FIREBASE_API_KEY VITE_FIREBASE_AUTH_DOMAIN VITE_FIREBASE_PROJECT_ID VITE_FIREBASE_APP_ID VITE_RECAPTCHA_ENTERPRISE_SITE_KEY; do
+            test -n "${!name}" || { echo "::error::Set the $name Actions variable."; exit 1; }
+          done
+          test -z "${VITE_APPCHECK_DEBUG_TOKEN:-}" || { echo "::error::VITE_APPCHECK_DEBUG_TOKEN must never be set in CI."; exit 1; }
+
+      - name: Build and check that the debug token is not in dist
+        run: bun run build
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: web-dist
+          path: apps/web/dist
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    name: deploy
+    needs: [ready, build]
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && needs.ready.result == 'success' && needs.build.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://dittle.app
+    concurrency:
+      group: production-hosting
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v5
+        with:
+          name: web-dist
+          path: apps/web/dist
+
+      - name: Require the Firebase service account
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DITTLE_APP }}
+        run: test -n "$SERVICE_ACCOUNT" || { echo "::error::Set the FIREBASE_SERVICE_ACCOUNT_DITTLE_APP secret in the production environment."; exit 1; }
+
+      - name: Deploy Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DITTLE_APP }}
+          projectId: dittle-app
+          channelId: live
+
+      - name: Smoke-test dittle.app serves this build
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            curl -fsS --compressed -H 'Cache-Control: no-cache' https://dittle.app/ -o live.html && cmp -s live.html apps/web/dist/index.html && exit 0
+            sleep 10
+          done
+          echo "::error::https://dittle.app/ does not serve the index.html this run built."
+          exit 1

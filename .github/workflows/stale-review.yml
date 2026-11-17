@@ -1,0 +1,34 @@
+name: Stale review
+
+on:
+  pull_request:
+    types: [synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  stale-review:
+    name: stale review
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Remove the good-to-go label after a push
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          label=$(bun -p 'require("./t3.json").astack?.merge?.label ?? "good-to-go"')
+          if gh pr view "$PR" --json labels --jq '.labels[].name' | grep -Fxq "$label"; then
+            gh pr edit "$PR" --remove-label "$label"
+            gh pr comment "$PR" --body "New commits after review. Removed \`$label\`; this head needs a fresh review."
+          fi

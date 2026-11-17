@@ -1,0 +1,12 @@
+{
+  "skillOverrides": {
+    "capture-agent-lesson": "user-invocable-only",
+    "create-verification-map": "user-invocable-only",
+    "evaluate-agent-skill": "user-invocable-only",
+    "maintain-verification-map": "user-invocable-only",
+    "merge": "user-invocable-only",
+    "open-pr": "user-invocable-only",
+    "release": "user-invocable-only",
+    "review": "user-invocable-only"
+  }
+}

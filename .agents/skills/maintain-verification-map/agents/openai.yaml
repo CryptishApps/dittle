@@ -1,0 +1,6 @@
+interface:
+  display_name: "Maintain Verification Map"
+  short_description: "Keep routes, states, and selectors current"
+  default_prompt: "Use $maintain-verification-map to update the verification map after this product change."
+policy:
+  allow_implicit_invocation: false

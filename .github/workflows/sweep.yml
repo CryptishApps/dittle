@@ -1,0 +1,29 @@
+name: Branch sweep
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sweep:
+    name: sweep merged branches
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Delete merged branches and list stale ones
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bun scripts/astack/sweep.ts
