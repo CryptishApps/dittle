@@ -65,7 +65,7 @@ export async function findLinks({ sentence, probes, values, noteId, noteTitle }:
   return probes.map((_, index) => {
     const decision = decisions[index];
     const candidate = decision?.match === null || decision === undefined ? undefined : union[decision.match];
-    return candidate && pools[index]!.includes(candidate) ? { factId: candidate.id, changed: decision!.changed } : null;
+    return candidate && pools[index]!.includes(candidate) ? { factId: candidate.id, changed: decision!.changed && candidate.text !== probes[index]!.text } : null;
   });
 }
 

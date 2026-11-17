@@ -6,9 +6,11 @@ export type InferenceWhere = "on_device" | "in_cloud";
 
 export type HybridAnswer = { text: string; where: InferenceWhere; ms: number; fallbackReason?: string };
 
+export type HybridPrompt = Parameters<GenerativeModel["generateContent"]>[0];
+
 export type Hybrid = {
   model: GenerativeModel;
-  ask: (prompt: string) => Promise<HybridAnswer>;
+  ask: (prompt: HybridPrompt) => Promise<HybridAnswer>;
 };
 
 type ChromePromptOptions = LanguageModelPromptOptions & { omitResponseConstraintInput: boolean };
@@ -42,7 +44,7 @@ export function createHybrid(task: string, mode: InferenceMode, instructions: st
   const cloud = mode === InferenceMode.ONLY_IN_CLOUD ? model : getGenerativeModel(ai, params(InferenceMode.ONLY_IN_CLOUD, instructions, schema));
   let queue: Promise<unknown> = Promise.resolve();
 
-  const run = async (target: GenerativeModel, prompt: string): Promise<HybridAnswer> => {
+  const run = async (target: GenerativeModel, prompt: HybridPrompt): Promise<HybridAnswer> => {
     const started = performance.now();
     let timer: number | undefined;
     const timeout = new Promise<never>((_, reject) => {
@@ -52,7 +54,7 @@ export function createHybrid(task: string, mode: InferenceMode, instructions: st
     return { text: result.response.text(), where: result.response.inferenceSource ?? "in_cloud", ms: Math.round(performance.now() - started) };
   };
 
-  const attempt = async (prompt: string): Promise<HybridAnswer> => {
+  const attempt = async (prompt: HybridPrompt): Promise<HybridAnswer> => {
     try {
       return await run(model, prompt);
     } catch (error) {
@@ -62,7 +64,7 @@ export function createHybrid(task: string, mode: InferenceMode, instructions: st
     }
   };
 
-  const answer = async (prompt: string): Promise<HybridAnswer> => {
+  const answer = async (prompt: HybridPrompt): Promise<HybridAnswer> => {
     const result = await attempt(prompt);
     recordCall({ task, where: result.where, ms: result.ms, at: Date.now() });
     return result;

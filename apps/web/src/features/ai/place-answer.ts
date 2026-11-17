@@ -1,4 +1,4 @@
-import type { TagKind } from "./describe";
+import type { TagKind } from "./value-shapes";
 
 export const MAX_COLLECTIONS = 6;
 export const MAX_FIELDS = 8;
