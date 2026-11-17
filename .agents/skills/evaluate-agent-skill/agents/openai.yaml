@@ -1,0 +1,6 @@
+interface:
+  display_name: "Evaluate Agent Skill"
+  short_description: "Compare skill revisions with blind realistic cases"
+  default_prompt: "Use $evaluate-agent-skill to compare this skill revision against realistic blind cases."
+policy:
+  allow_implicit_invocation: false

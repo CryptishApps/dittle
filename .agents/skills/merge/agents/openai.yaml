@@ -1,0 +1,6 @@
+interface:
+  display_name: "Merge"
+  short_description: "Merge the good-to-go PRs into the integration branch together"
+  default_prompt: "Use $merge to merge the good-to-go PRs and watch integration CI."
+policy:
+  allow_implicit_invocation: false

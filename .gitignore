@@ -9,3 +9,5 @@ dist/
 apps/web/src/routeTree.gen.ts
 apps/web/src/routeTree.build.gen.ts
 apps/web/.tanstack/
+.astack/
+.turbo/

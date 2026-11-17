@@ -133,7 +133,7 @@ bun run dev                                    # http://localhost:5180
 
 App Check starts the first time the app uses AI Logic or Firestore, so the sign-in pages never load reCAPTCHA. Leave `VITE_RECAPTCHA_ENTERPRISE_SITE_KEY` empty to run without it. When it's set, development uses a debug token: leave `VITE_APPCHECK_DEBUG_TOKEN` empty once, copy the token the browser console prints, and register it under App Check > Manage debug tokens. The debug token is only read in development builds.
 
-Checks: `bun run typecheck` at the root, and `bun test src` in `apps/web`.
+Checks: `bun run lint`, `bun run typecheck` and `bun run test` at the root. `bun run verify` runs all three and the build, which fails if the App Check debug token ends up in `apps/web/dist`.
 
 The landing page screenshots come from the real app. With `bun run dev` running, `CHROME_PATH=/path/to/chrome bun run --filter @dittle/web shots` signs up a throwaway account, writes a few notes through the editor, takes each shot in light and dark, and deletes the account.
 

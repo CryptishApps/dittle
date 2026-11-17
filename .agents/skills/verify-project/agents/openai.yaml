@@ -1,0 +1,4 @@
+interface:
+  display_name: "Verify Project"
+  short_description: "Prove behavior in the real runnable artifact"
+  default_prompt: "Use $verify-project to reproduce the behavior and return real-artifact evidence."

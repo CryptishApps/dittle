@@ -5,8 +5,12 @@
   "scripts": {
     "dev": "bun --filter @dittle/web dev",
     "build": "bun --filter @dittle/web build",
+    "lint": "bun --filter '*' lint",
     "typecheck": "bun --filter '*' typecheck",
-    "deploy": "bun run build && firebase deploy --only hosting,firestore"
+    "test": "bun --filter '*' test",
+    "deploy": "bun run build && firebase deploy --only hosting,firestore",
+    "verify": "bun scripts/verify.ts",
+    "verify:checks": "bun scripts/verify.ts --no-build"
   },
   "devDependencies": {
     "firebase-tools": "^15.36.0"

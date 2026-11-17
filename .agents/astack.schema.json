@@ -1,0 +1,392 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "astack section of t3.json",
+  "description": "Astack settings inside t3.json: packs, worktree ports and services, checks, CI, evidence, reaper and merging. T3 Code ignores this key.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scope": {
+      "type": "string",
+      "pattern": "^@[a-z0-9][a-z0-9._-]*$"
+    },
+    "packageManager": {
+      "type": "string",
+      "enum": [
+        "bun"
+      ],
+      "default": "bun"
+    },
+    "branches": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "integration": {
+          "$ref": "#/$defs/branchName",
+          "default": "staging"
+        },
+        "release": {
+          "$ref": "#/$defs/branchName",
+          "default": "main"
+        }
+      }
+    },
+    "packs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*$"
+      }
+    },
+    "install": {
+      "$ref": "#/$defs/command",
+      "description": "Runs in every new worktree before anything else."
+    },
+    "envFiles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "not": {
+              "pattern": "^/"
+            }
+          },
+          "mode": {
+            "enum": [
+              "link",
+              "copy"
+            ],
+            "default": "link",
+            "description": "link: symlink to the main checkout's file. copy: copy once and drop the omit keys; use for files a tool rewrites."
+          },
+          "omit": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/envName"
+            },
+            "uniqueItems": true
+          }
+        },
+        "if": {
+          "required": [
+            "omit"
+          ]
+        },
+        "then": {
+          "required": [
+            "mode"
+          ],
+          "properties": {
+            "mode": {
+              "const": "copy"
+            }
+          }
+        }
+      }
+    },
+    "ports": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "slots": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 100
+        },
+        "base": {
+          "type": "object",
+          "description": "Port key to base port. Key convexSite becomes PORT_CONVEX_SITE. Bases must be at least `slots` apart.",
+          "propertyNames": {
+            "pattern": "^[a-z][A-Za-z0-9]*$"
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535
+          }
+        }
+      }
+    },
+    "env": {
+      "type": "object",
+      "description": "Extra variables written to each worktree's .astack/env. Values may use ${PORT_*}, ${MAIN_CHECKOUT}, ${WORKTREE}, ${SLOT} and other env keys.",
+      "propertyNames": {
+        "$ref": "#/$defs/envName",
+        "not": {
+          "pattern": "^(PORT_.*|MAIN_CHECKOUT|WORKTREE|SLOT)$"
+        }
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "services": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/service"
+      }
+    },
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "focused": {
+          "$ref": "#/$defs/command",
+          "description": "Typecheck, test and lint for what the branch changed. Authors run it before opening a PR, and PR CI runs it when PR_CI is on. Turborepo projects use `bun scripts/astack/focused.ts typecheck test lint`: it runs turbo with one --filter per merge base with origin/<integration>, so a branch that merged the integration branch in more than once still works. Other projects set their own command."
+        },
+        "ci": {
+          "$ref": "#/$defs/command",
+          "description": "Every CI check except typecheck and workspace tests. CI runs those in parallel jobs next to it."
+        },
+        "merge": {
+          "$ref": "#/$defs/command",
+          "description": "Optional local check that merge runs on all the merged PRs together before it pushes. Unset by default: integration CI runs the full check on a clean runner and deploys nothing until it passes. Set it, for example to `bun run verify`, only to keep red merges off the integration branch at the cost of a slow local run."
+        }
+      }
+    },
+    "ci": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "How CI splits the typecheck and the tests across parallel jobs.",
+      "properties": {
+        "typecheckJobs": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 4,
+          "description": "Number of parallel typecheck jobs. Workspaces are spread across them by source file count, heaviest first."
+        },
+        "typecheckExclude": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Workspace package names CI never typechecks."
+        },
+        "testShards": {
+          "type": "object",
+          "default": {},
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "description": "Workspace package name to shard count. CI runs one test job per workspace with a test script; a workspace listed here gets that many jobs, each running `bunx vitest run --shard=i/N` from the workspace. Only Vitest suites can be sharded."
+        },
+        "testExclude": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Workspace package names the CI test matrix never runs, such as a deferred suite or workspaces a hand-written job tests together."
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "branch": {
+          "$ref": "#/$defs/branchName",
+          "default": "astack-evidence"
+        },
+        "maxFileMb": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "default": 25
+        },
+        "uiPaths": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "backendPaths": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "reaper": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "idleHours": {
+          "type": "number",
+          "minimum": 0,
+          "default": 3
+        },
+        "intervalMinutes": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 15
+        },
+        "worktreeIdleHours": {
+          "type": "number",
+          "minimum": 0,
+          "default": 24,
+          "description": "Hours a clean worktree whose work is merged may sit unused before the reaper removes it and its local branch. Lock a worktree with git worktree lock to keep it."
+        },
+        "dirtyWorktreeIdleHours": {
+          "type": "number",
+          "minimum": 0,
+          "default": 168,
+          "description": "Hours a worktree whose work is merged but which still has uncommitted or untracked files may sit unused before the reaper saves those files to refs/archive/worktrees/<date>/<folder> and removes it and its local branch."
+        },
+        "archiveDays": {
+          "type": "number",
+          "minimum": 0,
+          "default": 45,
+          "description": "Days the reaper keeps a refs/archive/worktrees/<date>/<folder> ref before deleting it. Refs without a date are never deleted."
+        }
+      }
+    },
+    "merge": {
+      "type": "object",
+      "description": "How the merge skill takes good-to-go PRs into the integration branch.",
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "default": "good-to-go",
+          "description": "The label a clean review adds. merge takes every open PR into the integration branch that has it."
+        },
+        "maxPRs": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 10,
+          "description": "Most PRs one merge run takes, oldest first."
+        },
+        "deploy": {
+          "type": "string",
+          "default": "",
+          "description": "Runs in the merge worktree after the checked PRs are pushed, to deploy the integration backend at once. May use ${MAIN_CHECKOUT} and ${WORKTREE}. A failure is reported and never undoes the push. Empty means no deploy; leave it empty without an integration environment."
+        }
+      }
+    }
+  },
+  "$defs": {
+    "command": {
+      "type": "string",
+      "minLength": 1
+    },
+    "envName": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+    },
+    "branchName": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^\\s~^:?*\\[\\\\]+$"
+    },
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command"
+      ],
+      "properties": {
+        "cwd": {
+          "type": "string",
+          "minLength": 1,
+          "default": "."
+        },
+        "command": {
+          "$ref": "#/$defs/command"
+        },
+        "env": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/envName"
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "requires": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "ready": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "port"
+          ],
+          "properties": {
+            "port": {
+              "type": "string",
+              "description": "A key in ports.base."
+            },
+            "timeoutSeconds": {
+              "type": "number",
+              "minimum": 1,
+              "default": 60
+            }
+          }
+        },
+        "afterReady": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "command"
+            ],
+            "properties": {
+              "command": {
+                "$ref": "#/$defs/command"
+              },
+              "ifExists": {
+                "type": "string",
+                "minLength": 1
+              },
+              "retryForSeconds": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
