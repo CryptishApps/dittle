@@ -215,13 +215,15 @@ function parseDescribed(text: string, quotes: string[]): DescribedValue[] {
       when: validWhen(raw.when, raw.grain),
       conditions: strings(raw.conditions),
       remarks: strings(raw.remarks),
-      ...amountOf(raw),
+      ...amountOf(raw, quote),
     };
   });
 }
 
-function amountOf(raw: Record<string, unknown>): Pick<ValueContext, "amount" | "before" | "after"> {
+function amountOf(raw: Record<string, unknown>, quote: string): Pick<ValueContext, "amount" | "before" | "after"> {
   const amount = typeof raw.amount === "string" && raw.amount.trim() !== "" ? Number(raw.amount) : Number.NaN;
   if (!Number.isFinite(amount)) return {};
-  return { amount, before: typeof raw.before === "string" ? raw.before : "", after: typeof raw.after === "string" ? raw.after : "" };
+  const before = typeof raw.before === "string" && quote.startsWith(raw.before) ? raw.before : "";
+  const after = typeof raw.after === "string" && quote.endsWith(raw.after) && quote.length >= before.length + raw.after.length ? raw.after : "";
+  return { amount, before, after };
 }

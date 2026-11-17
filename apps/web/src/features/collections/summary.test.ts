@@ -15,7 +15,13 @@ const runs: Collection = {
   ],
 };
 const row = (period: string): Row => ({ id: `c.${period}`, collectionId: "c", label: period, period, createdAt: 0 });
-const cell = (rowId: string, field: string, text: string): StoredValue => ({ id: `${rowId}:${field}`, text, field, subject: { label: "run", entityId: rowId } });
+const cell = (rowId: string, field: string, text: string, amount?: number, after = " km"): StoredValue => ({
+  id: `${rowId}:${field}`,
+  text,
+  field,
+  subject: { label: "run", entityId: rowId },
+  ...(amount !== undefined && { amount, before: "", after }),
+});
 const today = new Date(2026, 10, 17);
 
 describe("summariseCollection", () => {
@@ -28,13 +34,27 @@ describe("summariseCollection", () => {
     expect(summary.latest?.cells).toEqual(["5 km", "27:40"]);
   });
 
+  test("adds up a field this month, leaving out rows without it", () => {
+    const rows = [row("2026-10-30"), row("2026-11-03"), row("2026-11-10"), row("2026-11-15")];
+    const values = [cell("c.2026-10-30", "distance", "9 km", 9), cell("c.2026-11-03", "distance", "6.4 km", 6.4), cell("c.2026-11-15", "distance", "5 km", 5), cell("c.2026-11-15", "time", "27:40")];
+    const [distance, ...rest] = summariseCollection(runs, rows, values, today).totals;
+    expect(distance).toMatchObject({ text: "11.4 km", counted: 2, otherUnits: 0 });
+    expect(rest).toEqual([]);
+  });
+
+  test("keeps entries in another unit out of the total and counts them", () => {
+    const rows = [row("2026-11-03"), row("2026-11-10"), row("2026-11-15")];
+    const values = [cell("c.2026-11-03", "distance", "6 km", 6), cell("c.2026-11-10", "distance", "3 miles", 3, " miles"), cell("c.2026-11-15", "distance", "5 km", 5)];
+    expect(summariseCollection(runs, rows, values, today).totals[0]).toMatchObject({ text: "11 km", counted: 2, otherUnits: 1 });
+  });
+
   test("falls back to all rows when nothing happened this month", () => {
     const summary = summariseCollection(runs, [row("2026-09-01"), row("2026-10-02")], [], today);
     expect(summary).toMatchObject({ count: 2, scope: "in total" });
   });
 
   test("an empty collection has no latest row", () => {
-    expect(summariseCollection(runs, [], [], today)).toMatchObject({ count: 0, latest: undefined });
+    expect(summariseCollection(runs, [], [], today)).toMatchObject({ count: 0, latest: undefined, totals: [] });
   });
 });
 

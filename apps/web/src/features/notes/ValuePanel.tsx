@@ -149,7 +149,7 @@ function CollectionPart({ uid, collectionId, rowId }: { uid: string; collectionI
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-[14px] font-medium">{collection.name}</span>
         <Link to="/notes/collections/$collectionId" params={{ collectionId }} className="text-[11px] text-faint hover:text-ink">
-          {summary.count} {summary.scope} · open ↗
+          {summary.totals[0]?.text ?? summary.count} {summary.scope} · open ↗
         </Link>
       </div>
       <table className="mt-2 w-full border-collapse text-left text-[12px]">

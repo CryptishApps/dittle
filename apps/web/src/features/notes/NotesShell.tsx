@@ -3,13 +3,14 @@ import { Link, Outlet, useNavigate, useRouter } from "@tanstack/react-router";
 import type { User } from "firebase/auth";
 import { AnimatePresence, m } from "motion/react";
 import { DropdownMenu } from "radix-ui";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { useDeviceModel, type DeviceModelStatus } from "@/features/ai/device-model";
 import { loadAuth } from "@/lib/session";
 import { Btn, ease, MIcon } from "@/ui/kit";
 import { Wordmark } from "@/ui/Wordmark";
 import { loadStore, startNote } from "./api";
 import { MENU_CONTENT, MenuItem } from "./NoteTree";
+import { SearchDialog, useSearchShortcut } from "./Search";
 import { dismissToast, useToast } from "./toast";
 
 const subscribeOnline = (onChange: () => void) => {
@@ -31,6 +32,9 @@ export function NotesShell({ user }: { user: User }) {
   const online = useOnline();
   const toast = useToast();
   const [leaving, setLeaving] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const openSearch = useCallback(() => setSearching(true), []);
+  useSearchShortcut(openSearch);
 
   const router = useRouter();
   useEffect(() => {
@@ -61,6 +65,16 @@ export function NotesShell({ user }: { user: User }) {
               Offline · saved on this device
             </span>
           )}
+          <button
+            type="button"
+            onClick={openSearch}
+            aria-label="Search"
+            title="Search (Ctrl K or ⌘K)"
+            className="inline-flex h-7 items-center gap-2 border border-line-strong bg-card px-2.5 text-[11px] font-medium tracking-[0.02em] text-soft uppercase hover:border-ink hover:text-ink"
+          >
+            <MIcon name="search" className="size-3.5" />
+            <span className="hidden sm:inline">Search</span>
+          </button>
           <Btn primary onClick={newNote}>
             <MIcon name="plus" className="size-3.5" />
             New note
@@ -72,6 +86,8 @@ export function NotesShell({ user }: { user: User }) {
       <main className="flex min-h-0 flex-1 flex-col">
         <Outlet />
       </main>
+
+      <SearchDialog uid={user.uid} open={searching} onOpenChange={setSearching} />
 
       <AnimatePresence>
         {toast && (

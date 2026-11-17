@@ -1,25 +1,14 @@
 import { Mention, type MentionOptions } from "@tiptap/extension-mention";
-import type { Node as PMNode } from "@tiptap/pm/model";
-import { ReactRenderer, type Editor, type Range } from "@tiptap/react";
+import { ReactRenderer } from "@tiptap/react";
 import { menuItems, ValueMenu, type MenuHandle, type MenuItem } from "./ValueMenu";
-import type { TagContext, TrackedValue, ValueStore } from "./values";
+import type { TrackedValue, ValueStore } from "./values";
 
 export const VALUE_NODE = "value";
 
 type ValueTagOptions = {
   store: ValueStore;
-  onCreate: (value: TrackedValue, context: Omit<TagContext, "noteId">) => void;
+  onCreate: (value: TrackedValue) => void;
 };
-
-function sentenceWith(editor: Editor, range: Range, text: string, store: ValueStore): string {
-  const $from = editor.state.doc.resolve(range.from);
-  const block = $from.parent;
-  const start = $from.start();
-  const leaf = (node: PMNode) => (node.type.name === VALUE_NODE ? (store.get(node.attrs.id)?.text ?? node.attrs.label ?? "") : "");
-  const before = block.textBetween(0, range.from - start, undefined, leaf);
-  const after = block.textBetween(Math.min(range.to - start, block.content.size), block.content.size, undefined, leaf);
-  return `${before}${text}${after}`.trim();
-}
 
 export function ValueTag({ store, onCreate }: ValueTagOptions) {
   return Mention.extend<MentionOptions<MenuItem, MenuItem>>({
@@ -58,7 +47,6 @@ export function ValueTag({ store, onCreate }: ValueTagOptions) {
       items: ({ query }) => menuItems(store.list(), query),
       command: ({ editor, range, props: item }) => {
         const value = item.kind === "existing" ? item.value : store.add(item.text);
-        const sentence = sentenceWith(editor, range, value.text, store);
         if (editor.state.selection.$to.nodeAfter?.text?.startsWith(" ")) range.to += 1;
         editor
           .chain()
@@ -68,7 +56,7 @@ export function ValueTag({ store, onCreate }: ValueTagOptions) {
             { type: "text", text: " " },
           ])
           .run();
-        if (item.kind === "new") onCreate(value, { sentence, noteTitle: editor.state.doc.firstChild?.textContent ?? "" });
+        if (item.kind === "new") onCreate(value);
       },
       render: () => {
         let menu: ReactRenderer<MenuHandle> | undefined;

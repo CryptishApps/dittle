@@ -7,6 +7,7 @@ import { remembered } from "@/features/ai/cache";
 import { deviceModelStatus } from "@/features/ai/device-model";
 import { DESCRIBE_PROMPT_VERSION } from "@/features/ai/prompt-versions";
 import { findLinks, repoint } from "./linking";
+import { DescribeWhenPaused } from "./describe-when-paused";
 import { Requests } from "./requests";
 import { RequestPreview } from "./RequestPreview";
 import type { EditorServices } from "./services";
@@ -17,6 +18,7 @@ import { ValueTag } from "./value-tag";
 import { describeInBackground, type TrackedValue, type ValueStore } from "./values";
 
 const today = () => new Date().toDateString();
+const TAG_DESCRIBE_PAUSE_MS = 1500;
 
 const rememberedFind = remembered(
   `find:${DESCRIBE_PROMPT_VERSION}`,
@@ -25,7 +27,7 @@ const rememberedFind = remembered(
 );
 
 const rememberedDescribe = remembered(
-  `describe:${DESCRIBE_PROMPT_VERSION}`,
+  `describe:${DESCRIBE_PROMPT_VERSION}:units-in-quote`,
   (input: { paragraph: string; noteTitle: string; quotes: string[] }) => import("@/features/ai/describe").then(({ describeValues }) => describeValues(input)),
   (input) => [input.paragraph, input.noteTitle, input.quotes, today()],
 );
@@ -103,7 +105,12 @@ export function useNoteEditor({ store, content, label, services = {}, autofocus 
         ignored: () => services.ignoredRequests?.() ?? [],
         onIgnore: (text) => services.ignoreRequest?.(text),
       }),
-      ValueTag({ store, onCreate: (value, context) => describeInBackground(store, value, { ...context, noteId }, (described) => void linkTag(described).catch(() => undefined)) }),
+      ValueTag({ store, onCreate: (value) => holder.current?.storage.describeWhenPaused.add(value) }),
+      DescribeWhenPaused.configure({
+        store,
+        pauseMs: TAG_DESCRIBE_PAUSE_MS,
+        describe: (value, context) => describeInBackground(store, value, { ...context, noteId }, (described) => void linkTag(described).catch(() => undefined)),
+      }),
     ],
     content,
     autofocus,
