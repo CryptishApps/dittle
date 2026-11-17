@@ -7,7 +7,7 @@ import { createSyncedValueStore } from "@/features/editor/values";
 import { MIcon } from "@/ui/kit";
 import { foldersQuery, noteQuery, writes } from "./api";
 import { createEditorServices } from "./editor-services";
-import { fromNoteDoc, summarise, toNoteDoc, type NoteDoc } from "./note-doc";
+import { fromNoteDoc, summarise, toNoteDoc, valueIdsOf, type NoteDoc } from "./note-doc";
 import { MenuItem, RowMenu } from "./NoteTree";
 import { showToast } from "./toast";
 import { ValuePanel } from "./ValuePanel";
@@ -28,9 +28,10 @@ export function NotePage({ uid, noteId }: { uid: string; noteId: string }) {
 function OpenNote({ uid, noteId, doc, pending }: { uid: string; noteId: string; doc: NoteDoc; pending: boolean }) {
   const queryClient = useQueryClient();
   const [store] = useState(() => createSyncedValueStore(queryClient, uid, writes));
+  const latest = useRef<NoteDoc>(doc);
   const [openValue, setOpenValue] = useState<{ id: string; from: "pointer" | "keyboard" }>();
   const [services] = useState(() => ({
-    ...createEditorServices({ queryClient, uid, noteId, store }),
+    ...createEditorServices({ queryClient, uid, noteId, store, valuesInNote: () => valueIdsOf(latest.current) }),
     openValue: (id: string, from: "pointer" | "keyboard") => setOpenValue({ id, from }),
   }));
   const [initial] = useState(() => fromNoteDoc(doc));
@@ -55,6 +56,7 @@ function OpenNote({ uid, noteId, doc, pending }: { uid: string; noteId: string; 
     autofocus: startAt(doc),
     onUpdate: (current) => {
       unsaved.current = toNoteDoc(current.getJSON());
+      latest.current = unsaved.current;
       window.clearTimeout(timer.current);
       timer.current = window.setTimeout(flush, SAVE_AFTER_MS);
     },

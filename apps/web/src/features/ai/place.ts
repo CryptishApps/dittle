@@ -2,14 +2,16 @@ import { InferenceMode } from "firebase/ai";
 import { createHybrid, type InferenceWhere } from "./hybrid";
 import { COLLECTION_KEYS, FIELD_KEYS, MAX_COLLECTIONS, placePrompt, readPlaceAnswer, ROW_KEYS, type PlaceAnswer, type PlaceCollection, type PlaceItem } from "./place-answer";
 
-export const PLACE_PROMPT_VERSION = "v2";
+export const PLACE_PROMPT_VERSION = "v3";
 
 export type { PlaceCollection, PlaceItem, PlaceRow } from "./place-answer";
 export type PlaceResult = PlaceAnswer & { where: InferenceWhere; ms: number };
 
 const INSTRUCTIONS = `Someone tracks collections in their notes, such as a table of runs or of vendors. Decide whether a new value belongs in one of the collections, in which field, and for a collection with one row per named thing, in which row.
 
-Pick a collection only when the value is clearly one of its rows' details, about the same kind of thing as the collection's rows. Otherwise answer none. A field must match what the value measures. If no field fits, answer none for the field.
+Pick a collection only when the value is clearly one of its rows' details. The collection's name says what its rows are. A log such as Runs or Swims holds one kind of thing. A plan's list such as Things to do, Bookings or Places can hold different kinds of things, as long as the value is the same detail its rows have, such as a price each or a date. Otherwise answer none.
+
+A field must measure the same thing as the value. Field names were taken from the first row, so they can be narrower than the field: a "train ticket price" field in a list of things to do holds the price of each thing. If no field fits, answer none for the field.
 
 For a collection with one row per day, answer none for the row and an empty label.
 For a collection with one row per named thing, pick the row the value is about. If the value is about a thing that has no row yet, answer new and give its name as the label, copied exactly from the sentence. Otherwise give an empty label.

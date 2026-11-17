@@ -103,7 +103,7 @@ export function ValuePanel({ uid, noteId, valueId, focusOnOpen, editor, store, s
         !value.proposal &&
         services.startCollection && (
           <div className="mt-6">
-            <StartCollection value={value} onStart={(name) => services.startCollection?.(value, name)} />
+            <StartCollection value={value} onStart={(name, per) => services.startCollection?.(value, name, per)} />
           </div>
         )
       )}
