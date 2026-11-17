@@ -37,7 +37,7 @@ For each value give:
 - "kind": money, count, number, date, duration, percent, person or place. Times of day (10am, 9:30) are dates. A length of time (7 nights, two weeks) is a duration.
 - "name": a short snake_case name for what the value means.
 
-"requests": sentences that ask you to write or add content into the note at that spot, such as "add a list of meals here", copied exactly. Reminders and to-dos for the person, such as "call the florist" or "ask about the menu", are not requests. A request is never also a value.
+"requests": sentences that ask you to write or add content into the note at that spot, such as "add a list of meals here", copied exactly. Reminders and to-dos for the person, such as "book the plumber" or "check the opening times", are not requests. A request is never also a value.
 
 Ordinary words are never values. If there are no values, return an empty list.
 

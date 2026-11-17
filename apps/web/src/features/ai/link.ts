@@ -113,4 +113,4 @@ export function createLinker(mode: InferenceMode) {
   };
 }
 
-export const linkValues = createLinker(InferenceMode.PREFER_ON_DEVICE);
+export const linkValues = createLinker(InferenceMode.PREFER_IN_CLOUD);
