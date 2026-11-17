@@ -66,8 +66,9 @@ export function useNoteEditor({ store, content, label, services = {}, autofocus 
     const editor = holder.current;
     if (!target) return services.onNewFact?.(value);
     if (!editor || editor.isDestroyed) return;
-    if (target.changed) return store.update(value.id, { proposal: { factId: target.factId } });
-    repoint(editor, value.id, target.factId, store.get(target.factId)?.text ?? value.text);
+    const linked = store.get(target.factId);
+    if (target.changed || linked?.text !== value.text) return store.update(value.id, { proposal: { factId: target.factId } });
+    repoint(editor, value.id, target.factId, linked.text);
     store.remove(value.id);
   };
 

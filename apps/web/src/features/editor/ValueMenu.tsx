@@ -13,7 +13,7 @@ export function menuItems(values: TrackedValue[], query: string): MenuItem[] {
     .slice(0, LIMIT)
     .map((value): MenuItem => ({ kind: "existing", value }));
   const exact = values.some((value) => value.text.toLowerCase() === needle);
-  return text && !exact ? [...matches, { kind: "new", text }] : matches;
+  return text && !exact ? [{ kind: "new", text }, ...matches] : matches;
 }
 
 const menuContext = (value: TrackedValue) => [value.subject?.label, ...(value.conditions ?? [])].filter(Boolean).join(" · ");
