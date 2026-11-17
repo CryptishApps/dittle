@@ -80,6 +80,7 @@
   --scrim: rgb(18 20 24 / 0.32);
   --mark-ink: #121418;
   --mark-blue: var(--accent);
+  --mark-dot: #ffc21a;
   --shadow: 0 0 0 1px rgb(18 20 24 / 0.06), 0 28px 44px -24px rgb(18 20 24 / 0.32);
   --shadow-tile: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 0 0 1px #e6e8ed, 0 26px 40px -26px rgb(18 20 24 / 0.3);
   --shadow-sheet: 0 0 0 1px #e6e8ed, 0 40px 60px -42px rgb(18 20 24 / 0.32);
@@ -136,6 +137,7 @@
     --scrim: rgb(0 0 0 / 0.6);
     --mark-ink: #eceef2;
     --mark-blue: var(--accent);
+    --mark-dot: #ffd43b;
     --shadow: 0 0 0 1px rgb(255 255 255 / 0.05), 0 28px 48px -22px rgb(0 0 0 / 0.8);
     --shadow-tile: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 0 0 1px #2a2f38, 0 26px 40px -26px rgb(0 0 0 / 0.8);
     --shadow-sheet: 0 0 0 1px #2a2f38, 0 40px 60px -40px rgb(0 0 0 / 0.85);
@@ -182,6 +184,7 @@
   --scrim: rgb(0 0 0 / 0.6);
   --mark-ink: #eceef2;
   --mark-blue: var(--accent);
+  --mark-dot: #ffd43b;
   --shadow: 0 0 0 1px rgb(255 255 255 / 0.05), 0 28px 48px -22px rgb(0 0 0 / 0.8);
   --shadow-tile: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 0 0 1px #2a2f38, 0 26px 40px -26px rgb(0 0 0 / 0.8);
   --shadow-sheet: 0 0 0 1px #2a2f38, 0 40px 60px -40px rgb(0 0 0 / 0.85);

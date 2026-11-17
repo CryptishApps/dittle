@@ -1,6 +1,6 @@
 export function Wordmark({ className = "" }: { className?: string }) {
   return (
-    <span className={`inline-flex items-center gap-[0.42em] font-semibold tracking-[-0.025em] text-ink ${className}`}>
+    <span className={`inline-flex items-center gap-[0.36em] font-semibold tracking-[-0.025em] text-ink ${className}`}>
       <LogoMark className="size-[1.15em]" />
       Dittle
     </span>
@@ -9,10 +9,10 @@ export function Wordmark({ className = "" }: { className?: string }) {
 
 export function LogoMark({ className = "" }: { className?: string }) {
   return (
-    <svg aria-hidden viewBox="0 0 26 26" className={className}>
-      <rect width="17" height="17" rx="5" fill="var(--mark-ink)" />
-      <rect x="7.25" y="7.25" width="19.5" height="19.5" rx="6.5" fill="var(--mark-gap, var(--page))" />
-      <rect x="9" y="9" width="17" height="17" rx="5" fill="var(--mark-blue)" />
+    <svg aria-hidden viewBox="4 4 24 24" className={className}>
+      <path d="M10.5 9.5 8 21.5" stroke="var(--mark-ink)" strokeWidth="4.6" strokeLinecap="round" />
+      <path d="M19.5 9.5 17 21.5" stroke="var(--mark-blue)" strokeWidth="4.6" strokeLinecap="round" />
+      <circle cx="24.5" cy="21.5" r="2.8" fill="var(--mark-dot)" />
     </svg>
   );
 }
