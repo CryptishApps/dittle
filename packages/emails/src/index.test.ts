@@ -23,7 +23,7 @@ describe("emails", () => {
 
   test("an invite names who sent it, the plan and who it is for", async () => {
     const email = await inviteEmail(Invite.PreviewProps);
-    expect(email.subject).toBe("Sam Rivera invited you to Lisbon long weekend on Dittle");
+    expect(email.subject).toBe("Sam Rivera invited you to Lisbon trip on Dittle");
     expect(email.text).toContain("alex@example.com");
     expect(email.text).toContain("€1,680");
   });

@@ -9,13 +9,13 @@ export default function MemberJoined({ memberName, workspaceName, url }: MemberJ
   return (
     <Layout preview={`${memberName} can now read and edit ${workspaceName}.`} footer={`You're getting this because you invited ${memberName} to ${workspaceName}.`}>
       <Eyebrow>New member</Eyebrow>
-      <Title>
-        {memberName} joined {workspaceName}
+      <Title after="They can read and edit every note now.">
+        {memberName} joined {workspaceName}.
       </Title>
-      <Para>They can now read and edit its notes. When they change a number, every note that uses it follows, the same as when you do.</Para>
+      <Para>When they change a number, every note that uses it follows, the same as when you do.</Para>
       <Action href={url}>Open the plan</Action>
     </Layout>
   );
 }
 
-MemberJoined.PreviewProps = { memberName: "Alex Kim", workspaceName: "Lisbon long weekend", url: "https://dittle.app/w/lisbon" } satisfies MemberJoinedProps;
+MemberJoined.PreviewProps = { memberName: "Alex Kim", workspaceName: "Lisbon trip", url: "https://dittle.app/w/lisbon" } satisfies MemberJoinedProps;

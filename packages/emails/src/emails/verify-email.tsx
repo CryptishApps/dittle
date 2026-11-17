@@ -9,8 +9,8 @@ export default function VerifyEmail({ name, email, url }: VerifyEmailProps) {
   return (
     <Layout preview="Confirm your email so you can get invites and reset your password." footer="You're getting this because someone signed up to Dittle with this address. If it wasn't you, ignore this email and nothing happens.">
       <Eyebrow>Confirm your email</Eyebrow>
-      <Title>Is {email} yours, {name}?</Title>
-      <Para>Confirm it so people can invite you to their plans, and so you can reset your password if you ever need to.</Para>
+      <Title after="One click and you're set.">Confirm your email, {name}.</Title>
+      <Para>Confirm {email} so people can invite you to their plans, and so you can reset your password if you ever need to.</Para>
       <Action href={url}>Confirm email</Action>
       <Fallback href={url} />
     </Layout>
