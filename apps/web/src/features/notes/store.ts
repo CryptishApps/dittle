@@ -198,12 +198,17 @@ export async function forgetThisDevice(): Promise<void> {
   await clearIndexedDbPersistence(db);
 }
 
-export async function relabelNotes(uid: string, valueId: string, label: string, noteIds: string[]): Promise<void> {
-  for (const id of noteIds) {
-    const snapshot = await getDocFromCache(doc(notes(uid), id)).catch(() => undefined);
-    const stored = snapshot?.data()?.doc as NoteDoc | undefined;
-    if (stored) saveNote(uid, id, relabel(stored, valueId, label));
-  }
+let relabeling: Promise<void> = Promise.resolve();
+
+export function relabelNotes(uid: string, valueId: string, label: string, noteIds: string[]): Promise<void> {
+  relabeling = relabeling.then(async () => {
+    for (const id of noteIds) {
+      const snapshot = await getDocFromCache(doc(notes(uid), id)).catch(() => undefined);
+      const stored = snapshot?.data()?.doc as NoteDoc | undefined;
+      if (stored) saveNote(uid, id, relabel(stored, valueId, label));
+    }
+  });
+  return relabeling;
 }
 
 export const listenCollections =
