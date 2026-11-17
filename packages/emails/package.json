@@ -6,7 +6,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "dev": "email dev --dir src/emails --port 5260",
+    "dev": "email dev --dir src/emails",
     "lint": "oxlint --deny-warnings src",
     "typecheck": "tsc --noEmit",
     "test": "bun test src"

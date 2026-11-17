@@ -29,8 +29,8 @@ function Folder({ name, summary, notes }: { name: string; summary: string; notes
         <Text style={{ margin: "0 4px 12px", fontSize: 17, fontWeight: 650, letterSpacing: "-0.02em" }}>
           <span className="ink" style={{ color: light.ink }}>
             {name}
-          </span>
-          <span className="quiet" style={{ marginLeft: 8, fontSize: 13, fontWeight: 500, letterSpacing: 0, color: light.quiet }}>
+          </span>{" "}
+          <span className="quiet" style={{ marginLeft: 4, fontSize: 13, fontWeight: 500, letterSpacing: 0, color: light.quiet }}>
             {summary}
           </span>
         </Text>

@@ -1,4 +1,4 @@
-import { Action, Eyebrow, Para, Title } from "../parts/blocks";
+import { Action, Eyebrow, Fallback, Para, Title } from "../parts/blocks";
 import { Layout } from "../parts/Layout";
 
 export type MemberJoinedProps = { memberName: string; workspaceName: string; url: string };
@@ -14,6 +14,7 @@ export default function MemberJoined({ memberName, workspaceName, url }: MemberJ
       </Title>
       <Para>When they change a number, every note that uses it follows, the same as when you do.</Para>
       <Action href={url}>Open the plan</Action>
+      <Fallback href={url} />
     </Layout>
   );
 }
