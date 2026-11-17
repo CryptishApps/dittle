@@ -12,7 +12,7 @@ import { loadStore, startNote } from "./api";
 import { DeleteAccountDialog } from "./DeleteAccount";
 import { MENU_CONTENT, MenuItem } from "./NoteTree";
 import { SearchDialog, useSearchShortcut } from "./Search";
-import { dismissToast, useToast } from "./toast";
+import { dismissToast, holdToast, useToast } from "./toast";
 
 const subscribeOnline = (onChange: () => void) => {
   window.addEventListener("online", onChange);
@@ -109,9 +109,13 @@ export function NotesShell({ user }: { user: User }) {
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             exit={{ opacity: 0, y: 6, transition: { duration: 0.15 } }}
             transition={{ duration: 0.3, ease }}
-            className="fixed bottom-4 left-4 z-50 flex max-w-[calc(100vw-2rem)] items-center gap-4 bg-ink py-2.5 pr-2.5 pl-4 text-[12.5px] text-page shadow-pop"
+            onPointerEnter={() => holdToast(true)}
+            onPointerLeave={() => holdToast(false)}
+            onFocus={() => holdToast(true)}
+            onBlur={(event) => !event.currentTarget.contains(event.relatedTarget) && holdToast(false)}
+            className="fixed bottom-4 left-4 z-50 flex max-w-[calc(100vw-2rem)] flex-wrap items-center justify-end gap-x-4 gap-y-1.5 bg-ink py-2.5 pr-2.5 pl-4 text-[12.5px] text-page shadow-pop"
           >
-            <span className="truncate">{toast.text}</span>
+            <span className="line-clamp-3 min-w-0">{toast.text}</span>
             {toast.actions.map((action) => (
               <button
                 key={action.label}

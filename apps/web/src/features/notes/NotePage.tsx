@@ -28,8 +28,11 @@ export function NotePage({ uid, noteId }: { uid: string; noteId: string }) {
 function OpenNote({ uid, noteId, doc, pending }: { uid: string; noteId: string; doc: NoteDoc; pending: boolean }) {
   const queryClient = useQueryClient();
   const [store] = useState(() => createSyncedValueStore(queryClient, uid, writes));
-  const [openValue, setOpenValue] = useState<string>();
-  const [services] = useState(() => ({ ...createEditorServices({ queryClient, uid, noteId, store }), openValue: setOpenValue }));
+  const [openValue, setOpenValue] = useState<{ id: string; from: "pointer" | "keyboard" }>();
+  const [services] = useState(() => ({
+    ...createEditorServices({ queryClient, uid, noteId, store }),
+    openValue: (id: string, from: "pointer" | "keyboard") => setOpenValue({ id, from }),
+  }));
   const [initial] = useState(() => fromNoteDoc(doc));
   const saved = useRef(canonical(doc));
   const unsaved = useRef<NoteDoc | undefined>(undefined);
@@ -88,7 +91,20 @@ function OpenNote({ uid, noteId, doc, pending }: { uid: string; noteId: string; 
       </div>
       <AnimatePresence>
         {editor && openValue && (
-          <ValuePanel key={openValue} uid={uid} noteId={noteId} valueId={openValue} editor={editor} store={store} services={services} onClose={() => setOpenValue(undefined)} />
+          <ValuePanel
+            key={openValue.id}
+            uid={uid}
+            noteId={noteId}
+            valueId={openValue.id}
+            focusOnOpen={openValue.from === "keyboard"}
+            editor={editor}
+            store={store}
+            services={services}
+            onClose={() => {
+              setOpenValue(undefined);
+              editor.commands.focus();
+            }}
+          />
         )}
       </AnimatePresence>
     </div>

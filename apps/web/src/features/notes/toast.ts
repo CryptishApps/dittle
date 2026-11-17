@@ -8,6 +8,7 @@ const ASK_MS = 12_000;
 
 let current: Toast | undefined;
 let timer: number | undefined;
+let showFor = SHOW_MS;
 let nextId = 0;
 const listeners = new Set<() => void>();
 
@@ -20,7 +21,13 @@ function open(text: string, actions: ToastAction[], ms: number) {
   window.clearTimeout(timer);
   nextId += 1;
   set({ id: nextId, text, actions });
+  showFor = ms;
   timer = window.setTimeout(() => set(undefined), ms);
+}
+
+export function holdToast(held: boolean): void {
+  window.clearTimeout(timer);
+  if (!held && current) timer = window.setTimeout(() => set(undefined), showFor);
 }
 
 export function showToast(text: string, undo?: () => void): void {

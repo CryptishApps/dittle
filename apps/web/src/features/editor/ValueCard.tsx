@@ -64,25 +64,38 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
     const out = (event: MouseEvent) => {
       if ((event.target as HTMLElement).closest(".value-tag, .value-found")) hide();
     };
-    const click = (event: MouseEvent) => {
-      const element = (event.target as HTMLElement).closest<HTMLElement>(".value-tag");
-      if (!element?.dataset.id) return;
+    const open = (element: HTMLElement | null | undefined, from: "pointer" | "keyboard") => {
+      const id = element?.dataset.id;
+      if (!element || !id) return false;
       window.clearTimeout(hideTimer.current);
       if (openValue) {
         setTarget(undefined);
-        openValue(element.dataset.id);
-        return;
+        openValue(id, from);
+      } else {
+        setTarget({ kind: "tag", id, element });
+        setEditing(true);
       }
-      setTarget({ kind: "tag", id: element.dataset.id, element });
-      setEditing(true);
+      return true;
     };
+    const click = (event: MouseEvent) => void open((event.target as HTMLElement).closest<HTMLElement>(".value-tag"), "pointer");
+    const key = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "Enter" || !(event.metaKey || event.ctrlKey)) return;
+      const { $from, empty } = editor.state.selection;
+      const id: unknown = empty ? [$from.nodeBefore, $from.nodeAfter].find((node) => node?.type.name === VALUE_NODE)?.attrs.id : undefined;
+      if (typeof id !== "string" || !open(dom.querySelector<HTMLElement>(`.value-tag[data-id="${CSS.escape(id)}"]`), "keyboard")) return;
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    const keys = dom.parentElement ?? dom;
     dom.addEventListener("mouseover", over);
     dom.addEventListener("mouseout", out);
     dom.addEventListener("click", click);
+    keys.addEventListener("keydown", key, { capture: true });
     return () => {
       dom.removeEventListener("mouseover", over);
       dom.removeEventListener("mouseout", out);
       dom.removeEventListener("click", click);
+      keys.removeEventListener("keydown", key, { capture: true });
     };
   }, [editor]);
 
@@ -263,7 +276,7 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
           </Actions>
           {tag && !tag.proposal && tag.describedBy && (
             <p className="mt-2 border-t border-line pt-2 text-faint">
-              {openValue ? "Click for details" : tag.formula ? "Calculated" : "Click to change"} · described {tag.describedBy.where === "on_device" ? "on this device" : "in the cloud"}
+              {openValue ? "Click or ⌘/Ctrl Enter for details" : tag.formula ? "Calculated" : "Click to change"} · described {tag.describedBy.where === "on_device" ? "on this device" : "in the cloud"}
             </p>
           )}
         </m.div>

@@ -16,9 +16,18 @@ import { collectionsQuery, notesQuery, rowsQuery, valuesQuery } from "./api";
 const RECENT_ROWS = 4;
 const WHEN = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
 
-type ValuePanelProps = { uid: string; noteId: string; valueId: string; editor: Editor; store: ValueStore; services: EditorServices; onClose: () => void };
+type ValuePanelProps = {
+  uid: string;
+  noteId: string;
+  valueId: string;
+  focusOnOpen: boolean;
+  editor: Editor;
+  store: ValueStore;
+  services: EditorServices;
+  onClose: () => void;
+};
 
-export function ValuePanel({ uid, noteId, valueId, editor, store, services, onClose }: ValuePanelProps) {
+export function ValuePanel({ uid, noteId, valueId, focusOnOpen, editor, store, services, onClose }: ValuePanelProps) {
   const values = useValues(store);
   const { data: notes } = useSuspenseQuery(notesQuery(uid));
   const { data: collections } = useSuspenseQuery(collectionsQuery(uid));
@@ -78,7 +87,7 @@ export function ValuePanel({ uid, noteId, valueId, editor, store, services, onCl
               key={`${value.id}:${value.text}`}
               value={value}
               count={usedIn.length}
-              autoFocus={false}
+              autoFocus={focusOnOpen}
               onSave={(text, scope, quantity) => changeValue(editor, store, services, value, text, scope, quantity)}
               onCancel={onClose}
             />

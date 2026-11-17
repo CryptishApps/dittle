@@ -62,6 +62,7 @@ export function HomePage({ uid }: { uid: string }) {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto max-w-[820px] px-5 pt-8 pb-24 sm:px-8">
+        <h1 className="sr-only">Your notes</h1>
         {tracking && (
           <section aria-label="What you track" className="mb-8 grid grid-cols-1 pt-px pl-px sm:grid-cols-2 lg:grid-cols-3">
             {summaries.map((summary) => (

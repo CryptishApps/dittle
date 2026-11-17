@@ -37,7 +37,7 @@ export function AiPage() {
   return (
     <div className="min-h-dvh bg-page">
       <header className="flex h-14 items-center justify-between border-b border-line px-4 sm:px-6">
-        <Link to="/notes" aria-label="Back to notes">
+        <Link to="/notes" aria-label="Dittle home">
           <Wordmark className="text-[14px]" />
         </Link>
         <Link to="/notes" className="inline-flex items-center gap-1.5 text-[11px] tracking-[0.04em] text-soft uppercase hover:text-ink">

@@ -69,9 +69,9 @@ export function CollectionPage({ uid, collectionId }: { uid: string; collectionI
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="mx-auto max-w-[860px] px-6 pt-8 pb-24 sm:px-10">
           <p className="text-[11px] tracking-[0.06em] text-faint uppercase">Collection · one row per {collection.key.by === "when" ? "day" : "name"}</p>
-          <div className="mt-2 flex items-baseline justify-between gap-4">
+          <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
             <h1 className="text-[26px] leading-tight font-medium tracking-[-0.03em]">{collection.name}</h1>
-            <button type="button" onClick={remove} className="text-[11px] tracking-[0.04em] text-soft uppercase hover:text-accent-ink">
+            <button type="button" onClick={remove} className="shrink-0 text-[11px] tracking-[0.04em] whitespace-nowrap text-soft uppercase hover:text-accent-ink">
               Delete collection
             </button>
           </div>
@@ -79,47 +79,49 @@ export function CollectionPage({ uid, collectionId }: { uid: string; collectionI
           {mine.length === 0 ? (
             <p className="mt-8 text-[13px] text-soft">No rows yet. Values you write about in any note land here.</p>
           ) : (
-            <table className="mt-8 w-full border-collapse text-left text-[13px]">
-              <thead>
-                <tr className="border-b border-line-strong text-[10.5px] tracking-[0.06em] text-faint uppercase">
-                  <th className="py-2 pr-6 font-normal">{collection.key.by === "when" ? "Date" : "Name"}</th>
-                  {columns.map((field) => (
-                    <th key={field.id} className="py-2 pr-6 font-normal">
-                      {field.name}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                <AnimatePresence initial={false}>
-                  {mine.map((row) => (
-                    <m.tr
-                      key={row.id}
-                      layout="position"
-                      initial={{ opacity: 0, y: -6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.3, ease }}
-                      className="border-b border-line"
-                    >
-                      <td className="py-2.5 pr-6 align-top whitespace-nowrap text-soft">{rowLabel(row)}</td>
-                      {columns.map((field) => {
-                        const value = cell(row.id, field.id);
-                        return (
-                          <td key={field.id} className="py-2.5 pr-6 align-top">
-                            {value ? (
-                              <Cell value={value} notes={notes} editing={editing === value.id} onEdit={() => setEditing(value.id)} onClose={() => setEditing(undefined)} onChange={change} />
-                            ) : (
-                              <span className="text-faint">–</span>
-                            )}
-                          </td>
-                        );
-                      })}
-                    </m.tr>
-                  ))}
-                </AnimatePresence>
-              </tbody>
-            </table>
+            <div className="-mx-6 mt-8 overflow-x-auto px-6 sm:-mx-10 sm:px-10">
+              <table className="w-full border-collapse text-left text-[13px] whitespace-nowrap">
+                <thead>
+                  <tr className="border-b border-line-strong text-[10.5px] tracking-[0.06em] text-faint uppercase">
+                    <th className="py-2 pr-6 font-normal">{collection.key.by === "when" ? "Date" : "Name"}</th>
+                    {columns.map((field) => (
+                      <th key={field.id} className="py-2 pr-6 font-normal">
+                        {field.name}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <AnimatePresence initial={false}>
+                    {mine.map((row) => (
+                      <m.tr
+                        key={row.id}
+                        layout="position"
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3, ease }}
+                        className="border-b border-line"
+                      >
+                        <td className="py-2.5 pr-6 align-top whitespace-nowrap text-soft">{rowLabel(row)}</td>
+                        {columns.map((field) => {
+                          const value = cell(row.id, field.id);
+                          return (
+                            <td key={field.id} className="py-2.5 pr-6 align-top">
+                              {value ? (
+                                <Cell value={value} notes={notes} editing={editing === value.id} onEdit={() => setEditing(value.id)} onClose={() => setEditing(undefined)} onChange={change} />
+                              ) : (
+                                <span className="text-faint">–</span>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </m.tr>
+                    ))}
+                  </AnimatePresence>
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>
