@@ -35,7 +35,7 @@ type NoteEditorOptions = {
   content?: Content;
   label: string;
   services?: EditorServices;
-  autofocus?: boolean;
+  autofocus?: "start" | "end" | false;
   onUpdate?: (editor: Editor) => void;
 };
 
@@ -106,7 +106,7 @@ export function useNoteEditor({ store, content, label, services = {}, autofocus 
       ValueTag({ store, onCreate: (value, context) => describeInBackground(store, value, { ...context, noteId }, (described) => void linkTag(described).catch(() => undefined)) }),
     ],
     content,
-    autofocus: autofocus && "start",
+    autofocus,
     editorProps: { attributes: { class: "note-editor", "aria-label": label } },
     onUpdate: ({ editor }) => onUpdate?.(editor),
   }, []);

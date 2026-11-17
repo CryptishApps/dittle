@@ -1,12 +1,16 @@
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { AnimatePresence } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { NoteEditorView, useNoteEditor } from "@/features/editor/NoteEditor";
 import { createSyncedValueStore } from "@/features/editor/values";
 import { MIcon } from "@/ui/kit";
-import { noteQuery, writes } from "./api";
+import { foldersQuery, noteQuery, writes } from "./api";
 import { createEditorServices } from "./editor-services";
 import { fromNoteDoc, summarise, toNoteDoc, type NoteDoc } from "./note-doc";
+import { MenuItem, RowMenu } from "./NoteTree";
+import { showToast } from "./toast";
+import { ValuePanel } from "./ValuePanel";
 
 const SAVE_AFTER_MS = 800;
 
@@ -24,7 +28,8 @@ export function NotePage({ uid, noteId }: { uid: string; noteId: string }) {
 function OpenNote({ uid, noteId, doc, pending }: { uid: string; noteId: string; doc: NoteDoc; pending: boolean }) {
   const queryClient = useQueryClient();
   const [store] = useState(() => createSyncedValueStore(queryClient, uid, writes));
-  const [services] = useState(() => createEditorServices({ queryClient, uid, noteId, store }));
+  const [openValue, setOpenValue] = useState<string>();
+  const [services] = useState(() => ({ ...createEditorServices({ queryClient, uid, noteId, store }), openValue: setOpenValue }));
   const [initial] = useState(() => fromNoteDoc(doc));
   const saved = useRef(canonical(doc));
   const unsaved = useRef<NoteDoc | undefined>(undefined);
@@ -44,7 +49,7 @@ function OpenNote({ uid, noteId, doc, pending }: { uid: string; noteId: string; 
     content: initial,
     label: "Note",
     services,
-    autofocus: summarise(doc).title === "",
+    autofocus: startAt(doc),
     onUpdate: (current) => {
       unsaved.current = toNoteDoc(current.getJSON());
       window.clearTimeout(timer.current);
@@ -72,25 +77,62 @@ function OpenNote({ uid, noteId, doc, pending }: { uid: string; noteId: string; 
   }, [editor, doc, pending]);
 
   return (
-    <>
-      <NoteBar />
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-[680px] px-6 pt-10 pb-32 sm:px-10">
-          <NoteEditorView editor={editor} store={store} services={services} />
+    <div className="flex min-h-0 flex-1">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <NoteBar uid={uid} noteId={noteId} />
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-[680px] px-6 pt-8 pb-32 sm:px-10">
+            <NoteEditorView editor={editor} store={store} services={services} />
+          </div>
         </div>
       </div>
-    </>
+      <AnimatePresence>
+        {editor && openValue && (
+          <ValuePanel key={openValue} uid={uid} noteId={noteId} valueId={openValue} editor={editor} store={store} services={services} onClose={() => setOpenValue(undefined)} />
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
-function NoteBar() {
+function startAt(doc: NoteDoc): "start" | "end" | false {
+  const { title, preview } = summarise(doc);
+  if (!title) return "start";
+  return preview ? false : "end";
+}
+
+function NoteBar({ uid, noteId }: { uid: string; noteId: string }) {
+  const { data: note } = useSuspenseQuery(noteQuery(uid, noteId));
+  const { data: folders } = useSuspenseQuery(foldersQuery(uid));
+  const folder = folders.find((item) => item.id === note?.folderId);
+  const navigate = useNavigate();
+  const remove = async () => {
+    await navigate({ to: "/notes" });
+    const undo = await writes.deleteNote(uid, noteId);
+    showToast(`Deleted ${note?.title ? `"${note.title}"` : "note"}`, undo);
+  };
   return (
-    <div className="flex h-12 shrink-0 items-center border-b border-line px-4 text-[11px] tracking-[0.04em] uppercase md:hidden">
-      <Link to="/notes" className="inline-flex items-center gap-1.5 text-soft hover:text-ink">
+    <nav aria-label="Breadcrumb" className="flex h-10 shrink-0 items-center gap-2 px-4 text-[11.5px] text-faint sm:px-6">
+      <Link to="/notes" className="inline-flex items-center gap-1.5 hover:text-ink">
         <MIcon name="left" className="size-3.5" />
-        Notes
+        Home
       </Link>
-    </div>
+      {folder && (
+        <>
+          <span aria-hidden>/</span>
+          <span className="truncate">{folder.name}</span>
+        </>
+      )}
+      <span aria-hidden>/</span>
+      <span className="truncate text-soft">{note?.title || "Untitled"}</span>
+      <span className="ml-auto">
+        <RowMenu label="More actions for this note">
+          <MenuItem onSelect={() => void remove()} danger>
+            Delete note
+          </MenuItem>
+        </RowMenu>
+      </span>
+    </nav>
   );
 }
 

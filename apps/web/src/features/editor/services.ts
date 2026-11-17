@@ -10,4 +10,5 @@ export type EditorServices = {
   startCollection?: (value: TrackedValue, name: string) => void;
   ignoredRequests?: () => string[];
   ignoreRequest?: (text: string) => void;
+  openValue?: (id: string) => void;
 };

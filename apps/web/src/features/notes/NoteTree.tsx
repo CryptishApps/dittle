@@ -295,10 +295,10 @@ function NoteRow({
   );
 }
 
-const MENU_CONTENT =
+export const MENU_CONTENT =
   "z-50 min-w-[170px] border border-line-strong bg-card p-1 text-[12.5px] shadow-pop data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95";
 
-function RowMenu({ label, children }: { label: string; children: ReactNode }) {
+export function RowMenu({ label, children }: { label: string; children: ReactNode }) {
   return (
     <DropdownMenu.Root modal={false}>
       <DropdownMenu.Trigger aria-label={label} className="grid size-7 place-items-center text-soft hover:bg-chip hover:text-ink data-[state=open]:bg-chip">
@@ -317,7 +317,7 @@ function RowMenu({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function MenuItem({ onSelect, danger, current, children }: { onSelect: () => void; danger?: boolean; current?: boolean; children: ReactNode }) {
+export function MenuItem({ onSelect, danger, current, children }: { onSelect: () => void; danger?: boolean; current?: boolean; children: ReactNode }) {
   return (
     <DropdownMenu.Item
       onSelect={onSelect}

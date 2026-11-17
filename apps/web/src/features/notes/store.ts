@@ -107,12 +107,12 @@ export const listenFolders =
       fail,
     );
 
-export function createNote(uid: string, id: string, folderId: string | null = null): void {
+export function createNote(uid: string, id: string, folderId: string | null = null, start: NoteDoc = EMPTY_NOTE): void {
   write(
     setDoc(doc(notes(uid), id), {
       schemaVersion: 1,
-      doc: EMPTY_NOTE,
-      ...summarise(EMPTY_NOTE),
+      doc: start,
+      ...summarise(start),
       folderId,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),

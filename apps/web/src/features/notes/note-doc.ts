@@ -13,6 +13,11 @@ export type NoteDoc = { v: 1; blocks: Block[] };
 
 export const EMPTY_NOTE: NoteDoc = { v: 1, blocks: [{ t: "h", level: 1, c: [] }, { t: "p", c: [] }] };
 
+export function noteWith(title: string, body = ""): NoteDoc {
+  const inline = (text: string): Inline[] => (text ? [{ t: "text", text }] : []);
+  return { v: 1, blocks: [{ t: "h", level: 1, c: inline(title) }, { t: "p", c: inline(body) }] };
+}
+
 const hasMark = (node: JSONContent, type: string) => node.marks?.some((mark) => mark.type === type) ?? false;
 
 function toInlines(nodes: JSONContent[] = []): Inline[] {

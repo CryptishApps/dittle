@@ -5,7 +5,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { FactFields } from "@/features/notes/fact";
 import { ease } from "@/ui/kit";
 import { describeFormula, formatAmount } from "@/features/formulas/apply";
-import { changeEverywhere, relabelInEditor, repoint } from "./linking";
+import { applyEverywhere as applyToNotes, changeValue, type ChangeScope } from "./change-value";
+import { repoint } from "./linking";
 import { foundValueAt, spottingKey } from "./spotting";
 import { VALUE_NODE } from "./value-tag";
 import type { EditorServices } from "./services";
@@ -25,16 +26,16 @@ function showWhen(when: FactFields["when"]): string | undefined {
   return DAY.format(new Date(`${when.on}T00:00:00Z`));
 }
 
-type Shown = Omit<FactFields, "text"> & { text: string };
+export type Shown = Omit<FactFields, "text"> & { text: string };
 
-const contextLine = (value: Shown) => [value.subject?.label, showWhen(value.when), ...(value.conditions ?? []), ...(value.remarks ?? [])].filter(Boolean).join(" · ");
-const nameOf = (value: { name?: string } | undefined) => value?.name?.replaceAll("_", " ") ?? "value";
+export const contextLine = (value: Shown) => [value.subject?.label, showWhen(value.when), ...(value.conditions ?? []), ...(value.remarks ?? [])].filter(Boolean).join(" · ");
+export const nameOf = (value: { name?: string } | undefined) => value?.name?.replaceAll("_", " ") ?? "value";
 const notes = (count: number) => `${count} ${count === 1 ? "note" : "notes"}`;
 
 type ValueCardProps = { editor: Editor; store: ValueStore; services?: EditorServices };
 
 export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
-  const { usage = () => 0, onChanged, onNewFact, placementOf, startCollection, noteId } = services;
+  const { usage = () => 0, onNewFact, placementOf, startCollection, noteId, openValue } = services;
   const [target, setTarget] = useState<Target>();
   const card = useRef<HTMLDivElement>(null);
   const hideTimer = useRef<number | undefined>(undefined);
@@ -66,6 +67,11 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
       const element = (event.target as HTMLElement).closest<HTMLElement>(".value-tag");
       if (!element?.dataset.id) return;
       window.clearTimeout(hideTimer.current);
+      if (openValue) {
+        setTarget(undefined);
+        openValue(element.dataset.id);
+        return;
+      }
       setTarget({ kind: "tag", id: element.dataset.id, element });
       setEditing(true);
     };
@@ -100,14 +106,9 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
     setTarget(undefined);
   };
 
-  const saveEdit = (value: TrackedValue, text: string, scope: "everywhere" | "here", amount?: number) => {
+  const saveEdit = (value: TrackedValue, text: string, scope: ChangeScope, amount?: number) => {
     close();
-    if (text === value.text) return;
-    if (scope === "everywhere") return applyEverywhere(value.id, text, amount);
-    const { id: _id, text: _text, naming: _naming, proposal: _proposal, updatedAt: _updatedAt, ...context } = value;
-    const forked = store.add(text, { ...context, ...(amount !== undefined && { amount }), formula: undefined, notSame: [...(value.notSame ?? []), value.id], history: [{ text: value.text, at: Date.now() }] });
-    repoint(editor, value.id, forked.id, text);
-    store.update(value.id, { notSame: [...(value.notSame ?? []), forked.id] });
+    changeValue(editor, store, services, value, text, scope, amount);
   };
 
   const tag = target?.kind === "tag" ? values.find((value) => value.id === target.id) : undefined;
@@ -118,12 +119,7 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
   const insertTag = (from: number, to: number, id: string, label: string) =>
     editor.chain().focus().insertContentAt({ from, to }, { type: VALUE_NODE, attrs: { id, label, mentionSuggestionChar: "@" } }).run();
 
-  const applyEverywhere = (factId: string, text: string, amount?: number) => {
-    for (const change of changeEverywhere(store, factId, text, amount)) {
-      relabelInEditor(editor, change.id, change.text);
-      onChanged?.(change.id, change.text);
-    }
-  };
+  const applyEverywhere = (factId: string, text: string, amount?: number) => applyToNotes(editor, store, services, factId, text, amount);
 
   const trackFound = (how: "new" | "same" | "update" | "separate") => {
     const hit = target && foundValueAt(editor.state, target.id);
@@ -262,7 +258,7 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
           </Actions>
           {tag && !tag.proposal && tag.describedBy && (
             <p className="mt-2 border-t border-line pt-2 text-faint">
-              {tag.formula ? "Calculated" : "Click to change"} · described {tag.describedBy.where === "on_device" ? "on this device" : "in the cloud"} in {(tag.describedBy.ms / 1000).toFixed(1)} s
+              {openValue ? "Click for details" : tag.formula ? "Calculated" : "Click to change"} · described {tag.describedBy.where === "on_device" ? "on this device" : "in the cloud"}
             </p>
           )}
         </m.div>
@@ -289,7 +285,7 @@ function Action({ primary, onClick, children }: { primary?: boolean; onClick: ()
   );
 }
 
-function StartCollection({ value, onStart }: { value: TrackedValue; onStart: (name: string) => void }) {
+export function StartCollection({ value, onStart }: { value: TrackedValue; onStart: (name: string) => void }) {
   const [open, setOpen] = useState(false);
   const label = value.subject?.label ?? nameOf(value);
   const [name, setName] = useState(label.charAt(0).toUpperCase() + label.slice(1));
@@ -328,16 +324,18 @@ function StartCollection({ value, onStart }: { value: TrackedValue; onStart: (na
   );
 }
 
-function EditValue({
+export function EditValue({
   value,
   count,
   onSave,
   onCancel,
+  autoFocus = true,
 }: {
   value: TrackedValue;
   count: number;
-  onSave: (text: string, scope: "everywhere" | "here", amount?: number) => void;
+  onSave: (text: string, scope: ChangeScope, amount?: number) => void;
   onCancel: () => void;
+  autoFocus?: boolean;
 }) {
   const numeric = value.amount !== undefined;
   const [text, setText] = useState(numeric ? String(value.amount) : value.text);
@@ -353,7 +351,7 @@ function EditValue({
     if (count > 1) setAsking(true);
     else onSave(result.text, "everywhere", result.amount);
   };
-  const save = (scope: "everywhere" | "here") => {
+  const save = (scope: ChangeScope) => {
     const result = next();
     if (result) onSave(result.text, scope, result.amount);
   };
@@ -362,7 +360,7 @@ function EditValue({
       <div className="flex h-8 items-center border border-accent bg-card px-2 text-[13px]">
         {numeric && value.before && <span className="text-soft">{value.before}</span>}
         <input
-          autoFocus
+          autoFocus={autoFocus}
           type={numeric ? "number" : "text"}
           step="any"
           aria-label={`Change ${nameOf(value)}`}

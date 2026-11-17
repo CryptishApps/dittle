@@ -1,6 +1,6 @@
 import { queryOptions, type QueryClient } from "@tanstack/react-query";
 import { live } from "@/lib/live-query";
-import { EMPTY_NOTE, type NoteDoc } from "./note-doc";
+import { EMPTY_NOTE, summarise, type NoteDoc } from "./note-doc";
 import type { Collection, Row } from "./fact";
 import type { CellWrite, Folder, Note, NoteSummary, StoredValue } from "./store";
 
@@ -53,9 +53,9 @@ export const valuesQuery = (uid: string) =>
 const later = (run: (store: Awaited<ReturnType<typeof loadStore>>) => void) => void loadStore().then(run);
 
 export const writes = {
-  createNote: (uid: string, folderId: string | null = null): string => {
+  createNote: (uid: string, folderId: string | null = null, start?: NoteDoc): string => {
     const id = crypto.randomUUID();
-    later((store) => store.createNote(uid, id, folderId));
+    later((store) => store.createNote(uid, id, folderId, start));
     return id;
   },
   moveNote: (uid: string, id: string, folderId: string | null) => later((store) => store.moveNote(uid, id, folderId)),
@@ -79,10 +79,10 @@ export const writes = {
   relabelNotes: (uid: string, valueId: string, label: string, noteIds: string[]) => later((store) => void store.relabelNotes(uid, valueId, label, noteIds)),
 };
 
-export function startNote(queryClient: QueryClient, uid: string, folderId: string | null = null): string {
-  const id = writes.createNote(uid, folderId);
+export function startNote(queryClient: QueryClient, uid: string, folderId: string | null = null, start: NoteDoc = EMPTY_NOTE): string {
+  const id = writes.createNote(uid, folderId, start);
   const query = noteQuery(uid, id);
-  const seed: Note = { id, title: "", preview: "", updatedAt: Date.now(), pending: true, folderId, valueIds: [], doc: EMPTY_NOTE, ignoredRequests: [] };
+  const seed: Note = { id, ...summarise(start), updatedAt: Date.now(), pending: true, folderId, valueIds: [], doc: start, ignoredRequests: [] };
   queryClient.setQueryData<Note | null>(query.queryKey, seed);
   void queryClient.prefetchQuery({ ...query, staleTime: 0 });
   return id;

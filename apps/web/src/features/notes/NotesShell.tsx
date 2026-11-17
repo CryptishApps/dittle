@@ -1,17 +1,16 @@
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { Link, Outlet, useNavigate, useParams, useRouter } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { Link, Outlet, useNavigate, useRouter } from "@tanstack/react-router";
 import type { User } from "firebase/auth";
 import { AnimatePresence, m } from "motion/react";
+import { DropdownMenu } from "radix-ui";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useDeviceModel, type DeviceModelStatus } from "@/features/ai/device-model";
 import { loadAuth } from "@/lib/session";
 import { Btn, ease, MIcon } from "@/ui/kit";
 import { Wordmark } from "@/ui/Wordmark";
-import { useCollectionSuggestions } from "@/features/collections/suggestions";
-import { collectionsQuery, foldersQuery, loadStore, notesQuery, rowsQuery, startNote, valuesQuery, writes } from "./api";
-import { NoteTree } from "./NoteTree";
-import { dismissToast, showToast, useToast } from "./toast";
-import type { Folder, NoteSummary } from "./store";
+import { loadStore, startNote } from "./api";
+import { MENU_CONTENT, MenuItem } from "./NoteTree";
+import { dismissToast, useToast } from "./toast";
 
 const subscribeOnline = (onChange: () => void) => {
   window.addEventListener("online", onChange);
@@ -27,27 +26,10 @@ export function useOnline(): boolean {
 }
 
 export function NotesShell({ user }: { user: User }) {
-  const { data: notes } = useSuspenseQuery(notesQuery(user.uid));
-  const { data: folders } = useSuspenseQuery(foldersQuery(user.uid));
-  const { data: collections } = useSuspenseQuery(collectionsQuery(user.uid));
-  const { data: rows } = useSuspenseQuery(rowsQuery(user.uid));
-  const { data: values } = useSuspenseQuery(valuesQuery(user.uid));
-  const [creatingFolder, setCreatingFolder] = useState(false);
-  const { noteId, collectionId } = useParams({ strict: false });
-  const detail = Boolean(noteId || collectionId);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const online = useOnline();
-  const suggestions = useCollectionSuggestions(values, online);
-
-  const createSuggested = (id: string) => {
-    const accepted = suggestions.accept(id);
-    if (!accepted) return;
-    const { collection, rows: newRows, cells } = accepted.plan;
-    writes.createCollection(user.uid, collection, newRows, cells);
-    showToast(`Created ${collection.name} with ${newRows.length} rows`);
-    void navigate({ to: "/notes/collections/$collectionId", params: { collectionId: collection.id } });
-  };
+  const toast = useToast();
   const [leaving, setLeaving] = useState(false);
 
   const router = useRouter();
@@ -56,21 +38,7 @@ export function NotesShell({ user }: { user: User }) {
     return () => window.cancelIdleCallback?.(id);
   }, [router]);
 
-  const newNote = (folderId: string | null = null) => void navigate({ to: "/notes/$noteId", params: { noteId: startNote(queryClient, user.uid, folderId) } });
-
-  const toast = useToast();
-
-  const remove = async (note: NoteSummary) => {
-    if (note.id === noteId) await navigate({ to: "/notes" });
-    const undo = await writes.deleteNote(user.uid, note.id);
-    showToast(`Deleted ${note.title ? `"${note.title}"` : "note"}`, undo);
-  };
-
-  const removeFolder = async (folder: Folder) => {
-    const inside = notes.filter((note) => note.folderId === folder.id).map((note) => note.id);
-    const undo = await writes.deleteFolder(user.uid, folder, inside);
-    showToast(`Deleted folder "${folder.name}"${inside.length ? `, ${inside.length} ${inside.length === 1 ? "note" : "notes"} kept` : ""}`, undo);
-  };
+  const newNote = () => void navigate({ to: "/notes/$noteId", params: { noteId: startNote(queryClient, user.uid) } });
 
   const signOut = async () => {
     setLeaving(true);
@@ -81,117 +49,27 @@ export function NotesShell({ user }: { user: User }) {
   };
 
   return (
-    <div className="flex h-dvh bg-page">
-      <aside className={`${detail ? "hidden md:flex" : "flex"} w-full shrink-0 flex-col border-line bg-side md:w-[288px] md:border-r`}>
-        <div className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-line px-4">
-          <Link to="/notes" aria-label="All notes">
-            <Wordmark className="text-[14px]" />
-          </Link>
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => setCreatingFolder(true)}
-              aria-label="New folder"
-              title="New folder"
-              className="grid size-7 place-items-center border border-line-strong bg-card text-soft hover:border-ink hover:text-ink"
-            >
-              <MIcon name="folder" className="size-3.5" />
-            </button>
-            <Btn primary onClick={() => newNote()}>
-              <MIcon name="plus" className="size-3.5" />
-              New
-            </Btn>
-          </div>
+    <div className="flex h-dvh flex-col bg-page">
+      <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line px-4 sm:px-6">
+        <Link to="/notes" aria-label="Dittle home">
+          <Wordmark className="text-[14px]" />
+        </Link>
+        <div className="ml-auto flex items-center gap-2">
+          {!online && (
+            <span className="hidden items-center gap-2 text-[11.5px] text-soft sm:flex">
+              <span aria-hidden className="size-1.5 bg-accent" />
+              Offline · saved on this device
+            </span>
+          )}
+          <Btn primary onClick={newNote}>
+            <MIcon name="plus" className="size-3.5" />
+            New note
+          </Btn>
+          <AccountMenu user={user} online={online} leaving={leaving} onSignOut={() => void signOut()} />
         </div>
+      </header>
 
-        <nav aria-label="Notes" className="min-h-0 flex-1 overflow-y-auto py-2">
-          {suggestions.suggestions.length > 0 && (
-            <div className="mb-2 border-b border-line pb-2">
-              <p className="flex items-center gap-2 px-4 pt-1 pb-1 text-[10.5px] tracking-[0.06em] text-faint uppercase">
-                <span aria-hidden className="size-1.5 bg-accent" />
-                Suggested collections
-              </p>
-              <ul>
-                {suggestions.suggestions.map((suggestion) => (
-                  <li key={suggestion.id} className="px-4 py-1.5">
-                    <div className="flex items-baseline justify-between gap-3">
-                      <span className="truncate text-[13px] text-ink">{suggestion.proposal.name}</span>
-                      <span className="shrink-0 text-[10.5px] text-faint">{suggestion.rowCount} rows</span>
-                    </div>
-                    <p className="mt-0.5 truncate text-[12px] text-soft">{suggestion.plan.collection.fields.map((field) => field.name).join(", ")}</p>
-                    <div className="mt-1.5 flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => createSuggested(suggestion.id)}
-                        className="bg-ink px-2 py-1 text-[10.5px] tracking-[0.06em] text-page uppercase hover:opacity-90"
-                      >
-                        Create
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => suggestions.dismiss(suggestion.id)}
-                        aria-label={`Dismiss ${suggestion.proposal.name}`}
-                        className="border border-line-strong px-2 py-1 text-[10.5px] tracking-[0.06em] text-soft uppercase hover:border-ink hover:text-ink"
-                      >
-                        Not now
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {collections.length > 0 && (
-            <div className="mb-2 border-b border-line pb-2">
-              <p className="px-4 pt-1 pb-1 text-[10.5px] tracking-[0.06em] text-faint uppercase">Collections</p>
-              <ul>
-                {collections.map((collection) => {
-                  const count = rows.filter((row) => row.collectionId === collection.id).length;
-                  return (
-                    <li key={collection.id}>
-                      <Link
-                        to="/notes/collections/$collectionId"
-                        params={{ collectionId: collection.id }}
-                        className="flex items-center gap-2 border-l-2 border-transparent py-1.5 pr-4 pl-4 text-[13px] text-ink hover:bg-panel [&.active]:border-ink [&.active]:bg-panel"
-                      >
-                        <MIcon name="chip" className="size-3.5 text-soft" />
-                        <span className="truncate">{collection.name}</span>
-                        <span className="ml-auto text-[10.5px] text-faint tabular-nums">{count}</span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
-          <NoteTree
-            uid={user.uid}
-            notes={notes}
-            folders={folders}
-            creatingFolder={creatingFolder}
-            onFolderCreated={() => setCreatingFolder(false)}
-            onNewNote={newNote}
-            onDeleteNote={(note) => void remove(note)}
-            onDeleteFolder={(folder) => void removeFolder(folder)}
-          />
-        </nav>
-
-        <footer className="shrink-0 border-t border-line px-4 py-3 text-[11.5px]">
-          <DeviceModelLink />
-          <p className="mt-1.5 flex items-center gap-2 text-soft">
-            <span aria-hidden className={`size-1.5 ${online ? "bg-ink" : "bg-accent"}`} />
-            {online ? "Online · synced" : "Offline · saved on this device"}
-          </p>
-          <div className="mt-2 flex items-center justify-between gap-3">
-            <span className="truncate text-faint">{user.displayName ?? user.email}</span>
-            <button type="button" onClick={signOut} disabled={leaving} className="shrink-0 tracking-[0.04em] text-soft uppercase hover:text-ink">
-              {leaving ? "Signing out" : "Sign out"}
-            </button>
-          </div>
-        </footer>
-      </aside>
-
-      <main className={`${detail ? "flex" : "hidden md:flex"} min-w-0 flex-1 flex-col`}>
+      <main className="flex min-h-0 flex-1 flex-col">
         <Outlet />
       </main>
 
@@ -226,6 +104,38 @@ export function NotesShell({ user }: { user: User }) {
   );
 }
 
+function AccountMenu({ user, online, leaving, onSignOut }: { user: User; online: boolean; leaving: boolean; onSignOut: () => void }) {
+  const name = user.displayName ?? user.email ?? "Account";
+  return (
+    <DropdownMenu.Root modal={false}>
+      <DropdownMenu.Trigger
+        aria-label="Account and status"
+        className="relative grid size-7 place-items-center border border-line-strong bg-card text-[11px] font-medium text-ink uppercase hover:border-ink data-[state=open]:border-ink"
+      >
+        {name.charAt(0)}
+        {!online && <span aria-hidden className="absolute -top-0.5 -right-0.5 size-1.5 bg-accent" />}
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content align="end" sideOffset={6} className={`${MENU_CONTENT} w-[260px] text-[12px]`}>
+          <p className="truncate px-2.5 pt-1.5 pb-2 text-faint">{name}</p>
+          <DropdownMenu.Separator className="my-1 h-px bg-line" />
+          <DropdownMenu.Item asChild>
+            <Link to="/ai" className="flex items-center gap-2 px-2.5 py-1.5 text-soft outline-none data-[highlighted]:bg-panel data-[highlighted]:text-ink">
+              <DeviceModelStatus />
+            </Link>
+          </DropdownMenu.Item>
+          <p className="flex items-center gap-2 px-2.5 py-1.5 text-soft">
+            <span aria-hidden className={`size-1.5 ${online ? "bg-ink" : "bg-accent"}`} />
+            {online ? "Online · synced" : "Offline · saved on this device"}
+          </p>
+          <DropdownMenu.Separator className="my-1 h-px bg-line" />
+          <MenuItem onSelect={onSignOut}>{leaving ? "Signing out" : "Sign out"}</MenuItem>
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  );
+}
+
 const MODEL_LABEL: Record<DeviceModelStatus, string> = {
   checking: "Checking",
   "no-api": "Cloud only in this browser",
@@ -235,18 +145,18 @@ const MODEL_LABEL: Record<DeviceModelStatus, string> = {
   available: "Ready",
 };
 
-function DeviceModelLink() {
+function DeviceModelStatus() {
   const model = useDeviceModel();
   const dot = model.status === "available" ? "bg-ink" : model.status === "downloadable" ? "bg-accent" : "bg-faint";
   const percent = model.status === "downloading" && model.progress !== undefined ? ` ${Math.round(model.progress * 100)}%` : "";
   return (
-    <Link to="/ai" className="flex items-center gap-2 text-soft hover:text-ink">
+    <>
       <span aria-hidden className={`size-1.5 ${dot}`} />
       <span>
         Gemini Nano · {MODEL_LABEL[model.status]}
         {percent}
       </span>
       <MIcon name="right" className="ml-auto size-3" />
-    </Link>
+    </>
   );
 }

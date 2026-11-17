@@ -42,14 +42,16 @@ export function CollectionPage({ uid, collectionId }: { uid: string; collectionI
 
   return (
     <>
-      <div className="flex h-12 shrink-0 items-center border-b border-line px-4 text-[11px] tracking-[0.04em] uppercase md:hidden">
-        <Link to="/notes" className="inline-flex items-center gap-1.5 text-soft hover:text-ink">
+      <nav aria-label="Breadcrumb" className="flex h-10 shrink-0 items-center gap-2 px-4 text-[11.5px] text-faint sm:px-6">
+        <Link to="/notes" className="inline-flex items-center gap-1.5 hover:text-ink">
           <MIcon name="left" className="size-3.5" />
-          Notes
+          Home
         </Link>
-      </div>
+        <span aria-hidden>/</span>
+        <span className="truncate text-soft">{collection.name}</span>
+      </nav>
       <div className="min-h-0 flex-1 overflow-auto">
-        <div className="mx-auto max-w-[860px] px-6 pt-10 pb-24 sm:px-10">
+        <div className="mx-auto max-w-[860px] px-6 pt-8 pb-24 sm:px-10">
           <p className="text-[11px] tracking-[0.06em] text-faint uppercase">Collection · one row per {collection.key.by === "when" ? "day" : collection.rowLabel}</p>
           <div className="mt-2 flex items-baseline justify-between gap-4">
             <h1 className="text-[26px] leading-tight font-medium tracking-[-0.03em]">{collection.name}</h1>
