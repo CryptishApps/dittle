@@ -1,5 +1,8 @@
 {
   "astack_version": "0.2.0",
+  "kept_files": {
+    ".agents/skills/open-pr/SKILL.md": "89dc758e09325249013b8e6e1d827d9dba3938e5bf0e69590f6f56ddadf9148e"
+  },
   "managed_files": {
     ".agents/PROJECT.md": "2a3abfb916f5c8e43530cdd88a45c6d1944e01ff39713f4d5d710f16336db87b",
     ".agents/astack.schema.json": "69e95cd8de5d6cf767e0038756d404a8449e1a8a225ad7d4b4a527b8d72ab8b5",
@@ -17,7 +20,7 @@
     ".agents/skills/maintain-verification-map/agents/openai.yaml": "e238068bf64d423cf2ccb7c85c438357f0b6a1e9303c1ebb9ce8dc4b9f39ca61",
     ".agents/skills/merge/SKILL.md": "2073386ad8df2a96fd51dc79a935c413c1f996359ae14689be9513a546ef6595",
     ".agents/skills/merge/agents/openai.yaml": "77214b0fea97ce428e9fece02eae6817bf2c71155658e615539392b3b39993e9",
-    ".agents/skills/open-pr/SKILL.md": "89dc758e09325249013b8e6e1d827d9dba3938e5bf0e69590f6f56ddadf9148e",
+    ".agents/skills/open-pr/SKILL.md": "69e0a5df17e914e934338c4e3654bcef0f63b5e6ae9bf6c9c65934beecf82838",
     ".agents/skills/open-pr/agents/openai.yaml": "e292847a623ea931eb5e552577a2c10365b2cc50860e9f9477b5bd88bda2b8eb",
     ".agents/skills/release/SKILL.md": "af8e2dc3ce122eec3a19cf6f594fd1b73c8e5be67ebd31ace70020362faebfd3",
     ".agents/skills/release/agents/openai.yaml": "f1f71e032d6924cfd4a16d56411f6109fa2783e97d326054c4d8b456c32376d4",

@@ -31,8 +31,7 @@ Work and verification come first: by now `verify-project` has captured the befor
 5. Verification: write what you ran and what you saw, with each command and its result. For a bug, include the test's failure before the fix. Say what you could not check and why.
 6. Paste the evidence markdown into UI evidence, under `### Before` and `### After`, and into Backend evidence.
 7. Review: paste the latest round from the verdict file (from the first line down to the first `---`), or write `Not reviewed yet.`
-8. End with the model and harness that did the work.
-9. Check it locally:
+8. Check it locally:
    - `git diff --name-only origin/<integration>...HEAD > <files-file>`
    - `bun scripts/astack/pr-check.ts --body-file <body-file> --files-file <files-file>`
    - Fix every failure it prints.

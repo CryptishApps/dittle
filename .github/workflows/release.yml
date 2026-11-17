@@ -167,7 +167,7 @@ jobs:
   deploy:
     name: deploy
     needs: [ready, build]
-    if: ${{ !cancelled() && needs.ready.result == 'success' && needs.build.result == 'success' }}
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && needs.ready.result == 'success' && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
