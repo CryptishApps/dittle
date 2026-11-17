@@ -97,9 +97,13 @@ function blockText(block: Block): string {
   return block.t === "p" || block.t === "h" ? inlineText(block.c) : block.items.map((item) => inlineText(item.c)).join(" · ");
 }
 
-export function summarise(doc: NoteDoc): { title: string; preview: string } {
+const PREVIEW_LENGTH = 160;
+const SEARCH_TEXT_LENGTH = 20_000;
+
+export function summarise(doc: NoteDoc): { title: string; preview: string; text: string } {
   const [first, ...rest] = doc.blocks.map(blockText).map((text) => text.trim());
-  return { title: first ?? "", preview: rest.filter(Boolean).join(" ").slice(0, 160) };
+  const body = rest.filter(Boolean);
+  return { title: first ?? "", preview: body.join(" ").slice(0, PREVIEW_LENGTH), text: body.join("\n").slice(0, SEARCH_TEXT_LENGTH) };
 }
 
 export function valueIdsOf(doc: NoteDoc): string[] {

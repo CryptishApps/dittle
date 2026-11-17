@@ -7,6 +7,8 @@ import { collectionsQuery, notesQuery } from "./api";
 
 const RECENT = 8;
 const MAX_RESULTS = 20;
+const SNIPPET_LEAD = 40;
+const SNIPPET_LENGTH = 140;
 
 type Result = { kind: "note"; id: string; title: string; detail: string } | { kind: "collection"; id: string; title: string; detail: string };
 
@@ -49,10 +51,18 @@ function SearchBody({ uid, onDone }: { uid: string; onDone: () => void }) {
 
   const wanted = query.trim().toLocaleLowerCase();
   const has = (text: string) => text.toLocaleLowerCase().includes(wanted);
+  const snippet = (text: string) => {
+    const at = text.toLocaleLowerCase().indexOf(wanted);
+    if (at < SNIPPET_LEAD) return text.slice(0, SNIPPET_LENGTH);
+    const start = text.lastIndexOf(" ", at - SNIPPET_LEAD) + 1;
+    return `…${text.slice(start, start + SNIPPET_LENGTH)}`;
+  };
   const results: Result[] = wanted
     ? [
         ...collections.filter((collection) => has(collection.name)).map((collection): Result => ({ kind: "collection", id: collection.id, title: collection.name, detail: "Collection" })),
-        ...notes.filter((note) => has(note.title) || has(note.preview)).map((note): Result => ({ kind: "note", id: note.id, title: note.title || "Untitled", detail: note.preview })),
+        ...notes
+          .filter((note) => has(note.title) || has(note.text))
+          .map((note): Result => ({ kind: "note", id: note.id, title: note.title || "Untitled", detail: has(note.text) ? snippet(note.text.replaceAll("\n", " ")) : note.preview })),
       ].slice(0, MAX_RESULTS)
     : notes.slice(0, RECENT).map((note) => ({ kind: "note", id: note.id, title: note.title || "Untitled", detail: note.preview }));
 

@@ -75,6 +75,7 @@ exports[`shapes kept on the device change KEPT_SHAPES_VERSION whenever this snap
       "ignoredRequests": [],
       "pending": "boolean",
       "preview": "string",
+      "text": "string",
       "title": "string",
       "updatedAt": "number",
       "valueIds": [
@@ -137,6 +138,6 @@ exports[`shapes kept on the device change KEPT_SHAPES_VERSION whenever this snap
       },
     },
   },
-  "version": "1",
+  "version": "2",
 }
 `;

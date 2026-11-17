@@ -23,7 +23,7 @@ import type { Listen } from "@/lib/live-query";
 import type { Collection, Row, StoredValue } from "./fact";
 import { EMPTY_NOTE, relabel, summarise, valueIdsOf, type NoteDoc } from "./note-doc";
 
-export type NoteSummary = { id: string; title: string; preview: string; updatedAt: number; pending: boolean; folderId: string | null; valueIds: string[] };
+export type NoteSummary = { id: string; title: string; preview: string; text: string; updatedAt: number; pending: boolean; folderId: string | null; valueIds: string[] };
 export type Folder = { id: string; name: string; createdAt: number };
 export type Note = NoteSummary & { doc: NoteDoc; ignoredRequests: string[] };
 export type { StoredValue } from "./fact";
@@ -46,6 +46,7 @@ function summary(snapshot: DocumentSnapshot<DocumentData>): NoteSummary {
     id: snapshot.id,
     title: String(data.title ?? ""),
     preview: String(data.preview ?? ""),
+    text: String(data.text ?? data.preview ?? ""),
     updatedAt: millis(data.updatedAt),
     pending: snapshot.metadata.hasPendingWrites,
     folderId: typeof data.folderId === "string" ? data.folderId : null,

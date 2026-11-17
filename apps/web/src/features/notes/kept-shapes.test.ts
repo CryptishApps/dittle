@@ -14,7 +14,7 @@ const doc = {
   ],
 } satisfies NoteDoc;
 
-const note = { id: "n1", title: "Catering", preview: "", updatedAt: 0, pending: false, folderId: null, valueIds: ["v1"], doc, ignoredRequests: [] } satisfies Required<Note>;
+const note = { id: "n1", title: "Catering", preview: "", text: "", updatedAt: 0, pending: false, folderId: null, valueIds: ["v1"], doc, ignoredRequests: [] } satisfies Required<Note>;
 
 const folder = { id: "f1", name: "Wedding", createdAt: 0 } satisfies Required<Folder>;
 
