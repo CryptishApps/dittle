@@ -2,115 +2,135 @@
 
 Change it once. Every note follows.
 
-You write "80 guests" in the catering quote, the budget, the chair order and an email. Then it's 95. Dittle spots values like these as you type, links the ones that mean the same thing, and updates every note when one changes. Spotting runs on your device, so it's instant, private and works offline. The cloud only steps in for jobs that span all your notes.
+You write "80 guests" in the catering quote, the budget and the seating plan. Then it's 95. In most notes apps you now hunt down three numbers. In Dittle you change one. The budget and the seating plan follow, and so does the £3,040 catering total that was worked out from it.
 
-Built for [#BuildHybridAI 2026](https://firebasehybridaihackathon.devpost.com). Work in progress until 30 November 2026.
+To do that, Dittle has to know that the "80" in one note is the same thing as the "80" in another, and that "£3,040" is 80 × £38. Gemini Nano, running in Chrome on your computer, reads each paragraph as you type and works out what its values are. Deciding whether two values are the same thing, and suggesting tables across all your notes, go to the cloud model when you're online. The cloud also covers for Nano on computers that can't run it.
 
-## What it does
+Built for [#BuildHybridAI 2026](https://firebasehybridaihackathon.devpost.com). Live at [dittle.app](https://dittle.app).
 
-- **Change it once.** Change "80 guests" to 95 and Dittle shows the other notes that mention it. One click updates them all.
-- **Ask inside the note.** Write a request like "add in a list of meals here". A button appears with the result already written. Hover to preview, click to add.
-- **Buckets.** Each new note is sorted into a bucket, like Wedding, Work or Lisbon trip, from what it says. The sorting runs on the device.
-- **Sums that keep up.** Totals such as "95 × £38" work themselves out again when a number changes. Code does the maths, not the model.
-- **Collections.** The cloud looks across every note's extracted values and suggests tables, like "Vendors: price, deposit, contact".
-- **Offline.** Notes save to the device first, the on-device model keeps working, and everything syncs when you're back online.
+## Try it in two minutes
 
-Linking happens in the background. While you type, the on-device model reads each paragraph and records which values mean the same thing across notes. You only see it when it's useful: when a value changes, or when it finds a collection.
+Use desktop Chrome. If your computer can run Gemini Nano, Dittle offers to download it from the account menu (Gemini Nano, then Download). Without it, everything still works through the cloud.
 
-## Where each model runs
+1. Sign up, then click "Rosa's Kitchen quoted £38 a head for 80 guests." on the first page. Dittle opens it as a note and underlines the values it found. Hover one to see what it thinks it is.
+2. Start a note called "Catering". Type `Buffet for @80` and press Tab, then `guests at @£38` and Tab, then `a head, so about @£3,040` and Tab. Tab tags the value and adds the space after it. A couple of seconds later a message says £3,040 now follows the price per head × the guest count. The wording comes from the names Nano gave the values.
+3. Start another note, type `@80` and pick the 80 you already have from the menu.
+4. Click the 80, change it to 95 and choose Update all. Both notes change, and £3,040 becomes £3,610.
+5. Type `/` on a new line, pick "Ask Dittle to write…", type `a packing list for a weekend in Lisbon` and press Enter. Hover the button that appears to preview the list.
+6. Open `/ai` to see every AI call and whether it ran on your device or in the cloud.
 
-| Job | Web (desktop Chrome) | Android |
+## Where each job runs, and why
+
+Every call goes through [Firebase AI Logic](https://firebase.google.com/docs/ai-logic) hybrid inference ([hybrid.ts](apps/web/src/features/ai/hybrid.ts)). Each job sends a JSON schema with fixed options, and code checks the answer before using it.
+
+| Job | Runs | Why |
 |---|---|---|
-| Read notes, link values, sort into buckets, short inserts | Gemini Nano through Chrome's Prompt API | Gemini Nano through ML Kit and AICore |
-| Fallback when the on-device model is missing or fails | Gemini Flash in the cloud | Gemini Flash in the cloud |
-| Collections and long inserts | Gemini Flash in the cloud | Gemini Flash in the cloud |
+| Find values in a paragraph as you type | Nano first | It runs on every paragraph you finish, so it has to be free, fast and private. Nano finds 97% of values. |
+| Describe a value (what it measures, which day, what it belongs to, its number, its duration) | Nano first | Same reason. It only sees the one paragraph. |
+| Place a value in a collection | Nano first | Picks a collection, column and row from numbered options. |
+| Spot a formula (£3,040 = 80 × £38) | Nano first | Suggests a formula; code checks it reproduces the number. |
+| Write a request ("add a packing list here") | Nano first | Short text, written from the note itself. |
+| Link a value to one you already track | Cloud first, Nano offline | Nano got 7 of 11 test cases right, the cloud 10 of 11. A wrong link merges two different values, so this one goes to the cloud when it can. |
+| Suggest collections ("you've logged 3 runs, make a Runs table?") | Cloud only | Needs every value at once. It gets the extracted values and note titles, never note text. |
 
-Every call goes through Firebase AI Logic. On-device jobs use hybrid inference (`PREFER_ON_DEVICE`) and retry in the cloud if the local call fails. Cloud-only jobs use `ONLY_IN_CLOUD`. The app counts where each call ran and shows it in the corner, for example "412 on device · 6 cloud".
+"Nano first" is `PREFER_ON_DEVICE`. If the on-device call fails or takes more than 30 seconds, Dittle retries in the cloud. "Cloud first" is `PREFER_IN_CLOUD`, which uses Nano when the cloud can't be reached. The cloud model is Gemini Flash-Lite, named in [Remote Config](https://firebase.google.com/docs/remote-config) so it can change without a deploy ([ai.ts](apps/web/src/lib/ai.ts)).
 
-The cloud never sees full notes for Collections, only the values Dittle extracted and the note titles.
+## The model suggests, code decides
+
+The models never write into your notes directly. Every answer goes through a check first.
+
+- **Quotes are grounded.** A value Find returns is only used if its text appears exactly in your paragraph. Same for a new row name in a collection.
+- **Choices come from a list.** Kinds come from a fixed set. Collections, columns, rows and link targets are numbered options. An answer outside the list is dropped.
+- **Code does the maths.** Formulas run in a small parser ([engine.ts](apps/web/src/features/formulas/engine.ts)), not `eval` and not the model. A suggested formula is kept only if it reproduces the written number within 2% ([apply.ts](apps/web/src/features/formulas/apply.ts)).
+- **Durations come back as ISO 8601.** "27:40" for a run is `PT27M40S`; "2:40" for a flight is `PT2H40M`. The model reads the context and code parses the strict format into seconds ([duration.ts](apps/web/src/features/formulas/duration.ts)).
+- **Nothing changes silently.** If a new value looks like one you already track but the text differs, Dittle asks before touching anything.
+- **No keyword guessing.** No regex or word list decides what your text means. The few places that split text use `Intl.Segmenter` for sentence ends or the exact position of a quote.
+
+## How well it works
+
+The test page at `/dev/describe` (dev server only) runs 28 paragraphs, 12 context cases and 11 link cases through the real prompts and scores them ([spike](apps/web/src/features/spike)). The prompt examples are kept different from the test sentences.
+
+| | Cloud (Find v9) | Gemini Nano in Chrome 157 (Find v8) |
+|---|---|---|
+| Values found | 100% | 97% |
+| Found values that are right | 98.5% | 97% |
+| Kind right | 100% | 98% |
+| Requests told apart from reminders | 100% | 93% |
+| Context fields right (not counting durations) | 70 of 71 | 64 of 71 |
+| Durations read correctly | 5 of 5 | not measured; Chrome sent these to the cloud |
+| Links | 10 of 11 | 7 of 11 |
+| Median time per paragraph | about 1 s | about 3 s |
+
+Nano's misses are mostly small: "today" filed as a condition, "garden" instead of "tomato". The link misses were not small, which is why linking prefers the cloud.
+
+## Fast
+
+Numbers from a production build, median of several runs.
+
+| | Result |
+|---|---|
+| Lighthouse, landing and sign-in, mobile and desktop | 100 for performance, accessibility, best practices and SEO |
+| Largest contentful paint, landing, mobile preset | 0.9 s |
+| Returning user opens their notes | 57 ms (188 ms with 4× CPU slowdown), down from 404 ms |
+| Opening a note from a link | 71 ms, down from 426 ms |
+| JavaScript for the landing page | 157 KB compressed, no editor or Firestore code |
+| Moving between home, a note and a collection | under 30 ms |
+
+How it gets there:
+
+- **Your notes show before Firebase loads.** TanStack Query's cache is kept in IndexedDB per account and restored before the first render ([query-cache.ts](apps/web/src/lib/query-cache.ts)). Firestore listeners start after the first paint and refresh what's on screen. A local hint says who was signed in, so nothing waits on Firebase Auth's network check.
+- **Each page fetches its own code early.** A build step adds the current route's chunks as `modulepreload` links before the main script runs ([route-preload.ts](apps/web/build/route-preload.ts)).
+- **Only what's used ships.** The editor lists the Tiptap extensions it uses instead of StarterKit. Auth is set up with only the persistence Dittle needs. Motion loads its features lazily. React Compiler handles memoisation.
+- **Screenshots are AVIF and WebP** at three widths with fixed dimensions.
+
+## Offline
+
+Dittle opens and works with no connection.
+
+- A service worker caches the built app after sign-in ([service-worker.ts](apps/web/build/service-worker.ts)). Pages try the network for 3 seconds, then use the cached copy.
+- Notes and values live in Firestore with its persistent local cache. Writes are never awaited, so they show at once and sync when you're back.
+- Gemini Nano keeps finding and describing values offline, and linking falls back to it.
+- Signing out or deleting your account wipes the local Firestore cache and the kept query cache, in every open tab.
 
 ## Built on Firebase
 
-| Product | What it does in Dittle |
+| Product | Use |
 |---|---|
-| [Firebase AI Logic](https://firebase.google.com/docs/ai-logic) | Every AI call, on-device first with cloud fallback |
-| [App Check](https://firebase.google.com/docs/app-check) | Keeps AI Logic and Firestore for this app only: reCAPTCHA Enterprise on web, Play Integrity on Android |
-| [Authentication](https://firebase.google.com/docs/auth) | Email and password or Google. Verification and password-reset links open a Dittle page at `/auth/action` instead of Firebase's default one |
-| [Cloud Firestore](https://firebase.google.com/docs/firestore) | Notes, variables and collections, with an offline cache that syncs when you reconnect |
-| [Remote Config](https://firebase.google.com/docs/remote-config) | Prompts, the cloud model name, the typing-pause delay and a switch for cloud calls |
-| [Hosting](https://firebase.google.com/docs/hosting) | Serves the web app at [dittle.app](https://dittle.app) |
-
-## Platforms
-
-| Platform | Status | On-device AI needs |
-|---|---|---|
-| Web | In progress | Desktop Chrome on Windows 10/11, macOS 13+, Linux or ChromeOS, with 22 GB free disk and a GPU with more than 4 GB of VRAM (or 16 GB RAM and 4 CPU cores) |
-| Android | Next | A phone on ML Kit's Gemini Nano list, such as Pixel 9 or later, or Galaxy S25 or later |
-
-Without on-device AI, the app still works: every call goes to the cloud.
+| [AI Logic](https://firebase.google.com/docs/ai-logic) | Every model call, with hybrid inference |
+| [App Check](https://firebase.google.com/docs/app-check) | reCAPTCHA Enterprise, enforced for AI Logic and Firestore |
+| [Authentication](https://firebase.google.com/docs/auth) | Email and password or Google; account deletion with re-sign-in when needed |
+| [Cloud Firestore](https://firebase.google.com/docs/firestore) | Notes, values, folders, collections and their rows, under `users/{uid}`. Each user can read and write only their own ([firestore.rules](firestore.rules)) |
+| [Remote Config](https://firebase.google.com/docs/remote-config) | The cloud model name |
+| [Hosting](https://firebase.google.com/docs/hosting) | dittle.app |
 
 ## Run it locally
 
-You need [Bun](https://bun.sh) 1.3 or later and a Firebase project with AI Logic, Authentication (Email/Password and Google), Firestore and App Check (reCAPTCHA Enterprise) turned on.
+You need [Bun](https://bun.sh) 1.3 or later and a Firebase project with AI Logic, Authentication (Email/Password and Google), Firestore and App Check (reCAPTCHA Enterprise).
 
 ```sh
 bun install
-cp apps/web/.env.example apps/web/.env.local   # fill in your Firebase web app settings
+cp apps/web/.env.example apps/web/.env.local   # your Firebase web app settings
 bun run dev                                    # http://localhost:5180
 ```
 
-App Check starts only when the app first uses AI Logic or Firestore, so sign-in pages never load reCAPTCHA. Leave `VITE_RECAPTCHA_ENTERPRISE_SITE_KEY` empty to run without it. Once it's set, development uses a debug token. Leave `VITE_APPCHECK_DEBUG_TOKEN` empty the first time, copy the token the browser console prints, and add it in the Firebase console under App Check > Manage debug tokens.
+App Check starts the first time the app uses AI Logic or Firestore, so the sign-in pages never load reCAPTCHA. Leave `VITE_RECAPTCHA_ENTERPRISE_SITE_KEY` empty to run without it. When it's set, development uses a debug token: leave `VITE_APPCHECK_DEBUG_TOKEN` empty once, copy the token the browser console prints, and register it under App Check > Manage debug tokens. The debug token is only read in development builds.
 
-The homepage screenshots are taken from the real app. The script signs up a throwaway account, writes a few notes through the editor, takes each screenshot in light and dark, then deletes the account and its notes. It makes a few AI calls, some in the cloud. `apps/web/shots` holds the PNG originals, and `apps/web/public/shots` holds the AVIF and WebP copies the site serves. To retake them, keep `bun run dev` running and run `CHROME_PATH=/path/to/chrome bun run --filter @dittle/web shots`.
+Checks: `bun run typecheck` at the root, and `bun test src` in `apps/web`.
 
-Deploy to Firebase Hosting with the Firebase CLI:
+The landing page screenshots come from the real app. With `bun run dev` running, `CHROME_PATH=/path/to/chrome bun run --filter @dittle/web shots` signs up a throwaway account, writes a few notes through the editor, takes each shot in light and dark, and deletes the account.
 
-```sh
-bunx firebase login
-bunx firebase use --add
-bun run deploy
-```
+Deploy with `bun run deploy`, which builds and then deploys Hosting and the Firestore rules.
 
-## Performance
-
-Lighthouse on a simulated mid-range phone over slow 4G (median of three runs on a production build):
-
-| Page | Before | After |
-|---|---|---|
-| Homepage | 73, content shows at 7.4 s, 1,152 KB | 100, content shows at 0.75 s, 318 KB |
-| Sign in | 74, content shows at 5.5 s, 520 KB | 100, content shows at 0.75 s, 227 KB |
-
-Accessibility, best practices and SEO also score 100 on both pages.
-
-How:
-
-- **Firebase loads only when it's needed.** The homepage and sign-in page don't wait for it. A small flag in local storage remembers whether you were signed in, so only returning users wait for Firebase before the first screen, and the app sends them straight to their notes. Everyone else gets the page at once, while Firebase downloads in the background when the browser is idle.
-- **Auth set up the lean way.** `initializeAuth` with only the persistence Dittle uses, and the popup resolver passed to the Google sign-in call itself, as in Firebase's [custom dependencies guide](https://firebase.google.com/docs/auth/web/custom-dependencies). Pages no longer load Google's sign-in iframe at startup.
-- **Each page's code is fetched up front.** A small build step ([route-preload.ts](apps/web/build/route-preload.ts)) puts a short script in the HTML. It tells the browser which code chunks the current page needs before the main script runs, including pages with an ID in the address such as `/notes/abc`. Signed-in visitors also get the Auth chunk, and on `/notes` the Firestore chunk, so nothing waits in a chain.
-- **Animation code is loaded in the background.** Motion's `LazyMotion` with `m` components loads its animation features separately (about 18 KB compressed) instead of putting them in every page's code.
-- **React Compiler** memoises components at build time.
-- **Self-hosted, preloaded font.** Geist Mono's Latin subset (23 KB) is preloaded from the same domain. There is no Google Fonts request.
-- **AVIF and WebP screenshots at two sizes**, with `srcset`, set dimensions (no layout shift) and lazy loading below the fold.
-
-## Offline and sync
-
-Notes and tagged values live in Firestore with its persistent local cache, so they open, save and change with no connection.
-
-- **Firestore listeners feed TanStack Query.** Each query starts an `onSnapshot` listener the first time it's used, and every later snapshot is written into the query cache ([live-query.ts](apps/web/src/lib/live-query.ts)). Route loaders call `ensureQueryData`, so a note opens from the local cache before any network request. The listener stops when the query leaves the cache.
-- **Writes are never awaited.** Firestore applies a write to the local cache straight away, and the listener shows it at once. A write's promise only settles when the server confirms it, which never happens offline.
-- **The save status comes from Firestore itself.** `hasPendingWrites` shows "Saving", "Saved on this device" when offline, and "Synced" once the server has the change.
-- **Only new things animate.** Notes already in the list at load appear without animation. A note created here or on another device slides in.
-- **Notes are saved 0.8 s after you stop typing**, and when the tab is hidden or closed. That stays under Firestore's guideline of about one write per second for each document.
-- **Signing out wipes this device's copy** (`terminate` then `clearIndexedDbPersistence`).
-- **A shared format for both apps.** Notes are stored as NoteDoc v1 ([note-doc.ts](apps/web/src/features/notes/note-doc.ts)), a small typed format the Android app will read too. The web editor converts to and from it.
-
-## Repository
+## Where things are
 
 ```
-apps/web          Web app: React 19 with React Compiler, Vite 8, TanStack Router, Tailwind CSS 4, shadcn/ui, Motion, Lenis
-apps/web/build    Build plugins: route-aware module preloading
-firestore.rules   Each user can read and write only their own notes
-firebase.json     Hosting and Firestore settings
+apps/web/src/features/ai           Prompts, schemas and answer checks for each job; hybrid.ts wraps AI Logic
+apps/web/src/features/editor       Tiptap editor: @ tags, / menu, value spotting, requests, value cards
+apps/web/src/features/notes        Firestore store, TanStack Query wiring, home page, note page, value panel, search
+apps/web/src/features/collections  Collections: placement, totals, suggestions, collection page
+apps/web/src/features/formulas     Formula parser, checks and recalculation; duration parsing
+apps/web/src/features/spike        Test sets and scoring for /dev/describe
+apps/web/build                     Vite plugins: route preloading, service worker
 ```
 
 ## Licence
