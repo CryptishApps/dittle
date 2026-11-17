@@ -234,15 +234,20 @@ export function createCollection(uid: string, created: Omit<Collection, "created
   write(batch.commit());
 }
 
-export function placeCell(uid: string, row: Omit<Row, "createdAt">, cell: CellWrite): () => void {
+export type CellPlacement = { row: Omit<Row, "createdAt">; newRow: boolean; valueId: string; fieldId: string; replaces?: string };
+
+export function placeCell(uid: string, { row, newRow, valueId, fieldId, replaces }: CellPlacement): () => void {
   const batch = writeBatch(db);
   const { id: rowId, ...rest } = row;
   batch.set(doc(rowsOf(uid), rowId), { ...rest, createdAt: serverTimestamp() }, { merge: true });
-  batch.update(doc(values(uid), cell.valueId), { "subject.entityId": cell.rowId, field: cell.fieldId, updatedAt: serverTimestamp() });
+  batch.update(doc(values(uid), valueId), { "subject.entityId": rowId, field: fieldId, updatedAt: serverTimestamp() });
+  if (replaces) batch.update(doc(values(uid), replaces), { "subject.entityId": null, field: null, updatedAt: serverTimestamp() });
   write(batch.commit());
   return () => {
     const undo = writeBatch(db);
-    undo.update(doc(values(uid), cell.valueId), { "subject.entityId": null, field: null, updatedAt: serverTimestamp() });
+    undo.update(doc(values(uid), valueId), { "subject.entityId": null, field: null, updatedAt: serverTimestamp() });
+    if (replaces) undo.update(doc(values(uid), replaces), { "subject.entityId": rowId, field: fieldId, updatedAt: serverTimestamp() });
+    if (newRow) undo.delete(doc(rowsOf(uid), rowId));
     write(undo.commit());
   };
 }

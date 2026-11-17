@@ -150,7 +150,11 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
     const factId = value.proposal?.factId;
     setTarget(undefined);
     if (!factId) return;
-    if (!accept) return store.update(value.id, { proposal: undefined, notSame: [...(value.notSame ?? []), factId] });
+    if (!accept) {
+      const notSame = [...(value.notSame ?? []), factId];
+      store.update(value.id, { proposal: undefined, notSame });
+      return onNewFact?.({ ...value, proposal: undefined, notSame });
+    }
     repoint(editor, value.id, factId, value.text);
     applyEverywhere(factId, value.text, { amount: value.amount, seconds: value.seconds });
     store.remove(value.id);

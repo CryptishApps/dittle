@@ -2,7 +2,7 @@ import { queryOptions, type QueryClient } from "@tanstack/react-query";
 import { live } from "@/lib/live-query";
 import { EMPTY_NOTE, summarise, type NoteDoc } from "./note-doc";
 import type { Collection, Row } from "./fact";
-import type { CellWrite, Folder, Note, NoteSummary, StoredValue } from "./store";
+import type { CellPlacement, CellWrite, Folder, Note, NoteSummary, StoredValue } from "./store";
 
 export const loadStore = () => import("./store");
 
@@ -74,7 +74,7 @@ export const writes = {
   deleteValue: (uid: string, id: string) => later((store) => store.deleteValue(uid, id)),
   createCollection: (uid: string, created: Omit<Collection, "createdAt">, rows: Omit<Row, "createdAt">[], cells: CellWrite[]) =>
     later((store) => store.createCollection(uid, created, rows, cells)),
-  placeCell: async (uid: string, row: Omit<Row, "createdAt">, cell: CellWrite) => (await loadStore()).placeCell(uid, row, cell),
+  placeCell: async (uid: string, placement: CellPlacement) => (await loadStore()).placeCell(uid, placement),
   deleteCollection: (uid: string, id: string) => later((store) => store.deleteCollection(uid, id)),
   relabelNotes: (uid: string, valueId: string, label: string, noteIds: string[]) => later((store) => void store.relabelNotes(uid, valueId, label, noteIds)),
 };

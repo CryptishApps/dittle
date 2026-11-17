@@ -10,4 +10,4 @@ export function dayLabel(period: string | undefined): string {
   return `${DAY.format(date)}${suffix}`;
 }
 
-export const rowLabel = (row: Row) => (row.period ? dayLabel(row.id.slice(row.collectionId.length + 1)) : row.label);
+export const rowLabel = (row: Pick<Row, "id" | "collectionId" | "label" | "period">) => (row.period ? dayLabel(row.id.slice(row.collectionId.length + 1)) : row.label);

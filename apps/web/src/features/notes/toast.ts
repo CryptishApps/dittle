@@ -1,9 +1,14 @@
 import { useSyncExternalStore } from "react";
 
-export type Toast = { id: number; text: string; undo?: () => void };
+export type ToastAction = { label: string; run?: () => void; primary?: boolean };
+export type Toast = { id: number; text: string; actions: ToastAction[] };
+
+const SHOW_MS = 6000;
+const ASK_MS = 12_000;
 
 let current: Toast | undefined;
 let timer: number | undefined;
+let nextId = 0;
 const listeners = new Set<() => void>();
 
 function set(next: Toast | undefined) {
@@ -11,10 +16,19 @@ function set(next: Toast | undefined) {
   listeners.forEach((listener) => listener());
 }
 
-export function showToast(text: string, undo?: () => void): void {
+function open(text: string, actions: ToastAction[], ms: number) {
   window.clearTimeout(timer);
-  set({ id: Date.now(), text, undo });
-  timer = window.setTimeout(() => set(undefined), 6000);
+  nextId += 1;
+  set({ id: nextId, text, actions });
+  timer = window.setTimeout(() => set(undefined), ms);
+}
+
+export function showToast(text: string, undo?: () => void): void {
+  open(text, undo ? [{ label: "Undo", run: undo }] : [], SHOW_MS);
+}
+
+export function askToast(text: string, actions: ToastAction[]): void {
+  open(text, actions, ASK_MS);
 }
 
 export function dismissToast(): void {

@@ -1,37 +1,74 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { dayLabel, rowLabel } from "@/features/collections/format";
-import { planCollection, rowForPlacement } from "@/features/collections/logic";
+import { placeByDay, placeByName, planCollection, rowOptions, type Placement } from "@/features/collections/logic";
+import { changeEverywhere, type Quantity } from "@/features/editor/linking";
 import { acceptFormula, describeFormula, inputsFor } from "@/features/formulas/apply";
 import type { EditorServices } from "@/features/editor/services";
 import type { TrackedValue, ValueStore } from "@/features/editor/values";
+import type { Collection, CollectionField } from "./fact";
 import { collectionsQuery, noteQuery, notesQuery, rowsQuery, writes } from "./api";
-import { showToast } from "./toast";
+import { askToast, showToast } from "./toast";
 
 type ServiceInput = { queryClient: QueryClient; uid: string; noteId: string; store: ValueStore };
+
+export function relabelNotesUsing(queryClient: QueryClient, uid: string, factId: string, text: string, exceptNoteId?: string): void {
+  const notes = queryClient.getQueryData(notesQuery(uid).queryKey) ?? [];
+  const noteIds = notes.filter((note) => note.id !== exceptNoteId && note.valueIds.includes(factId)).map((note) => note.id);
+  if (noteIds.length > 0) writes.relabelNotes(uid, factId, text, noteIds);
+}
+
+export function changeOutsideEditor(queryClient: QueryClient, uid: string, store: ValueStore, factId: string, text: string, quantity?: Quantity): void {
+  for (const change of changeEverywhere(store, factId, text, quantity)) relabelNotesUsing(queryClient, uid, change.id, change.text);
+}
 
 export function createEditorServices({ queryClient, uid, noteId, store }: ServiceInput): EditorServices {
   const notes = () => queryClient.getQueryData(notesQuery(uid).queryKey) ?? [];
   const collections = () => queryClient.getQueryData(collectionsQuery(uid).queryKey) ?? [];
   const rows = () => queryClient.getQueryData(rowsQuery(uid).queryKey) ?? [];
 
+  const put = async (collection: Collection, valueId: string, field: CollectionField, target: Pick<Placement, "row" | "newRow">, replaces?: string) => {
+    const undo = await writes.placeCell(uid, { row: target.row, newRow: target.newRow, valueId, fieldId: field.id, replaces });
+    showToast(`Added to ${collection.name} · ${rowLabel(target.row)}`, undo);
+  };
+
   const place = async (value: TrackedValue) => {
     const fact = { ...store.get(value.id), ...value };
-    const daily = collections().filter((collection) => collection.key.by === "when");
-    if (fact.field || daily.length === 0) return;
+    const all = collections();
+    if (fact.field || all.length === 0) return;
+    const options = all.map((collection) => (collection.key.by === "name" ? rowOptions(collection, rows()) : []));
     const { placeValue } = await import("@/features/ai/place");
     const result = await placeValue({
       sentence: fact.origin?.sentence ?? fact.text,
       item: { text: fact.text, kind: fact.kind, name: fact.name, about: fact.subject?.label },
-      collections: daily.map((collection) => ({ name: collection.name, rowLabel: collection.rowLabel, per: "day", fields: collection.fields })),
+      collections: all.map((collection, index) => ({
+        name: collection.name,
+        per: collection.key.by === "when" ? "day" : "name",
+        fields: collection.fields,
+        rows: options[index]!.map((row) => row.label),
+      })),
     });
     if (result.collection === null || result.field === null) return;
-    const collection = daily[result.collection]!;
+    const collection = all[result.collection]!;
     const field = collection.fields[result.field]!;
-    if (field.kind === "date" || (fact.kind && field.kind !== "text" && field.kind !== fact.kind)) return;
-    const row = rowForPlacement(collection, fact, field.id, store.list(), rows());
-    if (!row) return;
-    const undo = await writes.placeCell(uid, row, { valueId: fact.id, rowId: row.id, fieldId: field.id });
-    showToast(`Added to ${collection.name} · ${dayLabel(row.period)}`, undo);
+    const byDay = collection.key.by === "when";
+    if ((byDay && field.kind === "date") || (fact.kind && field.kind !== "text" && field.kind !== fact.kind)) return;
+    const placement = byDay
+      ? placeByDay(collection, fact, field.id, store.list(), rows())
+      : result.row && placeByName(collection, result.row, options[result.collection]!, fact, field.id, store.list());
+    if (!placement) return;
+    const { occupant, another } = placement;
+    if (!occupant) return put(collection, fact.id, field, placement);
+    if (byDay && another) {
+      askToast(`${collection.name} already has ${occupant.text} on ${dayLabel(placement.row.period)}`, [
+        { label: "Skip" },
+        { label: "Add another", primary: true, run: () => void put(collection, fact.id, field, another) },
+      ]);
+      return;
+    }
+    askToast(`${collection.name} already has ${occupant.text} for ${placement.row.label}`, [
+      { label: "Skip" },
+      { label: `Use ${fact.text}`, primary: true, run: () => void put(collection, fact.id, field, placement, occupant.id) },
+    ]);
   };
 
   const findFormula = async (value: TrackedValue) => {
@@ -55,15 +92,7 @@ export function createEditorServices({ queryClient, uid, noteId, store }: Servic
     noteId,
     noteTitleOf: (id) => notes().find((note) => note.id === id)?.title || undefined,
     usage: (factId) => notes().filter((note) => note.valueIds.includes(factId)).length,
-    onChanged: (factId, text) =>
-      writes.relabelNotes(
-        uid,
-        factId,
-        text,
-        notes()
-          .filter((note) => note.id !== noteId && note.valueIds.includes(factId))
-          .map((note) => note.id),
-      ),
+    onChanged: (factId, text) => relabelNotesUsing(queryClient, uid, factId, text, noteId),
     onNewFact: (value) => {
       void place(value).catch((error: unknown) => console.warn("Dittle could not place a value in a collection", error));
       void findFormula(value).catch((error: unknown) => console.warn("Dittle could not check for a formula", error));

@@ -41,10 +41,10 @@ export function planCollection(value: StoredValue, values: StoredValue[], name: 
     const field = fieldFor(member);
     if (!fields.has(field.id)) fields.set(field.id, field);
   }
-  const rowLabel = value.subject?.label || name;
+  const rowLabel = value.event ? value.subject?.label || name : name;
   const row: Omit<Row, "createdAt"> = value.event
     ? { id: `${id}.${periodOf(value)}`, collectionId: id, label: periodOf(value), period: periodOf(value) }
-    : { id: `${id}.${crypto.randomUUID()}`, collectionId: id, label: rowLabel };
+    : { id: `${id}.${crypto.randomUUID()}`, collectionId: id, label: value.subject?.label || name };
   const used = new Set<string>();
   const cells = members.flatMap((member) => {
     const fieldId = fieldFor(member).id;
@@ -59,13 +59,37 @@ export function planCollection(value: StoredValue, values: StoredValue[], name: 
   };
 }
 
-export function rowForPlacement(collection: Collection, value: StoredValue, fieldId: string, values: StoredValue[], rows: Row[]): Omit<Row, "createdAt"> | null {
-  if (collection.key.by !== "when") return null;
-  const period = periodOf(value);
-  const occupied = (rowId: string) => values.some((other) => other.id !== value.id && other.subject?.entityId === rowId && other.field === fieldId);
-  const id = freeRowId(`${collection.id}.${period}`, occupied);
+export type NewRow = Omit<Row, "createdAt">;
+export type RowPick = { row: number } | { label: string };
+export type Placement = { row: NewRow; newRow: boolean; occupant?: StoredValue; another?: { row: NewRow; newRow: boolean } };
+
+const occupantOf = (rowId: string, fieldId: string, value: StoredValue, values: StoredValue[]) =>
+  values.find((other) => other.id !== value.id && other.subject?.entityId === rowId && other.field === fieldId);
+
+const dayRow = (collection: Collection, id: string, period: string, rows: Row[]) => {
   const existing = rows.find((row) => row.id === id);
-  return existing ?? { id, collectionId: collection.id, label: period, period };
+  return { row: existing ?? { id, collectionId: collection.id, label: period, period }, newRow: !existing };
+};
+
+export function placeByDay(collection: Collection, value: StoredValue, fieldId: string, values: StoredValue[], rows: Row[]): Placement {
+  const period = periodOf(value);
+  const base = `${collection.id}.${period}`;
+  const occupant = occupantOf(base, fieldId, value, values);
+  if (!occupant) return dayRow(collection, base, period, rows);
+  const anotherId = freeRowId(base, (rowId) => Boolean(occupantOf(rowId, fieldId, value, values)));
+  return { ...dayRow(collection, base, period, rows), occupant, another: dayRow(collection, anotherId, period, rows) };
+}
+
+export function rowOptions(collection: Collection, rows: Row[]): Row[] {
+  return rows.filter((row) => row.collectionId === collection.id).sort((a, b) => b.createdAt - a.createdAt);
+}
+
+export function placeByName(collection: Collection, pick: RowPick, options: Row[], value: StoredValue, fieldId: string, values: StoredValue[]): Placement | null {
+  if ("label" in pick) return { row: { id: `${collection.id}.${crypto.randomUUID()}`, collectionId: collection.id, label: pick.label }, newRow: true };
+  const row = options[pick.row];
+  if (!row) return null;
+  const occupant = occupantOf(row.id, fieldId, value, values);
+  return occupant ? { row, newRow: false, occupant } : { row, newRow: false };
 }
 
 export type FactGroup = { key: string; about: string; period?: string; facts: StoredValue[] };

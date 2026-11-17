@@ -101,18 +101,19 @@ export function NotesShell({ user }: { user: User }) {
             className="fixed bottom-4 left-4 z-50 flex max-w-[calc(100vw-2rem)] items-center gap-4 bg-ink py-2.5 pr-2.5 pl-4 text-[12.5px] text-page shadow-pop"
           >
             <span className="truncate">{toast.text}</span>
-            {toast.undo && (
+            {toast.actions.map((action) => (
               <button
+                key={action.label}
                 type="button"
                 onClick={() => {
-                  toast.undo?.();
                   dismissToast();
+                  action.run?.();
                 }}
-                className="shrink-0 px-2 py-1 text-[11px] tracking-[0.06em] uppercase hover:bg-page/15"
+                className={`shrink-0 px-2 py-1 text-[11px] tracking-[0.06em] uppercase ${action.primary ? "bg-page text-ink hover:opacity-90" : "hover:bg-page/15"}`}
               >
-                Undo
+                {action.label}
               </button>
-            )}
+            ))}
           </m.div>
         )}
       </AnimatePresence>
