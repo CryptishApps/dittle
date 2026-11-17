@@ -1,7 +1,7 @@
 import { formatAmount } from "@/features/formulas/apply";
 import { formatDuration, parseIsoDuration } from "@/features/formulas/duration";
 import { isCurrency, isMeasure } from "@/features/formulas/units";
-import { GRAINS, validWhen, VALUE_KINDS, type TagKind, type ValueKind, type When } from "./value-shapes";
+import { GRAINS, plainAmount, validWhen, VALUE_KINDS, type TagKind, type ValueKind, type When } from "./value-shapes";
 
 export const MAX_TRACKED = 40;
 export const MAX_UPDATES = 10;
@@ -47,21 +47,12 @@ const records = (value: unknown): Record<string, unknown>[] =>
 
 const trimmed = (value: unknown) => (typeof value === "string" ? value.trim() : "");
 
-export function amountIn(tracked: Pick<UpdateTracked, "before" | "after">, text: string): number | undefined {
-  const before = tracked.before ?? "";
-  const after = tracked.after ?? "";
-  if (!text.startsWith(before) || !text.endsWith(after) || text.length < before.length + after.length) return undefined;
-  const digits = text.slice(before.length, text.length - after.length).replaceAll(",", "").trim();
-  const amount = digits === "" ? Number.NaN : Number(digits);
-  return Number.isFinite(amount) ? amount : undefined;
-}
-
 type Reading = { text: string; quantity: ProposedQuantity; when?: When; blocked?: { currency: string } } | "same" | undefined;
 
 function readChange(tracked: UpdateTracked, raw: Record<string, unknown>, written: string): Reading {
   if (tracked.amount !== undefined) {
     const unit = trimmed(raw.unit);
-    const amount = amountIn(tracked, written);
+    const amount = plainAmount(raw.amount);
     const otherCurrency = tracked.kind === "money" && isCurrency(unit) && isCurrency(tracked.unit) && unit !== tracked.unit;
     if (otherCurrency) return { text: written, quantity: {}, blocked: { currency: unit } };
     if (amount === undefined) return undefined;

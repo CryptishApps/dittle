@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { amountIn, readUpdateAnswer, updatePrompt, type UpdateTracked } from "./update-answer";
+import { readUpdateAnswer, updatePrompt, type UpdateTracked } from "./update-answer";
 
 const shown: UpdateTracked[] = [
   { text: "80", kind: "count", name: "guest_count", about: "wedding", noteTitle: "Catering", amount: 80, before: "", after: "" },
@@ -12,12 +12,12 @@ const shown: UpdateTracked[] = [
 
 const email = "Hi, we can now do £42 a head, and we'd need the deposit by 30 May. Still 80 guests? Call 0161 496 0123.";
 
-const update = (value: string, text: string, quote: string, extra: Record<string, string> = {}) => ({ value, text, quote, unit: "", when: "", duration: "", ...extra });
+const update = (value: string, text: string, quote: string, extra: Record<string, string> = {}) => ({ value, text, quote, amount: "", unit: "", when: "", duration: "", ...extra });
 const answer = (data: Record<string, unknown>) => JSON.stringify({ title: "", updates: [], additions: [], ...data });
 
 describe("readUpdateAnswer", () => {
   test("keeps a grounded money change and writes it the way the tracked value is written", () => {
-    const read = readUpdateAnswer(answer({ updates: [update("u2", "£42", "we can now do £42 a head", { unit: "GBP" })] }), shown, "text", email);
+    const read = readUpdateAnswer(answer({ updates: [update("u2", "£42", "we can now do £42 a head", { amount: "42", unit: "GBP" })] }), shown, "text", email);
     expect(read.updates).toEqual([{ tracked: 1, text: "£42", quote: "we can now do £42 a head", source: "text", quantity: { amount: 42 } }]);
   });
 
@@ -36,7 +36,7 @@ describe("readUpdateAnswer", () => {
   });
 
   test("an unchanged value is confirmed, not proposed", () => {
-    const read = readUpdateAnswer(answer({ updates: [update("u1", "80", "Still 80 guests?")] }), shown, "text", email);
+    const read = readUpdateAnswer(answer({ updates: [update("u1", "80", "Still 80 guests?", { amount: "80" })] }), shown, "text", email);
     expect(read.updates).toEqual([]);
     expect(read.confirmed).toEqual([0]);
   });
@@ -47,15 +47,18 @@ describe("readUpdateAnswer", () => {
     expect(read.updates).toEqual([{ tracked: 1, text: "€45", quote: "We can do it for €45 a head.", source: "text", quantity: {}, blocked: { currency: "EUR" } }]);
   });
 
-  test("an amount that does not fit the tracked value's format is dropped", () => {
+  test("an amount is the model's plain number, written in the tracked value's own format", () => {
     const message = "Now 92 guests confirmed.";
-    expect(readUpdateAnswer(answer({ updates: [update("u1", "92 guests", "Now 92 guests confirmed.")] }), shown, "text", message).updates).toEqual([]);
+    const read = (amount: string) => readUpdateAnswer(answer({ updates: [update("u1", "92 guests", "Now 92 guests confirmed.", { amount })] }), shown, "text", message).updates;
+    expect(read("92")).toEqual([{ tracked: 0, text: "92", quote: "Now 92 guests confirmed.", source: "text", quantity: { amount: 92 } }]);
+    expect(read("92 guests")).toEqual([]);
+    expect(read("")).toEqual([]);
   });
 
   test("reads grouped thousands and durations through the existing formats", () => {
     const message = "Hire is now £1,350. The band can play 4 hours.";
     const read = readUpdateAnswer(
-      answer({ updates: [update("u6", "£1,350", "Hire is now £1,350.", { unit: "GBP" }), update("u4", "4 hours", "The band can play 4 hours.", { duration: "PT4H" })] }),
+      answer({ updates: [update("u6", "£1,350", "Hire is now £1,350.", { amount: "1350", unit: "GBP" }), update("u4", "4 hours", "The band can play 4 hours.", { duration: "PT4H" })] }),
       shown,
       "text",
       message,
@@ -69,7 +72,7 @@ describe("readUpdateAnswer", () => {
   test("ignores keys outside the values shown and repeats of the same value", () => {
     const message = "£42 a head, or £44 a head.";
     const read = readUpdateAnswer(
-      answer({ updates: [update("u9", "£42", "£42 a head"), update("u2", "£42", "£42 a head"), update("u2", "£44", "£44 a head"), update("none", "£44", "£44 a head")] }),
+      answer({ updates: [update("u9", "£42", "£42 a head"), update("u2", "£42", "£42 a head", { amount: "42" }), update("u2", "£44", "£44 a head", { amount: "44" }), update("none", "£44", "£44 a head")] }),
       shown,
       "text",
       message,
@@ -95,21 +98,12 @@ describe("readUpdateAnswer", () => {
 
   test("a file has no text to ground against, so its proposals are marked as read from the file", () => {
     const read = readUpdateAnswer(
-      answer({ title: "Quote", transcript: " Catering £42 per head ", updates: [update("u2", "£42", "Catering £42 per head", { unit: "GBP" })] }),
+      answer({ title: "Quote", transcript: " Catering £42 per head ", updates: [update("u2", "£42", "Catering £42 per head", { amount: "42", unit: "GBP" })] }),
       shown,
       "file",
     );
     expect(read.updates[0]).toMatchObject({ tracked: 1, text: "£42", source: "file", quantity: { amount: 42 } });
     expect(read.transcript).toBe("Catering £42 per head");
-  });
-});
-
-describe("amountIn", () => {
-  test("strips the tracked value's own prefix and suffix", () => {
-    expect(amountIn({ before: "£", after: "" }, "£3,040")).toBe(3040);
-    expect(amountIn({ before: "", after: "%" }, "12.5%")).toBe(12.5);
-    expect(amountIn({ before: "£", after: "" }, "€42")).toBeUndefined();
-    expect(amountIn({ before: "", after: "" }, "")).toBeUndefined();
   });
 });
 

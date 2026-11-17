@@ -17,6 +17,7 @@ const RULES = `Someone keeps a plan in their notes and tracks values in it, list
 - "value": the tracked value's key, such as "u3". Pick it only when the message is about the same thing: the same measure, for the same subject. A number about a different supplier, a different item or a past price is not an update.
 - "text": the new value only, copied exactly from the message, with its currency sign or unit, such as "£42", "30 May" or "4 hours". Leave out the words around it.
 - "quote": the words in the message that give the value, copied exactly, containing "text".
+- "amount": for money, a count, a number or a percent, the number alone with a dot for decimals and no thousands separators, such as "42", "1350" or "12.5". Empty otherwise.
 - "unit": for money, the ISO 4217 code of the currency the message uses, such as "GBP" for £, "EUR" for € or "USD" for $. For a measurement, one of ${MEASURE_UNITS.join(", ")}. Empty otherwise.
 - "when": for a date or time, the day it names as YYYY-MM-DD, or YYYY-MM-DDTHH:MM for a time, looked up in the Dates line. A date without a year is the next one after today. Empty otherwise.
 - "duration": for a length of time, an ISO 8601 duration such as "PT45M", "PT4H" or "P3D". Empty otherwise.
@@ -35,7 +36,7 @@ u3: 2 May · date · flower_delivery · about Bloom & Co · on 2026-05-02 · in 
 u4: Hartley Barn · place · venue · about wedding · in "Venue"
 Message:
 Hi Sam, good news: now that you've dropped two tables we can do the arrangements for £410, so 10 tables in all. Delivery stays 2 May, before 9am. Parking on site is £5. Call me on 07700 900123. Thanks, Jo
-Answer: {"title":"Email from Bloom & Co","updates":[{"value":"u1","text":"£410","quote":"we can do the arrangements for £410","unit":"GBP","when":"","duration":""},{"value":"u2","text":"10","quote":"so 10 tables in all","unit":"","when":"","duration":""},{"value":"u3","text":"2 May","quote":"Delivery stays 2 May","unit":"","when":"2026-05-02","duration":""}],"additions":[{"text":"£5","kind":"money","name":"parking_fee","quote":"Parking on site is £5"}]}`;
+Answer: {"title":"Email from Bloom & Co","updates":[{"value":"u1","text":"£410","quote":"we can do the arrangements for £410","amount":"410","unit":"GBP","when":"","duration":""},{"value":"u2","text":"10","quote":"so 10 tables in all","amount":"10","unit":"","when":"","duration":""},{"value":"u3","text":"2 May","quote":"Delivery stays 2 May","amount":"","unit":"","when":"2026-05-02","duration":""}],"additions":[{"text":"£5","kind":"money","name":"parking_fee","quote":"Parking on site is £5"}]}`;
 
 const TEXT_INSTRUCTIONS = `${RULES}\n\n${EXAMPLE}`;
 
@@ -51,11 +52,12 @@ const UPDATE_ITEM = {
     value: { type: "string", enum: TRACKED_KEYS },
     text: { type: "string" },
     quote: { type: "string" },
+    amount: { type: "string" },
     unit: { type: "string" },
     when: { type: "string" },
     duration: { type: "string" },
   },
-  required: ["value", "text", "quote", "unit", "when", "duration"],
+  required: ["value", "text", "quote", "amount", "unit", "when", "duration"],
 };
 
 const ADDITION_ITEM = {
