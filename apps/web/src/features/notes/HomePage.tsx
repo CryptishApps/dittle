@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useCollectionSuggestions, type Suggestion } from "@/features/collections/suggestions";
 import { daysUntil, summariseCollection, upcomingDates, type CollectionSummary, type Upcoming } from "@/features/collections/summary";
 import { dayLabel } from "@/features/collections/format";
+import { changeable } from "@/features/what-if/plan";
+import { WhatIf } from "@/features/what-if/WhatIf";
 import { MIcon } from "@/ui/kit";
 import { collectionsQuery, foldersQuery, notesQuery, rowsQuery, startNote, valuesQuery, writes } from "./api";
 import { noteWith } from "./note-doc";
@@ -75,6 +77,8 @@ export function HomePage({ uid }: { uid: string }) {
             ))}
           </section>
         )}
+
+        {changeable(values).length > 0 && <WhatIf uid={uid} values={values} notes={notes} />}
 
         <StartNote onStart={(title) => start(title)} />
 
