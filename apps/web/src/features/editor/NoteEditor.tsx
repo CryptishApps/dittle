@@ -10,6 +10,7 @@ import { findLinks, repoint } from "./linking";
 import { DescribeWhenPaused } from "./describe-when-paused";
 import { Requests } from "./requests";
 import { RequestPreview } from "./RequestPreview";
+import { SlashCommands } from "./slash-commands";
 import type { EditorServices } from "./services";
 import { Spotting, type FoundValue } from "./spotting";
 import { TitleDocument, TitleKeys } from "./title-body";
@@ -91,7 +92,7 @@ export function useNoteEditor({ store, content, label, services = {}, autofocus 
       TaskItem.configure({ nested: false }),
       Placeholder.configure({
         showOnlyCurrent: false,
-        placeholder: ({ pos }) => (pos === 0 ? "Untitled" : "Write here. Type @ to tag a value."),
+        placeholder: ({ pos }) => (pos === 0 ? "Untitled" : "Write here. Type / for commands."),
       }),
       Spotting.configure({
         find: rememberedFind,
@@ -105,6 +106,7 @@ export function useNoteEditor({ store, content, label, services = {}, autofocus 
         ignored: () => services.ignoredRequests?.() ?? [],
         onIgnore: (text) => services.ignoreRequest?.(text),
       }),
+      SlashCommands,
       ValueTag({ store, onCreate: (value) => holder.current?.storage.describeWhenPaused.add(value) }),
       DescribeWhenPaused.configure({
         store,

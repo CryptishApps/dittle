@@ -1,6 +1,6 @@
 import { Mention, type MentionOptions } from "@tiptap/extension-mention";
-import { ReactRenderer } from "@tiptap/react";
-import { menuItems, ValueMenu, type MenuHandle, type MenuItem } from "./ValueMenu";
+import { renderMenu } from "./suggestion-menu";
+import { menuItems, ValueMenu, type MenuItem } from "./ValueMenu";
 import type { TrackedValue, ValueStore } from "./values";
 
 export const VALUE_NODE = "value";
@@ -58,23 +58,7 @@ export function ValueTag({ store, onCreate }: ValueTagOptions) {
           .run();
         if (item.kind === "new") onCreate(value);
       },
-      render: () => {
-        let menu: ReactRenderer<MenuHandle> | undefined;
-        let unmount: (() => void) | undefined;
-        return {
-          onStart: (props) => {
-            menu = new ReactRenderer(ValueMenu, { props, editor: props.editor, className: "z-50" });
-            unmount = props.mount(menu.element);
-          },
-          onUpdate: (props) => menu?.updateProps(props),
-          onKeyDown: ({ event }) => menu?.ref?.onKeyDown(event) ?? false,
-          onExit: () => {
-            unmount?.();
-            menu?.destroy();
-            menu = undefined;
-          },
-        };
-      },
+      render: renderMenu(ValueMenu),
     },
   });
 }

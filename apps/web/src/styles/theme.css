@@ -549,3 +549,30 @@ body {
   text-decoration: underline dotted var(--faint);
   text-underline-offset: 4px;
 }
+
+.slash-draft {
+  border-radius: 2px;
+  padding: 1px 0 1px 3px;
+  background: var(--panel);
+  color: var(--soft);
+}
+.ask-draft {
+  background: var(--accent-tint);
+  box-shadow: inset 0 -1.5px 0 var(--accent);
+}
+.ask-hint {
+  margin-left: 0.6em;
+  color: var(--faint);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  user-select: none;
+}
+.ask-hint-empty {
+  margin-left: 0;
+  font-size: inherit;
+  letter-spacing: normal;
+}
+.note-editor > p.is-empty:has(.ask-hint)::before {
+  content: none;
+}

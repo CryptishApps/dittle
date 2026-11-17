@@ -3,11 +3,14 @@ import { Plugin, PluginKey, type EditorState, type Transaction } from "@tiptap/p
 import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
 import type { Written } from "@/features/ai/write";
 
-export type RequestItem = { id: string; text: string; status: "writing" | "ready" | "failed"; written?: Written };
+export type RequestItem = { id: string; text: string; status: "writing" | "ready" | "failed"; written?: Written; asked?: boolean };
 export type RequestPlacement = { from: number; to: number; text: string };
+type PlacedRequest = RequestPlacement & { id: string };
 
 type RequestsState = { decorations: DecorationSet; items: Map<string, RequestItem> };
-type RequestsMeta = { block: { from: number; to: number }; placements: (RequestPlacement & { id: string })[] } | { update: RequestItem } | { remove: string };
+type RequestsMeta = { block: { from: number; to: number }; placements: PlacedRequest[] } | { asked: PlacedRequest } | { update: RequestItem } | { remove: string };
+
+const requestId = (text: string) => `request:${text}`;
 
 export const requestsKey = new PluginKey<RequestsState>("requests");
 
@@ -37,7 +40,7 @@ function button(view: EditorView, id: string): HTMLElement {
   return element;
 }
 
-const decorationsFor = (placement: RequestPlacement & { id: string }, status: string) => [
+const decorationsFor = (placement: PlacedRequest, status: string) => [
   Decoration.inline(placement.from, placement.to, { class: "value-request", "data-request-text": placement.id }, { id: placement.id, kind: "text" }),
   Decoration.widget(placement.to, (view) => button(view, placement.id), { id: placement.id, kind: "button", side: 1, key: `${placement.id}:${status}` }),
 ];
@@ -78,7 +81,7 @@ function requestsPlugin(editor: Editor) {
           return { decorations: decorations.remove(decorations.find(undefined, undefined, (spec) => spec.id === meta.remove)), items };
         }
         if ("update" in meta) {
-          items.set(meta.update.id, meta.update);
+          items.set(meta.update.id, { ...items.get(meta.update.id), ...meta.update });
           const old = decorations.find(undefined, undefined, (spec) => spec.id === meta.update.id);
           const text = old.find((decoration) => decoration.spec.kind === "text");
           if (!text) return { decorations, items };
@@ -87,8 +90,20 @@ function requestsPlugin(editor: Editor) {
             items,
           };
         }
-        decorations = decorations.remove(decorations.find(meta.block.from, meta.block.to));
-        const added = meta.placements.flatMap((placement) => {
+        if ("asked" in meta) {
+          const { asked } = meta;
+          const overlapping = new Set(overlappingTexts(decorations, asked).map((decoration) => decoration.spec.id));
+          overlapping.add(asked.id);
+          decorations = decorations.remove(decorations.find(undefined, undefined, (spec) => overlapping.has(spec.id)));
+          const item: RequestItem = { ...(items.get(asked.id) ?? { id: asked.id, text: asked.text, status: "writing" }), asked: true };
+          items.set(asked.id, item);
+          return { decorations: decorations.add(tr.doc, decorationsFor(asked, item.status)), items };
+        }
+        const isAsked = (spec: { id: string }) => items.get(spec.id)?.asked === true;
+        const keptTexts = decorations.find(meta.block.from, meta.block.to, (spec) => spec.kind === "text" && isAsked(spec));
+        decorations = decorations.remove(decorations.find(meta.block.from, meta.block.to, (spec) => !isAsked(spec)));
+        const fresh = meta.placements.filter((placement) => !keptTexts.some((kept) => kept.spec.id === placement.id || (placement.from < kept.to && placement.to > kept.from)));
+        const added = fresh.flatMap((placement) => {
           if (!items.has(placement.id)) items.set(placement.id, { id: placement.id, text: placement.text, status: "writing" });
           return decorationsFor(placement, items.get(placement.id)!.status);
         });
@@ -113,6 +128,10 @@ function requestsPlugin(editor: Editor) {
       },
     },
   });
+}
+
+function overlappingTexts(decorations: DecorationSet, range: { from: number; to: number }): Decoration[] {
+  return decorations.find(range.from, range.to, (spec) => spec.kind === "text").filter((decoration) => decoration.from < range.to && decoration.to > range.from);
 }
 
 export function requestRange(state: EditorState, id: string): { from: number; to: number } | undefined {
@@ -151,6 +170,7 @@ type RequestsStorage = {
   cache: Map<string, Written>;
   ignored: Set<string>;
   found: (block: { from: number; to: number }, placements: RequestPlacement[]) => void;
+  ask: (placement: RequestPlacement) => void;
   ignore: (id: string) => void;
 };
 
@@ -168,7 +188,7 @@ export const Requests = Extension.create<RequestsOptions, RequestsStorage>({
   },
 
   addStorage() {
-    return { cache: new Map(), ignored: new Set(), found: () => undefined, ignore: () => undefined };
+    return { cache: new Map(), ignored: new Set(), found: () => undefined, ask: () => undefined, ignore: () => undefined };
   },
 
   addProseMirrorPlugins() {
@@ -188,30 +208,33 @@ export const Requests = Extension.create<RequestsOptions, RequestsStorage>({
       this.options.onIgnore(item.text);
       editor.view.dispatch(editor.state.tr.setMeta(requestsKey, { remove: id }).setMeta("addToHistory", false));
     };
+    const write = (placement: PlacedRequest) => {
+      const cached = cache.get(placement.text);
+      if (cached) return update({ id: placement.id, text: placement.text, status: "ready", written: cached });
+      const item = requestsKey.getState(editor.state)?.items.get(placement.id);
+      if (item?.status === "ready") return;
+      const noteTitle = editor.state.doc.firstChild?.textContent ?? "";
+      this.options
+        .write({ request: placement.text, noteTitle, noteText: editor.state.doc.textBetween(0, editor.state.doc.content.size, "\n", " ") })
+        .then((written) => {
+          cache.set(placement.text, written);
+          update({ id: placement.id, text: placement.text, status: written.items.length ? "ready" : "failed", written });
+        })
+        .catch((error: unknown) => {
+          console.warn("Dittle could not write a request", error);
+          update({ id: placement.id, text: placement.text, status: "failed" });
+        });
+    };
     this.storage.found = (block, placements) => {
       const skip = new Set([...ignored, ...this.options.ignored()]);
-      const withIds = placements.filter((placement) => !skip.has(placement.text)).map((placement) => ({ ...placement, id: `request:${placement.text}` }));
+      const withIds = placements.filter((placement) => !skip.has(placement.text)).map((placement) => ({ ...placement, id: requestId(placement.text) }));
       editor.view.dispatch(editor.state.tr.setMeta(requestsKey, { block, placements: withIds }).setMeta("addToHistory", false));
-      for (const placement of withIds) {
-        const cached = cache.get(placement.text);
-        if (cached) {
-          update({ id: placement.id, text: placement.text, status: "ready", written: cached });
-          continue;
-        }
-        const item = requestsKey.getState(editor.state)?.items.get(placement.id);
-        if (item?.status === "ready") continue;
-        const noteTitle = editor.state.doc.firstChild?.textContent ?? "";
-        this.options
-          .write({ request: placement.text, noteTitle, noteText: editor.state.doc.textBetween(0, editor.state.doc.content.size, "\n", " ") })
-          .then((written) => {
-            cache.set(placement.text, written);
-            update({ id: placement.id, text: placement.text, status: written.items.length ? "ready" : "failed", written });
-          })
-          .catch((error: unknown) => {
-            console.warn("Dittle could not write a request", error);
-            update({ id: placement.id, text: placement.text, status: "failed" });
-          });
-      }
+      withIds.forEach(write);
+    };
+    this.storage.ask = (placement) => {
+      const asked = { ...placement, id: requestId(placement.text) };
+      editor.view.dispatch(editor.state.tr.setMeta(requestsKey, { asked }).setMeta("addToHistory", false));
+      write(asked);
     };
   },
 });
