@@ -91,8 +91,11 @@ try {
   await page.keyboard.press("Escape");
 
   await openNote(page, "Flights");
-  await page.locator(".note-editor").focus();
-  await page.keyboard.press("Control+End");
+  const last = page.locator(".note-editor > p").last();
+  const box = await last.boundingBox();
+  if (!box) throw new Error("The note has no paragraph to write after.");
+  await last.click({ position: { x: box.width - 2, y: box.height - 6 } });
+  await page.keyboard.press("End");
   await page.keyboard.press("Enter");
   await page.keyboard.type("Write a packing list for a long weekend in Lisbon. ", { delay: 15 });
   const request = page.locator('.request-button[data-status="ready"]').first();
