@@ -6,17 +6,12 @@ import { daysUntil, summariseCollection, upcomingDates, type CollectionSummary, 
 import { dayLabel } from "@/features/collections/format";
 import { Btn, btnClass, Kbd, MIcon } from "@/ui/kit";
 import { collectionsQuery, foldersQuery, notesQuery, rowsQuery, startNote, valuesQuery, writes } from "./api";
-import { noteWith } from "./note-doc";
+import { noteWith, type NoteDoc } from "./note-doc";
+import { STARTERS } from "./starters";
 import { NoteTree } from "./NoteTree";
 import { useOnline } from "./NotesShell";
 import { showToast } from "./toast";
 import type { Folder, NoteSummary } from "./store";
-
-const EXAMPLES = [
-  { title: "Villa", body: "The villa in Alfama is €1,680 for the 6 of us." },
-  { title: "Flights", body: "Flights land on 4 June, and seats are £118 each." },
-  { title: "Catering", body: "Rosa's Kitchen quoted £38 a head for 80 guests." },
-];
 
 export function HomePage({ uid }: { uid: string }) {
   const { data: notes } = useSuspenseQuery(notesQuery(uid));
@@ -32,6 +27,7 @@ export function HomePage({ uid }: { uid: string }) {
 
   const open = (noteId: string) => void navigate({ to: "/notes/$noteId", params: { noteId } });
   const start = (title = "", body = "", folderId: string | null = null) => open(startNote(queryClient, uid, folderId, noteWith(title, body)));
+  const startFrom = (doc: NoteDoc) => open(startNote(queryClient, uid, null, doc));
 
   const removeNote = async (note: NoteSummary) => {
     const undo = await writes.deleteNote(uid, note.id);
@@ -52,7 +48,7 @@ export function HomePage({ uid }: { uid: string }) {
     showToast(`Created ${collection.name} with ${newRows.length} rows`);
   };
 
-  if (notes.length === 0 && folders.length === 0) return <FirstVisit onStart={start} />;
+  if (notes.length === 0 && folders.length === 0) return <FirstVisit onStart={(title) => start(title)} onStartFrom={startFrom} />;
 
   const summaries = collections.map((collection) => summariseCollection(collection, rows, values));
   const upcoming = upcomingDates(values);
@@ -102,33 +98,34 @@ export function HomePage({ uid }: { uid: string }) {
   );
 }
 
-function FirstVisit({ onStart }: { onStart: (title?: string, body?: string) => void }) {
+function FirstVisit({ onStart, onStartFrom }: { onStart: (title: string) => void; onStartFrom: (doc: NoteDoc) => void }) {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
-      <div className="mx-auto max-w-[660px] px-5 pt-16 pb-24 sm:px-8 sm:pt-24">
-        <h1 className="font-heading text-[44px] leading-[1.02] font-semibold tracking-[-0.045em] sm:text-[56px]">
-          Plan <span className="tag">anything.</span>
+      <div className="mx-auto max-w-[760px] px-4 pt-12 pb-24 sm:px-8 sm:pt-20">
+        <h1 className="text-[44px] leading-[1.04] font-semibold tracking-[-0.045em] sm:text-[58px]">
+          Plans change.
+          <span className="block text-quiet">Your notes keep up.</span>
         </h1>
-        <p className="mt-5 max-w-[52ch] text-[16px] leading-[1.7] text-soft">
-          Write the plan as notes: the trip, the wedding, the offsite. Dittle notices the dates, prices and headcounts in them. Change one, and every note that mentions it updates.
+        <p className="mt-5 max-w-[54ch] text-[17px] leading-[1.65] text-soft">
+          Write a trip, a wedding or a training plan as notes. Dittle spots the prices, dates and distances, keeps every copy in step, and files them into tables that add themselves up.
         </p>
         <div className="mt-8">
-          <StartNote onStart={(title) => onStart(title)} autoFocus />
+          <StartNote onStart={onStart} autoFocus />
         </div>
-        <p className="mt-10 px-1 text-label text-soft">Or try one</p>
-        <ul className="mt-3 grid gap-2.5">
-          {EXAMPLES.map((example) => (
-            <li key={example.title}>
+        <h2 className="mt-12 text-[20px] font-semibold tracking-[-0.02em]">Or open an example</h2>
+        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+          {STARTERS.map((starter) => (
+            <li key={starter.title}>
               <button
                 type="button"
-                onClick={() => onStart(example.title, example.body)}
-                className="group flex w-full items-center gap-4 rounded-2xl border border-line bg-card px-5 py-3.5 text-left shadow-tile transition-colors hover:border-accent"
+                onClick={() => onStartFrom(starter.doc)}
+                className="group flex h-full w-full flex-col rounded-[18px] bg-card px-5 pt-4 pb-4.5 text-left shadow-[0_0_0_1px_var(--line),0_1px_2px_rgb(18_20_24/0.04)] transition-shadow hover:shadow-tile focus-visible:shadow-tile"
               >
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[15.5px] font-semibold text-ink">{example.title}</span>
-                  <span className="mt-0.5 block text-[14px] text-soft">{example.body}</span>
+                <span className="flex w-full items-center justify-between gap-3">
+                  <span className="text-[16.5px] font-semibold tracking-[-0.01em] text-ink">{starter.title}</span>
+                  <MIcon name="right" className="size-4 shrink-0 text-faint transition-colors group-hover:text-accent" />
                 </span>
-                <MIcon name="right" className="size-4 shrink-0 text-faint transition-colors group-hover:text-accent" />
+                <span className="mt-1.5 text-[14.5px] leading-[1.6] text-soft">{starter.summary}</span>
               </button>
             </li>
           ))}

@@ -1,42 +1,30 @@
-import { AnimatePresence, m, useInView } from "motion/react";
+import { useInView } from "motion/react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Reprint } from "../../ui/Reprint";
-import { Btn, ease, MIcon, TypeOn } from "../../ui/kit";
+import { MIcon } from "../../ui/kit";
 
-type OtherId = "flights" | "dinner" | "chat";
-type Phase = "idle" | "updating" | "done";
-
-const pounds = (n: number) => `£${n.toLocaleString("en-GB")}`;
-const euros = (n: number) => `€${Math.round(n).toLocaleString("en-GB")}`;
-const VILLA = 1680;
-
-const OTHERS: { id: OtherId; title: string; path: string; body: (value: ReactNode, g: number) => ReactNode }[] = [
-  {
-    id: "flights",
-    title: "Flights",
-    path: "Lisbon → Flights",
-    body: (value, people) => (
-      <>
-        {value} seats at £118 each, <Reprint value={pounds(people * 118)} /> in total. We land Fri 11 December.
-      </>
-    ),
-  },
-  { id: "dinner", title: "Saturday dinner", path: "Lisbon → Food", body: (value) => <>Table for {value} at Taberna da Rua, 8pm.</> },
-  { id: "chat", title: "Message to the group", path: "Lisbon → Drafts", body: (value) => <>The villa's booked for {value} of us, 11 to 14 December.</> },
+const TODAY_SECONDS = 27 * 60 + 40;
+const EARLIER = [
+  { day: "Sat", km: 8, seconds: 46 * 60 + 10 },
+  { day: "Wed", km: 6, seconds: 33 * 60 + 5 },
 ];
+const START_KM = 5;
+const STEP = 0.5;
+const MIN_KM = 1;
+const MAX_KM = 42;
 
-const START = 6;
-const MAX = 20;
+const km = (value: number) => `${Number.isInteger(value) ? value : value.toFixed(1)} km`;
+const clock = (seconds: number) => {
+  const whole = Math.round(seconds);
+  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
+};
+const pace = (seconds: number, distance: number) => clock(seconds / distance);
 
 export function Demo() {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-20% 0px" });
   const [found, setFound] = useState(false);
-  const [people, setPeople] = useState(START);
-  const [values, setValues] = useState<Record<OtherId, number>>({ flights: START, dinner: START, chat: START });
-  const [phase, setPhase] = useState<Record<OtherId, Phase>>({ flights: "idle", dinner: "idle", chat: "idle" });
-  const [skipped, setSkipped] = useState(false);
-  const timers = useRef<number[]>([]);
+  const [distance, setDistance] = useState(START_KM);
 
   useEffect(() => {
     if (!inView) return;
@@ -44,62 +32,36 @@ export function Demo() {
     return () => window.clearTimeout(timer);
   }, [inView]);
 
-  useEffect(() => () => timers.current.forEach((t) => window.clearTimeout(t)), []);
-
-  const stale = OTHERS.filter((other) => values[other.id] !== people);
-  const changed = people !== START || OTHERS.some((other) => values[other.id] !== START);
-  const allDone = changed && stale.length === 0 && OTHERS.every((other) => phase[other.id] === "done");
-
   const edit = (next: number) => {
-    if (!Number.isInteger(next) || next < 1 || next > MAX || next === people) return;
-    setPeople(next);
-    setSkipped(false);
-    setPhase({ flights: "idle", dinner: "idle", chat: "idle" });
+    const rounded = Math.round(next / STEP) * STEP;
+    if (rounded >= MIN_KM && rounded <= MAX_KM) setDistance(rounded);
   };
 
-  const update = () => {
-    stale.forEach((other, index) => {
-      timers.current.push(
-        window.setTimeout(() => setPhase((p) => ({ ...p, [other.id]: "updating" })), index * 240),
-        window.setTimeout(
-          () => {
-            setValues((v) => ({ ...v, [other.id]: people }));
-            setPhase((p) => ({ ...p, [other.id]: "done" }));
-          },
-          index * 240 + 420,
-        ),
-      );
-    });
-  };
-
-  const reset = () => {
-    setPeople(START);
-    setValues({ flights: START, dinner: START, chat: START });
-    setPhase({ flights: "idle", dinner: "idle", chat: "idle" });
-    setSkipped(false);
-  };
+  const totalKm = distance + EARLIER.reduce((sum, run) => sum + run.km, 0);
+  const totalSeconds = TODAY_SECONDS + EARLIER.reduce((sum, run) => sum + run.seconds, 0);
+  const changed = distance !== START_KM;
 
   return (
-    <div ref={ref} className="grid overflow-hidden rounded-[22px] border border-line bg-card shadow-pop lg:grid-cols-[1.15fr_1fr]">
-      <div className="border-b border-line bg-card lg:border-r lg:border-b-0">
-        <Bar left="Villa" right={found ? "3 values · on device" : "Reading"} />
-        <div className="px-6 pt-4 pb-8 sm:px-10 sm:pb-10">
+    <div ref={ref} className="grid overflow-hidden rounded-[24px] bg-card shadow-sheet lg:grid-cols-[1fr_1.15fr]">
+      <div className="min-w-0 border-b border-line lg:border-r lg:border-b-0">
+        <Bar icon="file" left="Morning run" right={found ? "2 values · on device" : "Reading"} />
+        <div className="px-6 pt-3 pb-8 sm:px-9 sm:pb-10">
           <p className="text-[19px] leading-[1.95]">
-            The villa in Alfama sleeps{" "}
+            Ran{" "}
             <span
               role="textbox"
-              aria-label="Group size"
+              aria-label="Distance in kilometres"
               contentEditable
               suppressContentEditableWarning
               spellCheck={false}
-              key={people}
+              key={distance}
               className="token"
               data-found={found}
-              data-state={stale.length && !skipped ? "changed" : "idle"}
+              data-state={changed ? "changed" : "idle"}
               onBlur={(event) => {
                 const next = Number(event.currentTarget.textContent?.trim());
-                if (Number.isInteger(next) && next > 0 && next <= MAX) edit(next);
-                else event.currentTarget.textContent = String(people);
+                if (Number.isFinite(next)) edit(next);
+                event.currentTarget.textContent = String(distance);
               }}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
@@ -108,120 +70,108 @@ export function Demo() {
                 }
               }}
             >
-              {people}
+              {distance}
             </span>{" "}
-            of us for{" "}
-            <span className="token" data-found={found} style={{ "--token-delay": "120ms" } as CSSProperties}>
-              €1,680
+            km along the river today in{" "}
+            <span className="token" data-found={found} style={{ "--token-delay": "160ms" } as CSSProperties}>
+              27:40
             </span>
-            , so about{" "}
-            <span className="token" data-kind="derived" data-found={found} style={{ "--token-delay": "240ms" } as CSSProperties}>
-              <Reprint value={euros(VILLA / people)} />
-            </span>{" "}
-            each.
+            . Legs felt fine after Saturday.
           </p>
 
-          <div className="mt-7 flex items-center gap-3 text-[14px] font-medium text-soft">
-            Group size
-            <span className="flex items-center rounded-full border border-line-strong bg-card p-1">
-              <button type="button" aria-label="Fewer people" onClick={() => edit(people - 1)} className="grid size-8 place-items-center rounded-full text-[18px] text-ink transition-colors hover:bg-chip">
+          <div className="mt-7 flex flex-wrap items-center gap-3 text-[14px] font-medium text-soft">
+            Distance
+            <span className="flex items-center rounded-xl bg-panel p-1">
+              <button type="button" aria-label="Half a kilometre less" onClick={() => edit(distance - STEP)} className="grid size-8 place-items-center rounded-lg text-[18px] text-ink transition-colors hover:bg-card">
                 −
               </button>
-              <span className="grid w-10 place-items-center font-heading text-[18px] font-semibold text-ink tabular-nums">
-                <Reprint value={String(people)} />
+              <span className="grid min-w-16 place-items-center px-1 text-[17px] font-semibold text-ink tabular-nums">
+                <Reprint value={km(distance)} />
               </span>
-              <button type="button" aria-label="More people" onClick={() => edit(people + 1)} className="grid size-8 place-items-center rounded-full text-[18px] text-ink transition-colors hover:bg-chip">
+              <button type="button" aria-label="Half a kilometre more" onClick={() => edit(distance + STEP)} className="grid size-8 place-items-center rounded-lg text-[18px] text-ink transition-colors hover:bg-card">
                 +
               </button>
             </span>
-            <span className="hidden sm:inline">or click the number and type</span>
+            <span className="hidden sm:inline">or click the distance and type</span>
           </div>
 
-          <AnimatePresence initial={false} mode="wait">
-            {(stale.length > 0 && !skipped) || allDone ? (
-              <m.div
-                key={allDone ? "done" : "ask"}
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.35, ease }}
-                className="overflow-hidden"
-              >
-                <div className={`mt-6 rounded-2xl px-5 py-4 text-[14.5px] leading-[1.6] ${allDone ? "bg-accent-tint" : "bg-accent-tint"}`}>
-                  {allDone ? (
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="flex items-center gap-2.5 font-semibold text-accent-ink">
-                        <span className="grid size-7 place-items-center rounded-full bg-sticky text-sticky-ink">
-                          <MIcon name="check" className="size-4" />
-                        </span>
-                        <TypeOn text="3 notes updated on device" />
-                      </span>
-                      <Btn size="md" onClick={reset}>
-                        Reset
-                      </Btn>
-                    </div>
-                  ) : (
-                    <>
-                      <p className="font-medium text-accent-ink">
-                        {stale.length} {stale.length === 1 ? "note still says" : "notes still say"} {values[stale[0]!.id]}.
-                      </p>
-                      <div className="mt-3.5 flex flex-wrap gap-2">
-                        <Btn primary size="md" onClick={update}>
-                          Update {stale.length} {stale.length === 1 ? "note" : "notes"}
-                        </Btn>
-                        <Btn size="md" onClick={() => setSkipped(true)}>
-                          Only in this note
-                        </Btn>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </m.div>
-            ) : null}
-          </AnimatePresence>
+          <p className="mt-7 rounded-2xl bg-panel px-5 py-4 text-[14.5px] leading-[1.6] text-soft">
+            Dittle read a distance and a time, saw the run was today, and filed both as today's row in Runs. The pace column is worked out by code from the time and the distance, not by the model.
+          </p>
         </div>
       </div>
 
-      <div className="divide-y divide-line bg-page">
-        {OTHERS.map((other) => {
-          const isStale = values[other.id] !== people;
-          const status =
-            phase[other.id] === "updating" ? (
-              <span className="t-shimmer-text" data-text="Updating">
-                Updating
-              </span>
-            ) : phase[other.id] === "done" && !isStale ? (
-              <TypeOn text="Updated · 190 ms" />
-            ) : isStale ? (
-              <span className="font-semibold text-accent-ink">Says {values[other.id]}</span>
-            ) : (
-              "In step"
-            );
-          return (
-            <div key={other.id} className="relative">
-              <span aria-hidden className={`absolute inset-y-3 left-0 w-[3px] rounded-full transition-colors duration-300 ${isStale ? "bg-accent" : "bg-transparent"}`} />
-              <Bar left={other.title} right={status} />
-              <p className="px-6 pt-1 pb-5 text-[15.5px] leading-[1.9] text-soft">
-                {other.body(
-                  <span className="token" data-found={found} data-state={isStale ? "stale" : "idle"}>
-                    <Reprint value={String(values[other.id])} />
-                  </span>,
-                  values[other.id],
-                )}
-              </p>
-            </div>
-          );
-        })}
+      <div className="min-w-0 bg-page">
+        <Bar icon="table" left="Runs" right="One row per day" />
+        <div className="px-4 pt-2 pb-6 sm:px-6">
+          <div className="overflow-x-auto rounded-2xl shadow-[0_0_0_1px_var(--line)]">
+            <table className="w-full text-left text-[15px] whitespace-nowrap">
+              <thead className="bg-panel text-[13px] text-faint">
+                <tr>
+                  <th className="px-4 py-2.5 font-semibold">Day</th>
+                  <th className="px-4 py-2.5 font-semibold">Distance</th>
+                  <th className="px-4 py-2.5 font-semibold">Time</th>
+                  <th className="px-4 py-2.5 font-semibold">
+                    Pace <span className="font-medium">= time ÷ distance</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                <Run day="Today" distance={km(distance)} time={clock(TODAY_SECONDS)} pace={pace(TODAY_SECONDS, distance)} fresh={changed} />
+                {EARLIER.map((run) => (
+                  <Run key={run.day} day={run.day} distance={km(run.km)} time={clock(run.seconds)} pace={pace(run.seconds, run.km)} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <Total label="This week" value={km(totalKm)} />
+            <Total label="Average pace" value={`${pace(totalSeconds, totalKm)} a km`} />
+          </div>
+          <p className="sr-only" aria-live="polite">
+            Runs this week: {km(totalKm)}, average pace {pace(totalSeconds, totalKm)} a kilometre.
+          </p>
+        </div>
       </div>
     </div>
   );
 }
 
-function Bar({ left, right }: { left: string; right: ReactNode }) {
+function Run({ day, distance, time, pace: perKm, fresh = false }: { day: string; distance: string; time: string; pace: string; fresh?: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-3 px-6 pt-5 pb-2 text-[13.5px]">
+    <tr className="bg-card">
+      <td className={`px-4 py-2.5 ${fresh ? "font-semibold text-ink" : "text-soft"}`}>{day}</td>
+      <td className="px-4 py-2.5">
+        <span className="value-chip" data-proposal={fresh ? "true" : undefined}>
+          <Reprint value={distance} />
+        </span>
+      </td>
+      <td className="px-4 py-2.5">
+        <span className="value-chip">{time}</span>
+      </td>
+      <td className="px-4 py-2.5 text-soft tabular-nums">
+        <Reprint value={perKm} />
+      </td>
+    </tr>
+  );
+}
+
+function Total({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="tile px-4 py-3.5">
+      <p className="text-[13px] font-semibold text-faint">{label}</p>
+      <p className="mt-1 text-[28px] leading-none font-semibold tracking-[-0.04em] tabular-nums">
+        <Reprint value={value} />
+      </p>
+    </div>
+  );
+}
+
+function Bar({ icon, left, right }: { icon: "file" | "table"; left: string; right: ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 px-6 pt-5 pb-2 text-[14px] sm:px-9">
       <span className="flex items-center gap-2 font-semibold">
-        <MIcon name="file" className="size-4 text-accent" />
+        <MIcon name={icon} className="size-4 text-accent" />
         {left}
       </span>
       <span className="text-faint">{right}</span>

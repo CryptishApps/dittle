@@ -40,20 +40,20 @@ try {
   });
   await placed(page, "€45");
 
-  await note(page, "Villa", async () => {
-    await tag(page, "The villa in Alfama is ", "€1,680", "for four nights. There are ");
-    await tag(page, "", "6", "of us, so ");
-    await tag(page, "", "€280", "each.");
+  await note(page, "Catering", async () => {
+    await tag(page, "Hops & Co quoted ", "£38", "a head for ");
+    await tag(page, "", "80", "guests, so ");
+    await tag(page, "", "£3,040", "in total, bar included.");
   });
-  await waitForText(page, /€280 now follows/);
+  await waitForText(page, /£3,040 now follows/);
 
-  await note(page, "Flights", async () => {
-    await tag(page, "", "6", "seats on the Friday flight at ", { existing: true });
-    await tag(page, "", "£118", "each, so ");
-    await tag(page, "", "£708", "in total. We land on ");
-    await tag(page, "", "Fri 11 December", "at 9:40.");
+  await note(page, "Wedding budget", async () => {
+    await tag(page, "Catering is ", "£38", "a head for ", { existing: true });
+    await tag(page, "", "80", "guests. The barn is ", { existing: true });
+    await tag(page, "", "£4,500", "with a ");
+    await tag(page, "", "£500", "deposit due on ");
+    await tag(page, "", "Fri 11 December", ".");
   });
-  await waitForText(page, /£708 now follows/);
 
   await home(page);
   await page.locator("section[aria-label='What you track']").waitFor();
@@ -68,36 +68,36 @@ try {
   await shoot(page, "panel");
   await page.keyboard.press("Escape");
 
-  await openNote(page, "Villa");
-  await page.locator(".note-editor .value-tag", { hasText: "€280" }).hover();
-  await page.getByRole("dialog", { name: "About €280" }).waitFor();
+  await openNote(page, "Catering");
+  await page.locator(".note-editor .value-tag", { hasText: "£3,040" }).hover();
+  await page.getByRole("dialog", { name: "About £3,040" }).waitFor();
   await page.waitForTimeout(500);
   await shoot(page, "hover");
   await page.mouse.move(4, 790);
   await page.waitForTimeout(500);
 
-  await page.locator(".note-editor .value-tag", { hasText: /^6$/ }).click();
+  await page.locator(".note-editor .value-tag", { hasText: "£38" }).click();
   const field = page.locator("aside").getByRole("spinbutton").first();
-  await field.fill("8");
+  await field.fill("42");
   await field.press("Enter");
   await page.locator("aside").getByRole("button", { name: /^Update all/ }).waitFor();
   await field.blur();
   await settle(page);
   await shoot(page, "change");
   await page.locator("aside").getByRole("button", { name: /^Update all/ }).click();
-  await page.locator(".note-editor .value-tag", { hasText: "€210" }).waitFor({ timeout: AI_TIMEOUT });
+  await page.locator(".note-editor .value-tag", { hasText: "£3,360" }).waitFor({ timeout: AI_TIMEOUT });
   await settle(page);
   await shoot(page, "hero");
   await page.keyboard.press("Escape");
 
-  await openNote(page, "Flights");
+  await openNote(page, "Sintra day trip");
   const last = page.locator(".note-editor > p").last();
   const box = await last.boundingBox();
   if (!box) throw new Error("The note has no paragraph to write after.");
   await last.click({ position: { x: box.width - 2, y: box.height - 6 } });
   await page.keyboard.press("End");
   await page.keyboard.press("Enter");
-  await page.keyboard.type("Write a packing list for a long weekend in Lisbon. ", { delay: 15 });
+  await page.keyboard.type("Write a packing list for a day trip to Sintra in December. ", { delay: 15 });
   const request = page.locator('.request-button[data-status="ready"]').first();
   await request.waitFor({ timeout: AI_TIMEOUT });
   await request.hover();
