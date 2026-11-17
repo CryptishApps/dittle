@@ -22,12 +22,18 @@ export function routePreload({ routesDir, sessionKey, everyPage, signedIn }: Opt
         const files: string[] = [];
         const numbered = (names: Iterable<string>) => [...new Set(names)].filter((file) => !loaded.has(file)).map((file) => (files.includes(file) ? files.indexOf(file) : files.push(file) - 1));
 
-        const byRoute: Record<string, string[]> = {};
-        for (const chunk of chunks) {
+        const components = chunks.flatMap((chunk) => {
           const id = chunk.facadeModuleId ?? "";
-          if (!id.startsWith(routesDir) || !id.includes("tsr-split=component")) continue;
-          const path = urlPath(id.slice(routesDir.length).replace(/\?.*$/, ""));
-          if (path) byRoute[path] = [...(byRoute[path] ?? []), ...closure(bundle, chunk.fileName)];
+          if (!id.startsWith(routesDir) || !id.includes("tsr-split=component")) return [];
+          return [{ file: id.slice(routesDir.length).replace(/\?.*$/, ""), names: [...closure(bundle, chunk.fileName)] }];
+        });
+        const layouts = components.filter(({ file }) => pathlessLayoutDir(file));
+        const byRoute: Record<string, string[]> = {};
+        for (const { file, names } of components) {
+          const path = pathlessLayoutDir(file) ? undefined : urlPath(file);
+          if (!path) continue;
+          const inherited = layouts.filter((layout) => file.startsWith(pathlessLayoutDir(layout.file)!)).flatMap((layout) => layout.names);
+          byRoute[path] = [...(byRoute[path] ?? []), ...inherited, ...names];
         }
         const routes = Object.fromEntries(Object.entries(byRoute).map(([path, names]) => [path, numbered(names)]));
         const filesFor = (moduleIds: string[]) =>
@@ -91,6 +97,10 @@ function closure(bundle: OutputBundle, start: string): Set<string> {
   };
   visit(start);
   return seen;
+}
+
+function pathlessLayoutDir(file: string): string | undefined {
+  return /^_[^/.]+\.tsx?$/.test(file) ? file.replace(/\.tsx?$/, "/") : undefined;
 }
 
 function urlPath(file: string): string | undefined {

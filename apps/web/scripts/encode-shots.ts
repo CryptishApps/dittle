@@ -3,7 +3,7 @@ import sharp from "sharp";
 
 const source = new URL("../shots/", import.meta.url).pathname;
 const out = new URL("../public/shots/", import.meta.url).pathname;
-export const SHOT_WIDTHS = [1440, 2880] as const;
+export const SHOT_WIDTHS = [720, 1440, 2880] as const;
 
 const files = (await readdir(source)).filter((file) => file.endsWith(".png"));
 await Promise.all(

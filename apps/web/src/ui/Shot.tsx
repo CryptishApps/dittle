@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 
 export type Focus = { x: number; y: number; zoom: number };
 
-const SHOT = { width: 2880, height: 1800, widths: [1440, 2880] } as const;
+const SHOT = { width: 2880, height: 1800, widths: [720, 1440, 2880] } as const;
 
 type ShotProps = { name: string; alt: string; theme?: "light" | "dark"; focus?: Focus; priority?: boolean; sizes?: string };
 
