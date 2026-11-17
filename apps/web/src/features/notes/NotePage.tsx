@@ -4,7 +4,7 @@ import { AnimatePresence } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { NoteEditorView, useNoteEditor } from "@/features/editor/NoteEditor";
 import { createSyncedValueStore } from "@/features/editor/values";
-import { MIcon } from "@/ui/kit";
+import { btnClass, MIcon } from "@/ui/kit";
 import { foldersQuery, noteQuery, writes } from "./api";
 import { createEditorServices } from "./editor-services";
 import { fromNoteDoc, summarise, toNoteDoc, valueIdsOf, type NoteDoc } from "./note-doc";
@@ -89,10 +89,10 @@ function OpenNote({ uid, noteId, doc, pending }: { uid: string; noteId: string; 
     <div className="flex min-h-0 flex-1">
       <div className="flex min-w-0 flex-1 flex-col">
         <NoteBar uid={uid} noteId={noteId} />
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-[680px] px-6 pt-8 pb-32 sm:px-10">
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2 sm:px-6 sm:pb-6">
+          <article className="mx-auto min-h-full max-w-[860px] rounded-[22px] bg-card px-5 pt-9 pb-32 shadow-sheet sm:rounded-[28px] sm:px-[68px] sm:pt-14">
             <NoteEditorView editor={editor} store={store} services={services} />
-          </div>
+          </article>
         </div>
       </div>
       <AnimatePresence>
@@ -134,19 +134,13 @@ function NoteBar({ uid, noteId }: { uid: string; noteId: string }) {
     showToast(`Deleted ${note?.title ? `"${note.title}"` : "note"}`, undo);
   };
   return (
-    <nav aria-label="Breadcrumb" className="flex h-10 shrink-0 items-center gap-2 px-4 text-[11.5px] text-faint sm:px-6">
-      <Link to="/notes" className="inline-flex items-center gap-1.5 hover:text-ink">
-        <MIcon name="left" className="size-3.5" />
+    <nav aria-label="Breadcrumb" className="flex h-16 shrink-0 items-center gap-2 px-3 text-[14.5px] font-medium text-soft sm:px-7">
+      <Link to="/notes" className="inline-flex h-9 items-center gap-1.5 rounded-[11px] bg-card pr-3.5 pl-2.5 shadow-[0_0_0_1px_var(--line)] transition-colors hover:text-ink">
+        <MIcon name="left" className="size-4" />
         Home
       </Link>
-      {folder && (
-        <>
-          <span aria-hidden>/</span>
-          <span className="truncate">{folder.name}</span>
-        </>
-      )}
-      <span aria-hidden>/</span>
-      <span className="truncate text-soft">{note?.title || "Untitled"}</span>
+      {folder && <span className="inline-flex h-9 min-w-0 items-center truncate rounded-[11px] bg-panel px-3.5">{folder.name}</span>}
+      <span className="truncate px-1 font-semibold text-ink">{note?.title || "Untitled"}</span>
       <span className="ml-auto">
         <RowMenu label="More actions for this note">
           <MenuItem onSelect={() => void remove()} danger>
@@ -162,8 +156,8 @@ function MissingNote() {
   return (
     <div className="grid flex-1 place-items-center px-6 text-center">
       <div>
-        <p className="text-[13px] text-soft">This note doesn't exist any more.</p>
-        <Link to="/notes" className="mt-4 inline-block text-[12px] text-ink underline underline-offset-4">
+        <p className="font-heading text-[28px] font-semibold tracking-[-0.025em]">This note doesn't exist any more.</p>
+        <Link to="/notes" className={`${btnClass({ variant: "primary", size: "md" })} mt-6`}>
           Back to your notes
         </Link>
       </div>

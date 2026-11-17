@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { m } from "motion/react";
 import { useEffect, useState, type ReactNode } from "react";
-import { Btn, ease, MIcon } from "@/ui/kit";
+import { Btn, btnClass, ease, MIcon } from "@/ui/kit";
 import { SpinCheck } from "@/ui/SpinCheck";
 import { Wordmark } from "@/ui/Wordmark";
 import { downloadDeviceModel, loadDeviceModel, useDeviceModel, type DeviceModelState } from "./device-model";
@@ -36,47 +36,50 @@ export function AiPage() {
 
   return (
     <div className="min-h-dvh bg-page">
-      <header className="flex h-14 items-center justify-between border-b border-line px-4 sm:px-6">
+      <header className="flex h-16 items-center justify-between border-b border-line px-4 sm:px-7">
         <Link to="/notes" aria-label="Dittle home">
-          <Wordmark className="text-[14px]" />
+          <Wordmark className="text-[21px]" />
         </Link>
-        <Link to="/notes" className="inline-flex items-center gap-1.5 text-[11px] tracking-[0.04em] text-soft uppercase hover:text-ink">
-          <MIcon name="left" className="size-3.5" />
+        <Link to="/notes" className={btnClass({ variant: "secondary", size: "md" })}>
+          <MIcon name="left" className="size-4" />
           Notes
         </Link>
       </header>
 
-      <main className="mx-auto max-w-[680px] px-6 py-12 sm:px-10">
-        <p className="text-[11px] tracking-[0.06em] text-faint uppercase">On-device AI</p>
-        <h1 className="mt-2 text-[28px] leading-[1.15] font-medium tracking-[-0.03em]">Gemini Nano</h1>
+      <main className="mx-auto max-w-[700px] px-6 py-12 sm:px-10 sm:py-16">
+        <p className="inline-flex h-7 items-center gap-2 rounded-full bg-accent-tint px-3 text-label text-accent-ink">
+          <span aria-hidden className="size-1.5 rounded-full bg-accent" />
+          On-device AI
+        </p>
+        <h1 className="mt-4 font-heading text-[44px] leading-[1.02] font-semibold tracking-[-0.045em] sm:text-[56px]">Gemini Nano</h1>
 
         <m.section
           layout
           transition={{ duration: 0.3, ease }}
           aria-live="polite"
-          className={`mt-8 border-l-2 bg-panel px-5 py-4 ${model.status === "downloadable" ? "border-accent" : "border-ink"}`}
+          className={`tile mt-8 px-6 py-5 ${model.status === "downloadable" ? "outline-2 outline-accent" : ""}`}
         >
           <div className="flex items-center gap-3">
-            {model.status === "available" && <SpinCheck done className="-m-1 text-ink" />}
-            {(model.status === "downloading" || model.status === "checking") && <SpinCheck className="-m-1 text-ink" />}
-            <h2 className="text-[15px] font-medium">
+            {model.status === "available" && <SpinCheck done className="-m-1 text-accent" />}
+            {(model.status === "downloading" || model.status === "checking") && <SpinCheck className="-m-1 text-accent" />}
+            <h2 className="font-heading text-[22px] font-semibold tracking-[-0.025em]">
               {HEADLINE[model.status]}
               {model.status === "downloading" && model.progress !== undefined && <span className="ml-2 text-soft tabular-nums">{percent}%</span>}
             </h2>
           </div>
-          {DETAIL[model.status] && <p className="mt-2 text-[13px] leading-[1.7] text-soft">{DETAIL[model.status]}</p>}
+          {DETAIL[model.status] && <p className="mt-2 text-[15px] leading-[1.65] text-soft">{DETAIL[model.status]}</p>}
 
           {model.status === "downloading" && model.progress !== undefined && (
-            <div className="mt-4 h-1 bg-line" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100} aria-label="Download progress">
-              <div className="h-full bg-ink transition-[width] duration-300" style={{ width: `${percent}%` }} />
+            <div className="mt-4 h-2 overflow-hidden rounded-full bg-chip" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100} aria-label="Download progress">
+              <div className="h-full rounded-full bg-accent transition-[width] duration-300" style={{ width: `${percent}%` }} />
             </div>
           )}
           {model.status === "downloadable" && (
-            <Btn primary onClick={() => void downloadDeviceModel()} className="mt-4">
+            <Btn primary size="md" onClick={() => void downloadDeviceModel()} className="mt-4">
               Download Gemini Nano
             </Btn>
           )}
-          {model.error && <p className="mt-3 text-[12.5px] text-accent-ink">{model.error}</p>}
+          {model.error && <p className="mt-3 text-[14px] text-danger">{model.error}</p>}
           {model.status === "available" && <TryIt />}
         </m.section>
 
@@ -103,24 +106,24 @@ export function AiPage() {
         </Section>
 
         <section className="mt-12">
-          <h2 className="text-[11px] tracking-[0.06em] text-faint uppercase">This session</h2>
+          <h2 className="font-heading text-[20px] font-semibold tracking-[-0.025em]">This session</h2>
           {calls.length === 0 ? (
-            <p className="mt-3 text-[13px] text-soft">No AI calls yet. Tag a value with @ in a note and it shows here.</p>
+            <p className="mt-3 text-[15px] text-soft">No AI calls yet. Tag a value with @ in a note and it shows here.</p>
           ) : (
-            <table className="mt-3 w-full text-left text-[12.5px]">
-              <thead className="text-[10.5px] tracking-[0.06em] text-faint uppercase">
+            <table className="mt-3 w-full overflow-hidden rounded-[20px] border-separate border-spacing-0 bg-card text-left text-[14px] shadow-sheet">
+              <thead className="bg-side text-label text-soft">
                 <tr>
-                  <th className="py-2 font-normal">Task</th>
-                  <th className="py-2 font-normal">Ran</th>
-                  <th className="py-2 text-right font-normal">Time</th>
+                  <th className="px-5 py-3 font-semibold">Task</th>
+                  <th className="px-5 py-3 font-semibold">Ran</th>
+                  <th className="px-5 py-3 text-right font-semibold">Time</th>
                 </tr>
               </thead>
               <tbody>
                 {calls.map((call) => (
-                  <tr key={call.at} className="border-t border-line">
-                    <td className="py-2">{call.task}</td>
-                    <td className="py-2 text-soft">{call.where === "on_device" ? "On this device" : "In the cloud"}</td>
-                    <td className="py-2 text-right text-soft tabular-nums">{(call.ms / 1000).toFixed(1)} s</td>
+                  <tr key={call.at}>
+                    <td className="border-t border-line px-5 py-3">{call.task}</td>
+                    <td className="border-t border-line px-5 py-3 text-soft">{call.where === "on_device" ? "On this device" : "In the cloud"}</td>
+                    <td className="border-t border-line px-5 py-3 text-right text-soft tabular-nums">{(call.ms / 1000).toFixed(1)} s</td>
                   </tr>
                 ))}
               </tbody>
@@ -135,8 +138,8 @@ export function AiPage() {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="mt-10">
-      <h2 className="text-[11px] tracking-[0.06em] text-faint uppercase">{title}</h2>
-      <ul className="mt-3 list-[square] space-y-2 pl-5 text-[13px] leading-[1.7] text-ink marker:text-faint">{children}</ul>
+      <h2 className="font-heading text-[20px] font-semibold tracking-[-0.025em]">{title}</h2>
+      <ul className="mt-3 list-disc space-y-2 pl-5 text-[15px] leading-[1.65] text-ink marker:text-accent">{children}</ul>
     </section>
   );
 }
@@ -149,7 +152,7 @@ function Copyable({ text }: { text: string }) {
     window.setTimeout(() => setCopied(false), 1600);
   };
   return (
-    <button type="button" onClick={() => void copy()} className="bg-chip px-1.5 py-0.5 text-[12px] hover:bg-chip-hover" title="Copy">
+    <button type="button" onClick={() => void copy()} className="rounded-md bg-chip px-1.5 py-0.5 text-[14px] font-medium hover:bg-chip-hover" title="Copy">
       {copied ? "Copied" : text}
     </button>
   );
@@ -173,7 +176,7 @@ function TryIt() {
   return (
     <div className="mt-4 flex flex-wrap items-center gap-3">
       <Btn onClick={() => void run()}>{busy ? "Running" : "Try it"}</Btn>
-      {result && <p className="text-[12.5px] text-soft">{result}</p>}
+      {result && <p className="text-[14px] text-soft">{result}</p>}
     </div>
   );
 }

@@ -155,4 +155,4 @@ apps/web/build                     Vite plugins: route preloading, service worke
 
 ## Licence
 
-[Apache 2.0](LICENSE). Geist Mono in `apps/web/public/fonts` is under the [SIL Open Font License](apps/web/public/fonts/OFL.txt). The motion recipes in `apps/web/src/styles/transitions.css` come from [transitions.dev](https://transitions.dev) and are covered by its [terms](https://transitions.dev/terms), not by the Apache licence.
+[Apache 2.0](LICENSE). Figtree and Caveat in `apps/web/public/fonts` are under the SIL Open Font License ([Figtree](apps/web/public/fonts/OFL-figtree.txt), [Caveat](apps/web/public/fonts/OFL-caveat.txt)). The motion recipes in `apps/web/src/styles/transitions.css` come from [transitions.dev](https://transitions.dev) and are covered by its [terms](https://transitions.dev/terms), not by the Apache licence.

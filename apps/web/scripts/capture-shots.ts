@@ -171,7 +171,7 @@ async function described(page: Page) {
 
 async function home(page: Page) {
   if (new URL(page.url()).pathname === "/notes") return;
-  await page.getByRole("link", { name: "Home", exact: true }).click();
+  await page.getByRole("navigation", { name: "Open notes" }).getByRole("link", { name: "Home" }).click();
   await page.waitForURL("**/notes");
 }
 

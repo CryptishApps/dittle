@@ -3,22 +3,21 @@ import { formatAmount } from "@/features/formulas/apply";
 import { formatDuration, joinDuration, splitDuration, type DurationParts } from "@/features/formulas/duration";
 import type { ChangeScope } from "./change-value";
 import type { Quantity } from "./linking";
+import { Btn } from "@/ui/kit";
 import type { TrackedValue } from "./values";
 
 export const nameOf = (value: { name?: string } | undefined) => value?.name?.replaceAll("_", " ") ?? "value";
 export const usedIn = (count: number) => `${count} ${count === 1 ? "note" : "notes"}`;
 
+const FIELD = "flex h-11 items-center rounded-xl border-[1.5px] border-accent bg-card px-3.5 text-[15px] font-medium ring-[3px] ring-accent-tint";
+
 const NUMBER_INPUT = "h-full min-w-0 bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none";
 
 export function Action({ primary, onClick, children }: { primary?: boolean; onClick: () => void; children: ReactNode }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`px-2 py-1 text-[10.5px] tracking-[0.06em] uppercase ${primary ? "bg-ink text-page hover:opacity-90" : "border border-line-strong text-ink hover:border-ink"}`}
-    >
+    <Btn primary={primary} onClick={onClick}>
       {children}
-    </button>
+    </Btn>
   );
 }
 
@@ -91,7 +90,7 @@ export function EditValue({
       {duration ? (
         <div className="flex gap-1.5" role="group" aria-label={`Change ${nameOf(value)}`}>
           {DURATION_UNITS.map(({ part, label }, index) => (
-            <label key={part} className="flex h-8 min-w-0 flex-1 items-center border border-accent bg-card px-2 text-[13px]">
+            <label key={part} className={`${FIELD} min-w-0 flex-1`}>
               <input
                 autoFocus={autoFocus && index === 0}
                 type="number"
@@ -113,7 +112,7 @@ export function EditValue({
           ))}
         </div>
       ) : (
-        <div className="flex h-8 items-center border border-accent bg-card px-2 text-[13px]">
+        <div className={FIELD}>
           {numeric && value.before && <span className="text-soft">{value.before}</span>}
           <input
             autoFocus={autoFocus}
@@ -133,7 +132,7 @@ export function EditValue({
       )}
       {asking ? (
         <div className="mt-2">
-          <p className="text-accent-ink">
+          <p className="font-medium text-accent-ink">
             {value.text} is used in {usedIn(count)}.
           </p>
           <div className="mt-2 flex flex-wrap justify-end gap-2">
@@ -144,7 +143,7 @@ export function EditValue({
           </div>
         </div>
       ) : (
-        <p className="mt-1.5 text-faint">Enter to save · Esc to cancel</p>
+        <p className="mt-2 text-[13px] text-faint">Enter to save · Esc to cancel</p>
       )}
     </div>
   );

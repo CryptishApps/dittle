@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import type { PasswordCheck } from "@/lib/auth";
 import { authMessage, isCancelled } from "@/lib/auth-errors";
 import { hasPainted } from "@/lib/first-paint";
-import { ease, MIcon, Scramble } from "@/ui/kit";
+import { ease, MIcon, TypeOn } from "@/ui/kit";
 import { SpinCheck } from "@/ui/SpinCheck";
 import { AuthShell, BUTTON, BusyLabel, GoogleMark, INPUT, LABEL, NavLink, PasswordInput, PasswordRules, usePasswordCheck, type Nav } from "./parts";
 
@@ -103,10 +103,10 @@ export function AuthPage({ mode, actions, links }: AuthPageProps) {
             transition={{ duration: 0.5, ease }}
             className="w-full max-w-[360px]"
           >
-            <h1 className="text-[34px] leading-[1.05] font-medium tracking-[-0.05em]">
-              <Scramble key={mode} text={copy.title} duration={520} />
+            <h1 className="font-heading text-[44px] leading-[1.02] font-semibold tracking-[-0.045em]">
+              <TypeOn key={mode} text={copy.title} duration={520} />
             </h1>
-            <p className="mt-3 text-[13px] leading-[1.7] text-soft">{sub}</p>
+            <p className="mt-3 text-[16px] leading-[1.6] text-soft">{sub}</p>
 
             <form onSubmit={submit} className="mt-9" noValidate aria-busy={!!pending}>
               <fieldset disabled={!!pending} className="m-0 min-w-0 border-0 p-0">
@@ -118,7 +118,7 @@ export function AuthPage({ mode, actions, links }: AuthPageProps) {
                   </Button>
                 </Field>
 
-                <FieldSeparator className="my-1 *:data-[slot=field-separator-content]:bg-page *:data-[slot=field-separator-content]:text-[11px] *:data-[slot=field-separator-content]:tracking-[0.06em] *:data-[slot=field-separator-content]:text-faint *:data-[slot=field-separator-content]:uppercase">
+                <FieldSeparator className="my-1 *:data-[slot=field-separator-content]:bg-page *:data-[slot=field-separator-content]:text-[13px] *:data-[slot=field-separator-content]:text-faint">
                   or with email
                 </FieldSeparator>
 
@@ -156,7 +156,7 @@ export function AuthPage({ mode, actions, links }: AuthPageProps) {
                       <button
                         type="button"
                         onClick={forgot}
-                        className="ml-auto text-[11px] tracking-[0.04em] text-soft underline-offset-4 hover:text-ink hover:underline"
+                        className="ml-auto text-[13px] font-medium text-accent-ink underline-offset-4 hover:underline"
                       >
                         <BusyLabel state={stateOf("reset")} text="Forgot?" busyText="Sending" />
                       </button>
@@ -179,15 +179,15 @@ export function AuthPage({ mode, actions, links }: AuthPageProps) {
                     initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.25, ease }}
-                    className={`border-l-2 bg-panel px-3 py-2.5 text-[12.5px] leading-[1.6] ${error ? "border-accent text-accent-ink" : "border-ink text-soft"}`}
+                    className={`rounded-xl px-4 py-3 text-[14px] leading-[1.55] ${error ? "bg-danger-tint text-danger" : "bg-accent-tint text-accent-ink"}`}
                   >
                     {error ?? notice}
                   </m.p>
                 )}
 
-                <p className="text-center text-[12px] text-soft">
+                <p className="text-center text-[14px] text-soft">
                   {mode === "signin" ? "New to Dittle? " : "Already have an account? "}
-                  <NavLink nav={mode === "signin" ? links.signup : links.signin} className="text-ink underline underline-offset-4 hover:text-accent-ink">
+                  <NavLink nav={mode === "signin" ? links.signup : links.signin} className="font-semibold text-accent-ink underline-offset-4 hover:underline">
                     {mode === "signin" ? "Create an account" : "Sign in"}
                   </NavLink>
                 </p>

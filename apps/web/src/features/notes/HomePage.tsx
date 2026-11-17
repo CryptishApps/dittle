@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useCollectionSuggestions, type Suggestion } from "@/features/collections/suggestions";
 import { daysUntil, summariseCollection, upcomingDates, type CollectionSummary, type Upcoming } from "@/features/collections/summary";
 import { dayLabel } from "@/features/collections/format";
-import { MIcon } from "@/ui/kit";
+import { Btn, btnClass, Kbd, MIcon } from "@/ui/kit";
 import { collectionsQuery, foldersQuery, notesQuery, rowsQuery, startNote, valuesQuery, writes } from "./api";
 import { noteWith } from "./note-doc";
 import { NoteTree } from "./NoteTree";
@@ -61,10 +61,11 @@ export function HomePage({ uid }: { uid: string }) {
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
-      <div className="mx-auto max-w-[820px] px-5 pt-8 pb-24 sm:px-8">
+      <div className="mx-auto max-w-[1160px] px-4 pt-7 pb-24 sm:px-10 sm:pt-11">
         <h1 className="sr-only">Your notes</h1>
+        <StartNote onStart={(title) => start(title)} />
         {tracking && (
-          <section aria-label="What you track" className="mb-8 grid grid-cols-1 pt-px pl-px sm:grid-cols-2 lg:grid-cols-3">
+          <section aria-label="What you track" className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {summaries.map((summary) => (
               <CollectionTile key={summary.collection.id} summary={summary} />
             ))}
@@ -75,18 +76,16 @@ export function HomePage({ uid }: { uid: string }) {
           </section>
         )}
 
-        <StartNote onStart={(title) => start(title)} />
-
         {!tracking && values.length > 0 && <FoundHint values={values.slice(0, 3).map((value) => value.text)} count={values.length} />}
 
-        <div className="mt-8 flex items-center justify-between">
-          <h2 className="text-[10.5px] tracking-[0.06em] text-faint uppercase">Notes</h2>
-          <button type="button" onClick={() => setCreatingFolder(true)} className="inline-flex items-center gap-1.5 text-[10.5px] tracking-[0.06em] text-soft uppercase hover:text-ink">
-            <MIcon name="folder" className="size-3.5" />
+        <div className="mt-12 flex items-center justify-between">
+          <h2 className="text-[22px] font-semibold tracking-[-0.02em]">Notes</h2>
+          <Btn onClick={() => setCreatingFolder(true)}>
+            <MIcon name="folder" className="size-4" />
             New folder
-          </button>
+          </Btn>
         </div>
-        <nav aria-label="Notes" className="mt-2 border-t border-line">
+        <nav aria-label="Notes" className="mt-9">
           <NoteTree
             uid={uid}
             notes={notes}
@@ -106,24 +105,30 @@ export function HomePage({ uid }: { uid: string }) {
 function FirstVisit({ onStart }: { onStart: (title?: string, body?: string) => void }) {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
-      <div className="mx-auto max-w-[640px] px-5 pt-16 pb-24 sm:px-8 sm:pt-24">
-        <h1 className="text-[26px] leading-tight font-medium tracking-[-0.03em]">Plan anything.</h1>
-        <p className="mt-3 text-[13.5px] leading-[1.75] text-soft">
+      <div className="mx-auto max-w-[660px] px-5 pt-16 pb-24 sm:px-8 sm:pt-24">
+        <h1 className="font-heading text-[44px] leading-[1.02] font-semibold tracking-[-0.045em] sm:text-[56px]">
+          Plan <span className="tag">anything.</span>
+        </h1>
+        <p className="mt-5 max-w-[52ch] text-[16px] leading-[1.7] text-soft">
           Write the plan as notes: the trip, the wedding, the offsite. Dittle notices the dates, prices and headcounts in them. Change one, and every note that mentions it updates.
         </p>
         <div className="mt-8">
           <StartNote onStart={(title) => onStart(title)} autoFocus />
         </div>
-        <p className="mt-8 text-[10.5px] tracking-[0.06em] text-faint uppercase">Or try one</p>
-        <ul className="mt-3 flex flex-wrap gap-2">
+        <p className="mt-10 px-1 text-label text-soft">Or try one</p>
+        <ul className="mt-3 grid gap-2.5">
           {EXAMPLES.map((example) => (
             <li key={example.title}>
               <button
                 type="button"
                 onClick={() => onStart(example.title, example.body)}
-                className="border border-dashed border-line-strong px-3 py-2 text-left text-[12.5px] text-soft hover:border-ink hover:text-ink"
+                className="group flex w-full items-center gap-4 rounded-2xl border border-line bg-card px-5 py-3.5 text-left shadow-tile transition-colors hover:border-accent"
               >
-                {example.body}
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[15.5px] font-semibold text-ink">{example.title}</span>
+                  <span className="mt-0.5 block text-[14px] text-soft">{example.body}</span>
+                </span>
+                <MIcon name="right" className="size-4 shrink-0 text-faint transition-colors group-hover:text-accent" />
               </button>
             </li>
           ))}
@@ -141,7 +146,7 @@ function StartNote({ onStart, autoFocus = false }: { onStart: (title: string) =>
         event.preventDefault();
         onStart(title.trim());
       }}
-      className="flex items-center border-b border-line-strong focus-within:border-accent"
+      className="flex h-16 items-center gap-3 rounded-[20px] bg-card pr-2.5 pl-6 shadow-[0_0_0_1px_var(--line),0_20px_30px_-24px_rgb(18_20_24/0.3)] transition-shadow focus-within:shadow-[0_0_0_2px_var(--accent),0_0_0_6px_var(--accent-tint)]"
     >
       <input
         autoFocus={autoFocus}
@@ -149,21 +154,27 @@ function StartNote({ onStart, autoFocus = false }: { onStart: (title: string) =>
         onChange={(event) => setTitle(event.target.value)}
         placeholder="Start a note"
         aria-label="Start a note with this title"
-        className="h-12 min-w-0 flex-1 bg-transparent text-[17px] text-ink outline-none placeholder:text-faint"
+        className="h-full min-w-0 flex-1 bg-transparent text-[18px] text-ink outline-none placeholder:text-faint"
         style={{ outline: "none" }}
       />
-      <span className="hidden text-[10.5px] tracking-[0.06em] text-faint uppercase sm:block">Enter</span>
+      <span className="hidden sm:inline-flex">
+        <Kbd>Enter</Kbd>
+      </span>
+      <button type="submit" className={btnClass({ variant: "primary", size: "md" })}>
+        <MIcon name="plus" className="size-4" />
+        <span className="max-sm:sr-only">New note</span>
+      </button>
     </form>
   );
 }
 
 function FoundHint({ values, count }: { values: string[]; count: number }) {
   return (
-    <p className="mt-6 border border-dashed border-line-strong px-3.5 py-3 text-[12.5px] leading-[1.8] text-soft">
+    <p className="mt-5 rounded-2xl bg-accent-tint px-5 py-3.5 text-[14px] leading-[1.9] text-soft">
       Dittle is keeping {count === 1 ? "1 value" : `${count} values`} in step across your notes, like{" "}
       {values.map((text, index) => (
         <span key={index}>
-          <span className="bg-chip px-1 py-0.5 text-ink">{text}</span>
+          <span className="tag font-medium">{text}</span>
           {index < values.length - 1 ? " " : ""}
         </span>
       ))}
@@ -172,7 +183,10 @@ function FoundHint({ values, count }: { values: string[]; count: number }) {
   );
 }
 
-const TILE = "-mt-px -ml-px flex min-h-[132px] flex-col border border-line px-4 py-3.5";
+const BIG = "text-[56px] leading-none font-semibold tracking-[-0.045em] tabular-nums";
+const TILE = "tile flex min-h-[180px] flex-col px-6 pt-5 pb-5.5";
+const MONTH = new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: "UTC" });
+const WEEKDAY = new Intl.DateTimeFormat("en-GB", { weekday: "long", timeZone: "UTC" });
 
 function CollectionTile({ summary }: { summary: CollectionSummary }) {
   const { collection, count, scope, totals, latest } = summary;
@@ -185,17 +199,17 @@ function CollectionTile({ summary }: { summary: CollectionSummary }) {
       ? [`avg ${headline.average} from ${headline.counted} of ${count}`]
       : [entries, `avg ${headline.average}`];
   return (
-    <Link to="/notes/collections/$collectionId" params={{ collectionId: collection.id }} className={`${TILE} hover:bg-panel`}>
-      <span className="text-[10.5px] tracking-[0.06em] text-faint uppercase">{collection.name}</span>
-      <span className="mt-2 flex items-baseline gap-2">
-        <span className="text-[30px] leading-none font-medium tracking-[-0.03em] tabular-nums">{headline?.text ?? count}</span>
-        <span className="text-[12px] text-faint">{headline ? `${headline.field.name} ${scope}` : scope}</span>
+    <Link to="/notes/collections/$collectionId" params={{ collectionId: collection.id }} className={`${TILE} outline-2 outline-transparent transition-[outline-color] hover:outline-accent`}>
+      <span className="text-label text-faint">{collection.name}</span>
+      <span className="mt-2 flex items-baseline gap-2.5">
+        <span className={BIG}>{headline?.text ?? count}</span>
+        <span className="text-[16px] text-soft">{headline ? `${headline.field.name} ${scope}` : scope}</span>
       </span>
       {headline && (
-        <span className="mt-1.5 text-[11.5px] text-soft">{detail.filter(Boolean).join(" · ")}</span>
+        <span className="mt-2.5 text-[14px] text-soft tabular-nums">{detail.filter(Boolean).join(" · ")}</span>
       )}
       {latest && (
-        <span className="mt-auto line-clamp-2 pt-3 text-[11.5px] text-soft">
+        <span className="mt-auto line-clamp-2 pt-1.5 text-[14px] text-soft">
           Latest · {[latest.label, ...latest.cells].filter(Boolean).join(" · ")}
         </span>
       )}
@@ -207,46 +221,52 @@ function UpcomingTile({ items, noteTitle }: { items: Upcoming[]; noteTitle: (not
   const [first, ...rest] = items;
   if (!first) return null;
   const days = daysUntil(first.on);
+  const date = new Date(`${first.on}T00:00:00Z`);
   return (
     <div className={TILE}>
-      <span className="text-[10.5px] tracking-[0.06em] text-faint uppercase">Coming up</span>
-      <Link to="/notes/$noteId" params={{ noteId: first.value.origin?.noteId ?? "" }} disabled={!first.value.origin?.noteId} className="mt-2 flex items-baseline gap-2 hover:text-accent-ink">
-        <span className="text-[30px] leading-none font-medium tracking-[-0.03em] tabular-nums">{days === 0 ? "Today" : days}</span>
-        {days !== 0 && <span className="text-[12px] text-faint">{days === 1 ? "day" : "days"}</span>}
-        <span className="truncate text-[12px] text-soft">{first.value.subject?.label ?? noteTitle(first.value.origin?.noteId)}</span>
+      <span className="text-label text-faint">Coming up</span>
+      <Link to="/notes/$noteId" params={{ noteId: first.value.origin?.noteId ?? "" }} disabled={!first.value.origin?.noteId} className="group mt-3 flex items-center gap-4">
+        <span aria-hidden className="w-[76px] shrink-0 -rotate-3 overflow-hidden rounded-2xl bg-card text-center shadow-[0_0_0_1px_var(--line),0_14px_20px_-14px_rgb(18_20_24/0.4)]">
+          <span className="block bg-date py-1 text-[11px] font-bold tracking-[0.08em] text-date-ink uppercase">{MONTH.format(date)}</span>
+          <span className="block pt-0.5 text-[32px] leading-tight font-semibold tracking-[-0.03em]">{date.getUTCDate()}</span>
+          <span className="block pb-1.5 text-[11px] font-semibold text-soft">{WEEKDAY.format(date)}</span>
+        </span>
+        <span className="min-w-0">
+          <span className="block text-[44px] leading-none font-semibold tracking-[-0.045em] tabular-nums transition-colors group-hover:text-accent-ink">{days === 0 ? "Today" : `${days} ${days === 1 ? "day" : "days"}`}</span>
+          <span className="mt-1 block truncate text-[15px] text-soft">{first.value.subject?.label ?? noteTitle(first.value.origin?.noteId)}</span>
+        </span>
       </Link>
-      <ul className="mt-auto space-y-0.5 pt-3 text-[11.5px]">
-        {rest.map((item) => (
-          <li key={item.value.id} className="flex justify-between gap-3">
-            <span className="text-accent-ink">{dayLabel(item.on)}</span>
-            <span className="truncate text-soft">{item.value.subject?.label ?? noteTitle(item.value.origin?.noteId)}</span>
-          </li>
-        ))}
-      </ul>
+      {rest.length > 0 && (
+        <ul className="mt-auto divide-y divide-line pt-3 text-[14.5px]">
+          {rest.map((item) => (
+            <li key={item.value.id} className="flex justify-between gap-4 py-2">
+              <span className="truncate font-medium text-ink">{item.value.subject?.label ?? noteTitle(item.value.origin?.noteId)}</span>
+              <span className="shrink-0 text-soft tabular-nums">{dayLabel(item.on)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
 
 function SuggestionTile({ suggestion, onCreate, onDismiss }: { suggestion: Suggestion; onCreate: () => void; onDismiss: () => void }) {
   return (
-    <div className={`${TILE} bg-accent-tint/40`}>
-      <span className="flex items-center gap-2 text-[10.5px] tracking-[0.06em] text-faint uppercase">
-        <span aria-hidden className="size-1.5 bg-accent" />
-        Suggested collection
-      </span>
-      <span className="mt-2 text-[15px] font-medium">{suggestion.proposal.name}</span>
-      <span className="mt-0.5 truncate text-[11.5px] text-soft">
+    <div className="sticky-note flex min-h-[180px] rotate-1 flex-col px-6 pt-5 pb-5.5">
+      <span className="text-label text-sticky-soft">Suggested collection</span>
+      <span className="mt-2 text-[23px] leading-tight font-semibold tracking-[-0.02em]">{suggestion.proposal.name}</span>
+      <span className="mt-1 line-clamp-2 text-[15px] leading-normal">
         {suggestion.rowCount} rows · {suggestion.plan.collection.fields.map((field) => field.name).join(", ")}
       </span>
-      <span className="mt-auto flex gap-2 pt-3">
-        <button type="button" onClick={onCreate} className="bg-ink px-2 py-1 text-[10.5px] tracking-[0.06em] text-page uppercase hover:opacity-90">
+      <span className="mt-auto flex gap-2 pt-4">
+        <button type="button" onClick={onCreate} className="inline-flex h-9 items-center rounded-[10px] bg-sticky-ink px-4 text-[14px] font-semibold text-sticky transition-opacity hover:opacity-90">
           Create
         </button>
         <button
           type="button"
           onClick={onDismiss}
           aria-label={`Dismiss ${suggestion.proposal.name}`}
-          className="border border-line-strong px-2 py-1 text-[10.5px] tracking-[0.06em] text-soft uppercase hover:border-ink hover:text-ink"
+          className="inline-flex h-9 items-center rounded-[10px] bg-sticky-ink/8 px-4 text-[14px] font-semibold text-sticky-ink transition-colors hover:bg-sticky-ink/14"
         >
           Not now
         </button>

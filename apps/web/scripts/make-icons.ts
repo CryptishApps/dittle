@@ -2,7 +2,7 @@ import { mkdir } from "node:fs/promises";
 import sharp from "sharp";
 
 const favicon = await Bun.file(new URL("../public/favicon.svg", import.meta.url)).text();
-const fullBleed = Buffer.from(favicon.replace(' rx="3"', ""));
+const fullBleed = Buffer.from(favicon.replace(' rx="9"', ""));
 const rounded = Buffer.from(favicon);
 const out = (name: string) => new URL(`../public/icons/${name}`, import.meta.url).pathname;
 

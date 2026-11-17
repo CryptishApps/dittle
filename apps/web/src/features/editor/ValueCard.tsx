@@ -4,7 +4,7 @@ import { AnimatePresence, m } from "motion/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { RowsPer } from "@/features/collections/logic";
 import type { FactFields } from "@/features/notes/fact";
-import { ease } from "@/ui/kit";
+import { btnClass, ease, POPOVER } from "@/ui/kit";
 import { describeFormula } from "@/features/formulas/apply";
 import { applyEverywhere as applyToNotes, changeValue, type ChangeScope } from "./change-value";
 import { Action, EditValue, nameOf, usedIn } from "./EditValue";
@@ -200,28 +200,28 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
           onMouseLeave={hide}
           role="dialog"
           aria-label={`About ${shown.text}`}
-          className={`fixed top-0 left-0 z-50 w-max max-w-[320px] border bg-card px-3 py-2.5 text-[12px] shadow-pop ${changed ? "border-accent" : "border-line-strong"}`}
+          className={`${POPOVER} fixed top-0 left-0 z-50 w-max max-w-[340px] px-4 py-3.5 text-[14px] ${changed ? "ring-2 ring-accent-line" : ""}`}
         >
-          <p className="text-[10.5px] tracking-[0.06em] text-faint uppercase">
+          <p className="text-label text-soft first-letter:uppercase">
             {[nameOf(shown), shown.kind, shown.event === undefined ? undefined : shown.event ? "event" : "ongoing"].filter(Boolean).join(" · ")}
           </p>
           {tag && editing && !tag.proposal && !tag.formula && (
             <EditValue value={tag} count={usage(tag.id)} onSave={(text, scope, quantity) => saveEdit(tag, text, scope, quantity)} onCancel={close} />
           )}
-          {tag?.formula && <p className="mt-1 text-soft">= {describeFormula(tag, (id) => store.get(id)) ?? "a formula"}</p>}
-          {tag && !editing && tag.history?.length ? <p className="mt-1 text-faint">Was {tag.history.at(-1)!.text}</p> : null}
+          {tag?.formula && <p className="mt-1.5 font-medium text-accent-ink">= {describeFormula(tag, (id) => store.get(id)) ?? "a formula"}</p>}
+          {tag && !editing && tag.history?.length ? <p className="mt-1.5 text-faint">Was {tag.history.at(-1)!.text}</p> : null}
           {describing ? (
-            <p className="mt-1">
+            <p className="mt-1.5">
               <span className="t-shimmer-text" data-text="Describing">
                 Describing
               </span>
             </p>
           ) : (
-            contextLine(shown) && <p className="mt-1 text-ink">{contextLine(shown)}</p>
+            contextLine(shown) && <p className="mt-1.5 font-medium text-ink">{contextLine(shown)}</p>
           )}
 
           {changed && linked && (
-            <p className="mt-2 text-accent-ink">
+            <p className="mt-2.5 rounded-xl bg-accent-tint px-3 py-2 text-accent-ink">
               {nameOf(linked)} is {linked.text} in {usedIn(usage(linked.id))}. Change it to {shown.text}?
             </p>
           )}
@@ -274,7 +274,7 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
             )}
           </Actions>
           {tag && !tag.proposal && tag.describedBy && (
-            <p className="mt-2 border-t border-line pt-2 text-faint">
+            <p className="mt-3 border-t border-line pt-2.5 text-[12.5px] text-faint">
               {openValue ? "Click or ⌘/Ctrl Enter for details" : tag.formula ? "Calculated" : "Click to change"} · described {tag.describedBy.where === "on_device" ? "on this device" : "in the cloud"}
             </p>
           )}
@@ -287,7 +287,7 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
 function Actions({ children }: { children: ReactNode }) {
   const items = Array.isArray(children) ? children.filter(Boolean) : children;
   if (!items || (Array.isArray(items) && items.length === 0)) return null;
-  return <div className="mt-2.5 flex flex-wrap items-center justify-end gap-2 border-t border-line pt-2">{children}</div>;
+  return <div className="mt-3 flex flex-wrap items-center justify-end gap-2 border-t border-line pt-3">{children}</div>;
 }
 
 export function StartCollection({ value, onStart }: { value: TrackedValue; onStart: (name: string, per: RowsPer) => void }) {
@@ -297,36 +297,36 @@ export function StartCollection({ value, onStart }: { value: TrackedValue; onSta
   const [per, setPer] = useState<RowsPer>(value.event ? "day" : "name");
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className="mt-2 text-[11px] tracking-[0.04em] text-soft underline underline-offset-4 hover:text-ink">
+      <button type="button" onClick={() => setOpen(true)} className="link mt-2.5 text-[14px] font-medium">
         Start a collection from this
       </button>
     );
   }
   return (
     <form
-      className="mt-2.5 border-t border-line pt-2"
+      className="mt-3 border-t border-line pt-3"
       onSubmit={(event) => {
         event.preventDefault();
         if (name.trim()) onStart(name.trim(), per);
       }}
     >
-      <label className="block text-[10.5px] tracking-[0.06em] text-faint uppercase" htmlFor="collection-name">
+      <label className="block text-label text-soft" htmlFor="collection-name">
         Collection name
       </label>
-      <div className="mt-1 flex gap-2">
+      <div className="mt-1.5 flex gap-2">
         <input
           id="collection-name"
           autoFocus
           value={name}
           onChange={(event) => setName(event.target.value)}
-          className="h-7 min-w-0 flex-1 border border-line-strong bg-card px-2 text-[12.5px] outline-none focus:border-accent"
+          className="h-9 min-w-0 flex-1 rounded-xl border border-line-strong bg-card px-3 text-[14px] outline-none focus:border-accent focus:ring-[3px] focus:ring-accent-tint"
         />
-        <button type="submit" className="bg-ink px-2 text-[10.5px] tracking-[0.06em] text-page uppercase hover:opacity-90">
+        <button type="submit" className={btnClass({ variant: "primary" })}>
           Create
         </button>
       </div>
       {value.event && (
-        <div role="radiogroup" aria-label="Rows" className="mt-2 flex border border-line-strong">
+        <div role="radiogroup" aria-label="Rows" className="mt-2.5 flex rounded-xl bg-chip p-1">
           {(["day", "name"] as const).map((option) => (
             <button
               key={option}
@@ -334,14 +334,14 @@ export function StartCollection({ value, onStart }: { value: TrackedValue; onSta
               role="radio"
               aria-checked={per === option}
               onClick={() => setPer(option)}
-              className={`h-7 flex-1 px-2 text-[10.5px] tracking-[0.06em] uppercase ${per === option ? "bg-ink text-page" : "text-soft hover:text-ink"}`}
+              className={`h-7 flex-1 rounded-lg px-2 text-[12.5px] font-semibold transition-colors ${per === option ? "bg-card text-ink shadow-tile" : "text-soft hover:text-ink"}`}
             >
               {option === "day" ? "Row per day" : "Row per thing"}
             </button>
           ))}
         </div>
       )}
-      <p className="mt-1.5 text-faint">
+      <p className="mt-2 text-[13px] leading-[1.5] text-soft">
         {per === "day" ? "One row per day. Other values in this note from the same day become columns." : `One row per ${label}. Other values from the same sentence become columns.`}
       </p>
     </form>

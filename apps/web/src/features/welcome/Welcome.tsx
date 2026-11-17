@@ -1,15 +1,19 @@
 import { m } from "motion/react";
-import { useEffect, useState, type ReactNode } from "react";
-import { Code, MIcon, Scramble } from "../../ui/kit";
-import { Wordmark } from "../../ui/Wordmark";
+import { useState, type ReactNode } from "react";
+import { btnClass, MIcon, TypeOn, type MIconName } from "../../ui/kit";
+import { LogoMark, Wordmark } from "../../ui/Wordmark";
 import { Demo } from "./Demo";
 import { Shot } from "../../ui/Shot";
+import { DeskHero } from "./DeskHero";
 import { Floating, Reveal, Rise, ScrollWords, StickySteps, TiltedShot, useSmoothScroll, type Step } from "./motion";
 
 type WelcomeProps = {
   onStart: () => void;
   onSignIn: () => void;
 };
+
+const PILL = "inline-flex h-9 items-center gap-2 rounded-full bg-card px-4 text-[14px] font-medium text-soft shadow-[0_0_0_1px_var(--line),0_6px_14px_-8px_rgb(18_20_24/0.25)]";
+const H2 = "text-[40px] leading-[1.04] font-semibold tracking-[-0.045em] sm:text-[60px]";
 
 const REPO_URL = "https://github.com/CryptishApps/dittle";
 
@@ -19,35 +23,35 @@ const STEPS: Step[] = [
     label: "On device",
     title: "It knows what each value is",
     body: "Type @ before a value to tag it. Gemini Nano names it, like guest count or villa cost, and notices when one is worked out from others. Hover a value to see what it is and how many notes use it.",
-    visual: <Shot name="hover" theme="dark" alt="A villa note with a card on €280 saying it is the villa cost ÷ the guest count." focus={{ x: 23, y: 14, zoom: 1.9 }} />,
+    visual: <Shot name="hover" alt="A villa note with a card on €280 saying it is the villa cost ÷ the guest count." focus={{ x: 25, y: 11, zoom: 1.43 }} />,
   },
   {
     key: "panel",
     label: "On device",
     title: "Click a value to see where it lives",
     body: "A side panel shows the value, a field to change it, the notes that use it and its row in a collection. Three plans written in three notes line up in one Things to do table, with the cost each and the date.",
-    visual: <Shot name="panel" theme="dark" alt="A side panel for €45 with a field to change it and a Things to do table listing a fado night, Jerónimos Monastery and Pena Palace with their prices and dates." focus={{ x: 53.5, y: 9, zoom: 2.15 }} />,
+    visual: <Shot name="panel" alt="A side panel for €45 with a field to change it and a Things to do table listing a fado night, Jerónimos Monastery and Pena Palace with their prices and dates." focus={{ x: 39, y: 6, zoom: 1.65 }} />,
   },
   {
     key: "change",
     label: "On device",
     title: "Change it once",
     body: "Two more friends are coming. Change 6 to 8 and Dittle asks whether to update every note that uses it or only this one. The sums follow: flights go from £708 to £944 and the villa from €280 each to €210, worked out by code, not by the model.",
-    visual: <Shot name="change" theme="dark" alt="The guest count changed from 6 to 8, with a note that 6 is used in 2 notes and a button to update both." focus={{ x: 56.5, y: 9, zoom: 2.3 }} />,
+    visual: <Shot name="change" alt="The guest count changed from 6 to 8, with a note that 6 is used in 2 notes and a button to update both." focus={{ x: 50, y: 6, zoom: 2 }} />,
   },
   {
     key: "home",
     label: "On device, cloud for suggestions",
     title: "The whole plan on your home page",
     body: "Each collection adds itself up, like what the things to do cost each of you. The dates in your notes count down, and Dittle suggests a new collection when it sees a pattern.",
-    visual: <Shot name="home" theme="dark" alt="The home page with a Things to do tile showing €95 in total, a Coming up tile counting down 24 days to the flight, and a list of notes." focus={{ x: 19.5, y: 10, zoom: 1.65 }} />,
+    visual: <Shot name="home" alt="The home page with a Things to do tile showing €95 in total, a Coming up tile counting down 24 days to the flight, and a list of notes." focus={{ x: 19.5, y: 10, zoom: 1.65 }} />,
   },
   {
     key: "request",
     label: "On device, cloud as fallback",
     title: "Ask in the note itself",
     body: "Write “Write a packing list for a long weekend in Lisbon” and a button appears with the list already written. Hover to preview it, then add it below or replace your request. Type / for the same thing from a menu.",
-    visual: <Shot name="request" theme="dark" alt="The flights note with an Add a packing list button and a preview of the checklist." focus={{ x: 24, y: 12.5, zoom: 1.6 }} />,
+    visual: <Shot name="request" alt="The flights note with an Add a packing list button and a preview of the checklist." focus={{ x: 24, y: 12.5, zoom: 1.6 }} />,
   },
 ];
 
@@ -66,19 +70,13 @@ const FIREBASE = ["AI Logic", "Firestore", "Authentication", "App Check", "Remot
 
 export function Welcome({ onStart, onSignIn }: WelcomeProps) {
   useSmoothScroll();
-  const navDark = useNavOverDark();
-  const [found, setFound] = useState(false);
-  useEffect(() => {
-    const timer = window.setTimeout(() => setFound(true), 1100);
-    return () => window.clearTimeout(timer);
-  }, []);
 
   return (
-    <div className="guides min-h-dvh overflow-x-clip bg-page text-ink">
-      <nav className={`fixed inset-x-0 top-3 z-50 px-3 ${navDark ? "theme-dark" : ""}`}>
-        <div className="mx-auto flex h-12 max-w-[1200px] items-center justify-between border border-line-strong bg-page/85 pr-1.5 pl-4 text-ink backdrop-blur-md transition-colors duration-300">
-          <Wordmark className="text-[14px]" />
-          <div className="hidden items-center gap-7 text-[11px] tracking-[0.06em] text-soft uppercase md:flex">
+    <div className="min-h-dvh overflow-x-clip bg-page text-ink">
+      <nav className="fixed inset-x-0 top-0 z-50 bg-page/85 backdrop-blur-md">
+        <div className="mx-auto flex h-[76px] max-w-[1440px] items-center justify-between gap-6 px-5 sm:px-10">
+          <Wordmark className="text-[23px]" />
+          <div className="hidden items-center gap-9 text-[16px] font-medium text-ink/80 md:flex">
             <a href="#try" className="hover:text-ink">
               Try it
             </a>
@@ -86,116 +84,69 @@ export function Welcome({ onStart, onSignIn }: WelcomeProps) {
               How it works
             </a>
             <a href="#models" className="hover:text-ink">
-              Models
+              Privacy
             </a>
             <a href={REPO_URL} className="hover:text-ink">
               GitHub
             </a>
           </div>
-          <div className="flex items-center gap-1">
-          <a
-            href="/signin"
-            onClick={(event) => {
-              event.preventDefault();
-              onSignIn();
-            }}
-            className="inline-flex h-9 items-center px-3 text-[11px] tracking-[0.06em] text-soft uppercase hover:text-ink"
-          >
-            Sign in
-          </a>
-          <button
-            type="button"
-            onClick={onStart}
-            className="inline-flex h-9 items-center gap-2 bg-ink px-4 text-[11px] tracking-[0.06em] text-page uppercase transition-opacity hover:opacity-90"
-          >
-            Start planning
-            <MIcon name="right" className="size-3.5" />
-          </button>
+          <div className="flex items-center gap-2 sm:gap-4">
+            <a
+              href="/signin"
+              onClick={(event) => {
+                event.preventDefault();
+                onSignIn();
+              }}
+              className="hidden h-11 items-center px-2 text-[16px] font-medium text-ink/80 transition-colors hover:text-ink sm:inline-flex"
+            >
+              Sign in
+            </a>
+            <button type="button" onClick={onStart} className={`${btnClass({ variant: "secondary", size: "md" })} h-11 border-[1.5px] px-5 text-[15.5px]`}>
+              Start a plan
+            </button>
           </div>
         </div>
       </nav>
 
       <main>
-      <header className="relative mx-auto max-w-[1200px] px-6 pt-36 sm:px-8 sm:pt-44">
-        <Rise>
-          <span className="inline-flex items-center gap-2.5 border border-line-strong bg-card px-2.5 py-1.5 text-[11px] tracking-[0.06em] text-soft uppercase">
-            <span aria-hidden className="size-1.5 animate-pulse bg-accent" />
-            Gemini Nano · runs on your device
-          </span>
-        </Rise>
-        <h1 className="mt-8 text-[40px] leading-[1.06] font-medium tracking-[-0.06em] [--caret-w:0.32em] sm:text-[60px] lg:text-[76px]">
-          Plans that keep <br className="hidden sm:block" />
-          themselves{" "}
-          <span className="whitespace-nowrap">
-            <span className="token" data-found={found}>
-              up to date
-            </span>
-            <span className="caret" aria-hidden />
-          </span>
-        </h1>
-        <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
-          <Rise delay={0.16}>
-            <p className="max-w-[50ch] text-[16px] leading-[1.75] text-soft sm:text-[17px]">
-              Plan a trip, a wedding or a team offsite in plain notes. Change a date, price or headcount in one, and Dittle updates every other note that mentions it.{" "}
-              <span className="text-ink">Private, instant, works offline.</span>
-            </p>
-          </Rise>
-          <Rise delay={0.24}>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={onStart}
-                className="inline-flex h-11 items-center gap-2 bg-ink px-5 text-[12px] tracking-[0.06em] text-page uppercase transition-opacity hover:opacity-90"
-              >
-                Start planning
-                <MIcon name="right" className="size-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={onSignIn}
-                className="inline-flex h-11 items-center border border-line-strong bg-card px-5 text-[12px] tracking-[0.06em] uppercase transition-colors hover:border-ink"
-              >
-                Sign in
-              </button>
-            </div>
-            <p className="mt-3 text-[11px] tracking-[0.06em] text-faint uppercase">Free · Works offline · Apache 2.0</p>
-          </Rise>
-        </div>
+      <DeskHero onStart={onStart} />
 
-        <Rise delay={0.3} className="mt-20 sm:mt-28">
-          <div className="mb-3 flex items-center justify-between text-[11px] tracking-[0.06em] text-faint uppercase">
-            <span>Fig. 00 — Two more friends are coming to Lisbon</span>
-            <span className="hidden sm:inline">1280 × 800</span>
-          </div>
+      <section className="mx-auto max-w-[1200px] px-6 pt-24 sm:px-8 sm:pt-32">
+        <Rise className="text-center">
+          <span className={PILL}>Two more friends are coming to Lisbon</span>
+        </Rise>
+        <Rise delay={0.1} className="mt-10">
           <TiltedShot
             floating={(progress) => (
               <>
                 <Floating progress={progress} distance={60} className="top-[30%] -left-3 hidden md:block lg:-left-10">
-                  <Note code="FX" title="€210 each follows the change" detail="Villa cost ÷ guest count" />
+                  <Note icon="equals" title="€210 each follows the change" detail="Villa cost ÷ guest count" />
                 </Floating>
                 <Floating progress={progress} distance={110} className="top-[48%] -right-3 hidden md:block lg:-right-10">
-                  <Note code="UP" title="8 people in 2 notes" detail="Villa, Flights" accent />
+                  <Note icon="check" title="8 people in 2 notes" detail="Villa, Flights" accent />
                 </Floating>
                 <Floating progress={progress} distance={80} className="-bottom-6 left-[38%] hidden md:block">
-                  <Note code="ND" title="Read on this device" detail="Gemini Nano · Prompt API" />
+                  <Note icon="chip" title="Read on this device" detail="Gemini Nano · Prompt API" />
                 </Floating>
               </>
             )}
           >
-            <div className="brackets border border-line-strong bg-card p-1.5 shadow-pop [--bracket-inset:-9px] [--bracket-size:16px]">
-              <Shot name="hero" priority alt="A villa note after the group grew from 6 to 8: the cost each now reads €210, and a side panel lists the two notes that use the group size." />
+            <div className="tile p-2">
+              <div className="overflow-hidden rounded-[16px]">
+                <Shot name="hero" alt="A villa note after the group grew from 6 to 8: the cost each now reads €210, and a side panel lists the two notes that use the group size." />
+              </div>
             </div>
           </TiltedShot>
         </Rise>
-      </header>
+      </section>
 
-      <Section id="try" index="01" label="Try it">
+      <Section id="try" label="Try it">
         <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr] lg:items-end">
           <Reveal>
-            <h2 className="text-[34px] leading-[1.05] font-medium tracking-[-0.05em] sm:text-[52px]">Change it once.</h2>
+            <h2 className={H2}>Change it once.</h2>
           </Reveal>
           <Reveal delay={0.08}>
-            <p className="max-w-[46ch] text-[15px] leading-[1.75] text-soft lg:justify-self-end">
+            <p className="max-w-[46ch] text-[16.5px] leading-[1.7] text-soft lg:justify-self-end">
               Two more friends are coming. Change the group size in the villa note. Three other notes mention the same number, so Dittle offers to bring them along.
             </p>
           </Reveal>
@@ -209,55 +160,55 @@ export function Welcome({ onStart, onSignIn }: WelcomeProps) {
         <ScrollWords text="Every plan repeats the same details: [how many are coming], [when], [what it costs]. Dittle notices them on your device and keeps every copy in step, so a change in one place is never forgotten in another." />
       </section>
 
-      <div data-dark className="theme-dark bg-page text-ink">
-        <Section id="how" index="02" label="How it works" dark>
+      <div className="desk mx-2 rounded-[26px] sm:mx-4 sm:rounded-[34px]">
+        <Section id="how" label="How it works" dark>
           <StickySteps steps={STEPS} />
         </Section>
       </div>
 
-      <Section id="models" index="03" label="Where the AI runs">
+      <Section id="models" label="Where the AI runs">
         <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr] lg:items-end">
           <Reveal>
-            <h2 className="text-[34px] leading-[1.05] font-medium tracking-[-0.05em] sm:text-[52px]">On device first.</h2>
+            <h2 className={H2}>On device first.</h2>
           </Reveal>
           <Reveal delay={0.08}>
-            <p className="max-w-[46ch] text-[15px] leading-[1.75] text-soft lg:justify-self-end">
+            <p className="max-w-[46ch] text-[16.5px] leading-[1.7] text-soft lg:justify-self-end">
               Most of the work runs on Gemini Nano inside your browser or phone. The cloud steps in when your device can't, or when the job is too big.
             </p>
           </Reveal>
         </div>
-        <Reveal delay={0.1} className="mt-12 overflow-x-auto border border-line-strong">
-          <table className="w-full min-w-[720px] text-left text-[13px]">
-            <thead className="bg-side text-[11px] tracking-[0.06em] text-faint uppercase">
+        <Reveal delay={0.1} className="mt-12 overflow-x-auto rounded-[22px] bg-card shadow-sheet">
+          <table className="w-full min-w-[720px] text-left text-[15px]">
+            <thead className="bg-panel text-[13.5px] text-faint">
               <tr>
-                <th className="px-5 py-3 font-normal">Job</th>
-                <th className="px-5 py-3 font-normal">Model</th>
-                <th className="px-5 py-3 font-normal">Where</th>
-                <th className="px-5 py-3 font-normal">How</th>
+                <th className="px-6 py-3.5 font-semibold">Job</th>
+                <th className="px-6 py-3.5 font-semibold">Model</th>
+                <th className="px-6 py-3.5 font-semibold">Where</th>
+                <th className="px-6 py-3.5 font-semibold">How</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
               {MODELS.map((row) => (
-                <tr key={row.job} className="bg-card transition-colors hover:bg-panel">
-                  <td className="px-5 py-4 leading-[1.6]">{row.job}</td>
-                  <td className="px-5 py-4 whitespace-nowrap">{row.model}</td>
-                  <td className="px-5 py-4 whitespace-nowrap">
-                    <span className={`px-1.5 py-0.5 text-[11px] tracking-[0.05em] uppercase ${row.where === "On device" ? "bg-accent-tint text-accent-ink" : "bg-chip text-soft"}`}>
+                <tr key={row.job} className="transition-colors hover:bg-panel">
+                  <td className="px-6 py-4 leading-[1.6]">{row.job}</td>
+                  <td className="px-6 py-4 font-semibold whitespace-nowrap">{row.model}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`rounded-full px-2.5 py-1 text-[12.5px] font-semibold ${row.where === "On device" ? "bg-accent-tint text-accent-ink" : "bg-chip text-soft"}`}>
                       {row.where}
                     </span>
                   </td>
-                  <td className="px-5 py-4 leading-[1.6] text-soft">{row.how}</td>
+                  <td className="px-6 py-4 leading-[1.6] text-soft">{row.how}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </Reveal>
-        <Reveal delay={0.1} className="mt-px grid border border-t-0 border-line-strong sm:grid-cols-3">
+        <Reveal delay={0.1} className="mt-4 grid gap-4 sm:grid-cols-3">
           <Fact title="Private" body="On-device jobs keep your notes on your device. Cloud fallback sends one paragraph, or the note for a request. Collection suggestions send only values." />
           <Fact title="Offline" body="Notes save to your device first and sync when you're back. The on-device model works without a connection." />
           <Fact title="Open" body="The code is on GitHub under Apache 2.0. Read how every AI call is made, or run your own copy." />
         </Reveal>
-        <Reveal delay={0.1} className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 text-[11px] tracking-[0.06em] text-faint uppercase">
+        <Reveal delay={0.1} className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 text-[14px] font-medium text-faint">
           <span>Built on Firebase</span>
           {FIREBASE.map((product) => (
             <span key={product} className="text-soft">
@@ -269,33 +220,27 @@ export function Welcome({ onStart, onSignIn }: WelcomeProps) {
 
       </main>
 
-      <div data-dark className="theme-dark bg-page text-ink">
-        <section className="mx-auto max-w-[1200px] px-6 py-32 sm:px-8 sm:py-40">
+      <div className="desk relative mx-2 mb-2 overflow-hidden rounded-[26px] sm:mx-4 sm:mb-4 sm:rounded-[34px]">
+        <FooterObjects />
+        <section className="relative mx-auto max-w-[1200px] px-6 py-28 sm:px-8 sm:py-36">
           <Reveal>
-            <p className="text-[11px] tracking-[0.06em] text-faint uppercase">04 — Start</p>
-            <h2 className="mt-6 max-w-[14ch] text-[44px] leading-[1.02] font-medium tracking-[-0.06em] sm:text-[88px]">
-              <InViewScramble text="Plan it once." />
+            <p className={PILL}>Start</p>
+            <h2 className="mt-7 max-w-[14ch] text-[50px] leading-[1] font-semibold tracking-[-0.05em] sm:text-[96px]">
+              <InViewTypeOn text="Plan it once." />
             </h2>
-            <div className="mt-12 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={onStart}
-                className="inline-flex h-11 items-center gap-2 bg-ink px-5 text-[12px] tracking-[0.06em] text-page uppercase transition-opacity hover:opacity-90"
-              >
+            <div className="mt-12 flex flex-wrap gap-2.5">
+              <button type="button" onClick={onStart} className={btnClass({ variant: "primary", size: "lg" })}>
                 Start planning
-                <MIcon name="right" className="size-3.5" />
+                <MIcon name="right" className="size-4" />
               </button>
-              <a
-                href={REPO_URL}
-                className="inline-flex h-11 items-center border border-line-strong px-5 text-[12px] tracking-[0.06em] uppercase transition-colors hover:border-ink"
-              >
+              <a href={REPO_URL} className={btnClass({ variant: "secondary", size: "lg" })}>
                 View on GitHub
               </a>
             </div>
           </Reveal>
         </section>
-        <footer className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 border-t border-line px-6 py-6 text-[11px] tracking-[0.06em] text-faint uppercase sm:px-8">
-          <Wordmark className="text-[12px]" />
+        <footer className="relative mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 border-t border-line-strong px-6 py-7 text-[14px] text-soft sm:px-8">
+          <Wordmark className="text-[19px] [--mark-gap:var(--side)]" />
           <span>Built for #BuildHybridAI 2026</span>
           <span className="flex gap-5">
             <a href={REPO_URL} className="hover:text-ink">
@@ -309,45 +254,43 @@ export function Welcome({ onStart, onSignIn }: WelcomeProps) {
   );
 }
 
-function useNavOverDark(): boolean {
-  const [dark, setDark] = useState(false);
-  useEffect(() => {
-    const check = () => {
-      const probe = 36;
-      setDark(
-        [...document.querySelectorAll<HTMLElement>("[data-dark]")].some((el) => {
-          const rect = el.getBoundingClientRect();
-          return rect.top <= probe && rect.bottom >= probe;
-        }),
-      );
-    };
-    check();
-    window.addEventListener("scroll", check, { passive: true });
-    return () => window.removeEventListener("scroll", check);
-  }, []);
-  return dark;
+function FooterObjects() {
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 hidden lg:block">
+      <span className="tile absolute top-[16%] right-[30%] grid size-[92px] rotate-[8deg] place-items-center text-[44px] font-semibold tracking-[-0.04em]">8</span>
+      <span className="tile absolute top-[46%] right-[10%] w-[92px] -rotate-6 overflow-hidden text-center">
+        <span className="block bg-date py-1 text-[12px] font-bold tracking-[0.08em] text-date-ink">DEC</span>
+        <span className="block pt-0.5 text-[38px] leading-tight font-semibold">11</span>
+        <span className="block pb-2 text-[11px] font-semibold text-soft">Friday</span>
+      </span>
+      <span className="tile absolute top-[12%] right-[8%] grid size-[84px] -rotate-[10deg] place-items-center [--mark-gap:var(--card-top)]">
+        <LogoMark className="size-11" />
+      </span>
+      <span className="sticky-note absolute right-[24%] bottom-[22%] w-[190px] rotate-[4deg] px-5 py-5 font-hand text-[24px] leading-[1.15]">Change it once. Every note keeps up.</span>
+    </div>
+  );
 }
 
-function Section({ id, index, label, dark = false, children }: { id: string; index: string; label: string; dark?: boolean; children: ReactNode }) {
+function Section({ id, label, dark = false, children }: { id: string; label: string; dark?: boolean; children: ReactNode }) {
   return (
-    <section id={id} className={`mx-auto max-w-[1200px] scroll-mt-20 px-6 sm:px-8 ${dark ? "py-28 sm:py-36" : "py-24 sm:py-32"}`}>
-      <div className="mb-10 flex items-center gap-4 text-[11px] tracking-[0.06em] text-faint uppercase">
-        <span className="text-accent-ink">{index}</span>
-        {label}
-        <span className="h-px flex-1 bg-line" />
+    <section id={id} className={`mx-auto max-w-[1200px] scroll-mt-24 px-6 sm:px-8 ${dark ? "py-24 sm:py-32" : "py-24 sm:py-32"}`}>
+      <div className="mb-10">
+        <span className={PILL}>{label}</span>
       </div>
       {children}
     </section>
   );
 }
 
-function Note({ code, title, detail, accent = false }: { code: string; title: string; detail: string; accent?: boolean }) {
+function Note({ icon, title, detail, accent = false }: { icon: MIconName; title: string; detail: string; accent?: boolean }) {
   return (
-    <div className={`flex items-center gap-3 border bg-card py-2.5 pr-4 pl-3 shadow-pop ${accent ? "border-accent-line" : "border-line-strong"}`}>
-      <Code className="size-8 text-[11px]">{code}</Code>
-      <span className="text-[12px] leading-[1.4]">
-        <span className={`block font-medium ${accent ? "text-accent-ink" : ""}`}>{title}</span>
-        <span className="block text-[10.5px] tracking-[0.05em] text-faint uppercase">{detail}</span>
+    <div className={`flex items-center gap-3 rounded-[18px] py-2.5 pr-5 pl-2.5 ${accent ? "sticky-note" : "tile"}`}>
+      <span className={`grid size-10 shrink-0 place-items-center rounded-xl ${accent ? "bg-sticky-ink text-sticky" : "bg-accent text-on-accent shadow-press"}`}>
+        <MIcon name={icon} className="size-[18px]" />
+      </span>
+      <span className="text-[14.5px] leading-[1.35]">
+        <span className="block font-semibold">{title}</span>
+        <span className={`block text-[13px] ${accent ? "text-sticky-soft" : "text-soft"}`}>{detail}</span>
       </span>
     </div>
   );
@@ -355,18 +298,18 @@ function Note({ code, title, detail, accent = false }: { code: string; title: st
 
 function Fact({ title, body }: { title: string; body: string }) {
   return (
-    <div className="border-t border-line-strong bg-card p-6 sm:border-t-0 sm:border-l sm:first:border-l-0">
-      <p className="text-[11px] tracking-[0.06em] text-accent-ink uppercase">{title}</p>
-      <p className="mt-3 text-[13px] leading-[1.7] text-soft">{body}</p>
+    <div className="tile p-6">
+      <p className="text-[22px] font-semibold tracking-[-0.025em]">{title}</p>
+      <p className="mt-2 text-[15.5px] leading-[1.65] text-soft">{body}</p>
     </div>
   );
 }
 
-function InViewScramble({ text }: { text: string }) {
+function InViewTypeOn({ text }: { text: string }) {
   const [shown, setShown] = useState(false);
   return (
     <m.span onViewportEnter={() => setShown(true)} viewport={{ once: true }}>
-      {shown ? <Scramble text={text} duration={900} /> : <span className="opacity-0">{text}</span>}
+      {shown ? <TypeOn text={text} duration={700} /> : <span className="opacity-0">{text}</span>}
     </m.span>
   );
 }

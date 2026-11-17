@@ -1,7 +1,7 @@
 import { AnimatePresence, m, useInView } from "motion/react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Reprint } from "../../ui/Reprint";
-import { Btn, ease, MIcon, Scramble } from "../../ui/kit";
+import { Btn, ease, MIcon, TypeOn } from "../../ui/kit";
 
 type OtherId = "flights" | "dinner" | "chat";
 type Phase = "idle" | "updating" | "done";
@@ -80,11 +80,11 @@ export function Demo() {
   };
 
   return (
-    <div ref={ref} className="grid border border-line-strong lg:grid-cols-[1.15fr_1fr]">
-      <div className="border-b border-line-strong bg-card lg:border-r lg:border-b-0">
+    <div ref={ref} className="grid overflow-hidden rounded-[22px] border border-line bg-card shadow-pop lg:grid-cols-[1.15fr_1fr]">
+      <div className="border-b border-line bg-card lg:border-r lg:border-b-0">
         <Bar left="Villa" right={found ? "3 values · on device" : "Reading"} />
-        <div className="px-6 py-8 sm:px-10 sm:py-10">
-          <p className="text-[17px] leading-[2]">
+        <div className="px-6 pt-4 pb-8 sm:px-10 sm:pb-10">
+          <p className="text-[19px] leading-[1.95]">
             The villa in Alfama sleeps{" "}
             <span
               role="textbox"
@@ -121,16 +121,16 @@ export function Demo() {
             each.
           </p>
 
-          <div className="mt-6 flex items-center gap-3 text-[11px] tracking-[0.05em] text-faint uppercase">
+          <div className="mt-7 flex items-center gap-3 text-[14px] font-medium text-soft">
             Group size
-            <span className="flex border border-line-strong">
-              <button type="button" aria-label="Fewer people" onClick={() => edit(people - 1)} className="grid size-8 place-items-center hover:bg-chip">
+            <span className="flex items-center rounded-full border border-line-strong bg-card p-1">
+              <button type="button" aria-label="Fewer people" onClick={() => edit(people - 1)} className="grid size-8 place-items-center rounded-full text-[18px] text-ink transition-colors hover:bg-chip">
                 −
               </button>
-              <span className="grid w-12 place-items-center border-x border-line-strong text-[13px] text-ink tabular-nums">
+              <span className="grid w-10 place-items-center font-heading text-[18px] font-semibold text-ink tabular-nums">
                 <Reprint value={String(people)} />
               </span>
-              <button type="button" aria-label="More people" onClick={() => edit(people + 1)} className="grid size-8 place-items-center hover:bg-chip">
+              <button type="button" aria-label="More people" onClick={() => edit(people + 1)} className="grid size-8 place-items-center rounded-full text-[18px] text-ink transition-colors hover:bg-chip">
                 +
               </button>
             </span>
@@ -147,25 +147,31 @@ export function Demo() {
                 transition={{ duration: 0.35, ease }}
                 className="overflow-hidden"
               >
-                <div className="mt-6 border-l-2 border-accent bg-panel px-4 py-3 text-[13px] leading-[1.6]">
+                <div className={`mt-6 rounded-2xl px-5 py-4 text-[14.5px] leading-[1.6] ${allDone ? "bg-accent-tint" : "bg-accent-tint"}`}>
                   {allDone ? (
                     <div className="flex items-center justify-between gap-4">
-                      <span className="flex items-center gap-2">
-                        <MIcon name="check" className="size-4 text-accent" />
-                        <Scramble text="3 notes updated on device" />
+                      <span className="flex items-center gap-2.5 font-semibold text-accent-ink">
+                        <span className="grid size-7 place-items-center rounded-full bg-sticky text-sticky-ink">
+                          <MIcon name="check" className="size-4" />
+                        </span>
+                        <TypeOn text="3 notes updated on device" />
                       </span>
-                      <Btn onClick={reset}>Reset</Btn>
+                      <Btn size="md" onClick={reset}>
+                        Reset
+                      </Btn>
                     </div>
                   ) : (
                     <>
-                      <p className="text-soft">
+                      <p className="font-medium text-accent-ink">
                         {stale.length} {stale.length === 1 ? "note still says" : "notes still say"} {values[stale[0]!.id]}.
                       </p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <Btn primary onClick={update}>
+                      <div className="mt-3.5 flex flex-wrap gap-2">
+                        <Btn primary size="md" onClick={update}>
                           Update {stale.length} {stale.length === 1 ? "note" : "notes"}
                         </Btn>
-                        <Btn onClick={() => setSkipped(true)}>Only in this note</Btn>
+                        <Btn size="md" onClick={() => setSkipped(true)}>
+                          Only in this note
+                        </Btn>
                       </div>
                     </>
                   )}
@@ -176,7 +182,7 @@ export function Demo() {
         </div>
       </div>
 
-      <div className="divide-y divide-line-strong bg-panel">
+      <div className="divide-y divide-line bg-page">
         {OTHERS.map((other) => {
           const isStale = values[other.id] !== people;
           const status =
@@ -185,19 +191,19 @@ export function Demo() {
                 Updating
               </span>
             ) : phase[other.id] === "done" && !isStale ? (
-              <Scramble text="Updated · 190 ms" />
+              <TypeOn text="Updated · 190 ms" />
             ) : isStale ? (
-              <span className="text-accent-ink">Says {values[other.id]}</span>
+              <span className="font-semibold text-accent-ink">Says {values[other.id]}</span>
             ) : (
               "In step"
             );
           return (
             <div key={other.id} className="relative">
-              <span aria-hidden className={`absolute inset-y-0 left-0 w-[2px] transition-colors duration-300 ${isStale ? "bg-accent" : "bg-transparent"}`} />
+              <span aria-hidden className={`absolute inset-y-3 left-0 w-[3px] rounded-full transition-colors duration-300 ${isStale ? "bg-accent" : "bg-transparent"}`} />
               <Bar left={other.title} right={status} />
-              <p className="px-6 pt-1 pb-5 text-[14px] leading-[1.9] text-soft">
+              <p className="px-6 pt-1 pb-5 text-[15.5px] leading-[1.9] text-soft">
                 {other.body(
-                  <span className="token text-ink" data-found={found} data-state={isStale ? "stale" : "idle"}>
+                  <span className="token" data-found={found} data-state={isStale ? "stale" : "idle"}>
                     <Reprint value={String(values[other.id])} />
                   </span>,
                   values[other.id],
@@ -213,9 +219,9 @@ export function Demo() {
 
 function Bar({ left, right }: { left: string; right: ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-3 px-6 pt-4 pb-2 text-[11px] tracking-[0.05em] uppercase">
-      <span className="flex items-center gap-2 font-medium">
-        <MIcon name="file" className="size-3.5 text-soft" />
+    <div className="flex items-center justify-between gap-3 px-6 pt-5 pb-2 text-[13.5px]">
+      <span className="flex items-center gap-2 font-semibold">
+        <MIcon name="file" className="size-4 text-accent" />
         {left}
       </span>
       <span className="text-faint">{right}</span>

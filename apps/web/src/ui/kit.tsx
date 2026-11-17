@@ -2,93 +2,102 @@ import { useEffect, useState, type ReactNode } from "react";
 
 export const ease = [0.22, 1, 0.36, 1] as const;
 
-const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/#_";
+const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-export function useScramble(text: string, duration = 420): string {
-  const [out, setOut] = useState(text);
+export function useTypeOn(text: string, duration = 420): number {
+  const [settled, setSettled] = useState(() => (reducedMotion() ? text.length : 0));
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setOut(text);
+    if (reducedMotion()) {
+      setSettled(text.length);
       return;
     }
     let frame = 0;
     const start = performance.now();
     const tick = (now: number) => {
       const progress = Math.min(1, (now - start) / duration);
-      const settled = Math.floor(progress * text.length);
-      setOut(
-        [...text]
-          .map((char, index) => (index < settled || char === " " ? char : GLYPHS[Math.floor(Math.random() * GLYPHS.length)]))
-          .join(""),
-      );
+      setSettled(Math.floor(progress * text.length));
       if (progress < 1) frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
   }, [text, duration]);
-  return out;
+  return settled;
 }
 
-export function Scramble({ text, duration }: { text: string; duration?: number }) {
-  const shown = useScramble(text, duration);
+export function TypeOn({ text, duration }: { text: string; duration?: number }) {
+  const settled = useTypeOn(text, duration);
   return (
     <span>
       <span className="sr-only">{text}</span>
-      <span aria-hidden>{shown}</span>
+      <span aria-hidden>
+        {settled >= text.length ? (
+          text
+        ) : (
+          <>
+            {text.slice(0, settled)}
+            <span className="opacity-40 blur-[1px]">{text.slice(settled, settled + 2)}</span>
+            <span className="opacity-0">{text.slice(settled + 2)}</span>
+          </>
+        )}
+      </span>
     </span>
   );
 }
 
-export function Code({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return (
-    <span className={`brackets grid bg-chip size-9 shrink-0 place-items-center text-[12px] font-medium text-accent-ink ${className}`}>{children}</span>
-  );
+type BtnVariant = "primary" | "secondary" | "quiet" | "danger" | "inverse";
+type BtnSize = "sm" | "md" | "lg";
+
+const BTN_VARIANT: Record<BtnVariant, string> = {
+  primary: "bg-accent text-on-accent shadow-press hover:bg-accent-ink",
+  secondary: "border border-line-strong bg-card text-ink hover:border-ink",
+  quiet: "text-soft hover:bg-chip hover:text-ink",
+  danger: "bg-danger text-page hover:opacity-90",
+  inverse: "bg-ink text-page hover:opacity-90",
+};
+
+const BTN_SIZE: Record<BtnSize, string> = {
+  sm: "h-8 gap-1.5 rounded-[10px] px-3 text-[13px]",
+  md: "h-10 gap-2 rounded-xl px-4 text-[14.5px]",
+  lg: "h-13 gap-2 rounded-[14px] px-6 text-[16px]",
+};
+
+export function btnClass({ variant = "secondary", size = "md" }: { variant?: BtnVariant; size?: BtnSize } = {}): string {
+  return `inline-flex shrink-0 items-center justify-center font-semibold whitespace-nowrap transition-colors disabled:pointer-events-none disabled:opacity-50 ${BTN_VARIANT[variant]} ${BTN_SIZE[size]}`;
 }
 
 export function Btn({
   children,
   onClick,
   primary,
+  variant,
+  size = "sm",
+  type = "button",
+  disabled,
   className = "",
 }: {
   children: ReactNode;
   onClick?: () => void;
   primary?: boolean;
+  variant?: BtnVariant;
+  size?: BtnSize;
+  type?: "button" | "submit";
+  disabled?: boolean;
   className?: string;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`inline-flex h-7 items-center gap-1.5 border px-2.5 text-[11px] font-medium tracking-[0.02em] uppercase transition-colors ${
-        primary
-          ? "border-ink bg-ink text-page hover:opacity-90"
-          : "border-line-strong bg-card text-ink hover:border-ink"
-      } ${className}`}
-    >
+    <button type={type} onClick={onClick} disabled={disabled} className={`${btnClass({ variant: variant ?? (primary ? "primary" : "secondary"), size })} ${className}`}>
       {children}
     </button>
   );
 }
 
-export function Path({ parts }: { parts: string[] }) {
-  return (
-    <span className="inline-flex flex-wrap items-center gap-x-1.5 bg-chip px-2 py-1 text-[11px] tracking-[0.02em] text-soft uppercase">
-      {parts.map((part, index) => (
-        <span key={index} className="inline-flex items-center gap-1.5">
-          {index > 0 && <span aria-hidden>→</span>}
-          {part}
-        </span>
-      ))}
-    </span>
-  );
-}
+export const POPOVER = "rounded-2xl bg-card shadow-pop";
 
 export function Kbd({ children }: { children: ReactNode }) {
-  return <kbd className="grid size-5 place-items-center bg-chip text-[10px] text-soft">{children}</kbd>;
+  return <kbd className="inline-flex h-6 items-center rounded-md border border-line-strong border-b-2 bg-card px-2 font-sans text-[12px] text-soft">{children}</kbd>;
 }
 
-export type MIconName = "inbox" | "today" | "notes" | "folder" | "file" | "search" | "plus" | "chevron" | "left" | "right" | "close" | "check" | "sidebar" | "chip" | "share";
+export type MIconName = "inbox" | "today" | "notes" | "folder" | "file" | "search" | "plus" | "chevron" | "left" | "right" | "close" | "check" | "sidebar" | "chip" | "share" | "equals" | "home" | "table";
 
 const PATHS: Record<MIconName, ReactNode> = {
   inbox: (
@@ -123,6 +132,13 @@ const PATHS: Record<MIconName, ReactNode> = {
     </>
   ),
   plus: <path d="M10 4v12M4 10h12" />,
+  home: <path d="M3.5 9.5 10 4l6.5 5.5V16a.5.5 0 0 1-.5.5h-4v-4.5H8v4.5H4a.5.5 0 0 1-.5-.5z" />,
+  table: (
+    <>
+      <rect x="3.5" y="4.5" width="13" height="11" rx="2" />
+      <path d="M3.5 8.5h13M8.5 8.5v7" />
+    </>
+  ),
   chevron: <path d="m8 6 4 4-4 4" />,
   left: <path d="m12 5-5 5 5 5" />,
   right: <path d="m8 5 5 5-5 5" />,
@@ -141,11 +157,12 @@ const PATHS: Record<MIconName, ReactNode> = {
     </>
   ),
   share: <path d="M10 13V3.5M6.5 7 10 3.5 13.5 7M4 11v4.5a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V11" />,
+  equals: <path d="M5 7.5h10M5 12.5h10" />,
 };
 
 export function MIcon({ name, className = "size-4" }: { name: MIconName; className?: string }) {
   return (
-    <svg aria-hidden viewBox="0 0 20 20" className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" strokeLinejoin="miter">
+    <svg aria-hidden viewBox="0 0 20 20" className={className} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
       {PATHS[name]}
     </svg>
   );
