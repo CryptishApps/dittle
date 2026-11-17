@@ -33,14 +33,14 @@ export function describeFormula(fact: StoredValue, lookup: (id: string) => Store
   }
 }
 
-export function inputsFor(fact: StoredValue, values: StoredValue[]): StoredValue[] {
+export function inputsFor(fact: StoredValue, values: StoredValue[], inNote: ReadonlySet<string> = new Set()): StoredValue[] {
   const dependsOn = (candidate: StoredValue, target: string, seen = new Set<string>()): boolean => {
     if (!candidate.formula || seen.has(candidate.id)) return false;
     seen.add(candidate.id);
     return candidate.formula.inputs.some((input) => input === target || dependsOn(values.find((value) => value.id === input) ?? candidate, target, seen));
   };
   return values
-    .filter((value) => value.id !== fact.id && quantityOf(value) !== undefined && value.origin?.noteId && value.origin.noteId === fact.origin?.noteId && !dependsOn(value, fact.id))
+    .filter((value) => value.id !== fact.id && quantityOf(value) !== undefined && (inNote.has(value.id) || (value.origin?.noteId && value.origin.noteId === fact.origin?.noteId)) && !dependsOn(value, fact.id))
     .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))
     .slice(0, MAX_INPUTS);
 }

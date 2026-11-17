@@ -2,7 +2,7 @@
   "id": "/notes",
   "name": "Dittle",
   "short_name": "Dittle",
-  "description": "Notes that keep themselves up to date.",
+  "description": "Plans that keep themselves up to date.",
   "start_url": "/notes",
   "scope": "/",
   "display": "standalone",

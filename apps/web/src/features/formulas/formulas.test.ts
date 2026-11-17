@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { StoredValue } from "@/features/notes/fact";
-import { acceptFormula, formatAmount, recompute } from "./apply";
+import { acceptFormula, formatAmount, inputsFor, recompute } from "./apply";
 import { dimensionsOf } from "./dimensions";
 import { evaluate, parseFormula, print } from "./engine";
 
@@ -112,5 +112,17 @@ describe("formulas with durations", () => {
   test("recomputes a total time from durations", () => {
     const total = duration("sum", 3600, { formula: { expr: "$1 + $2", inputs: ["a", "b"] } });
     expect(recompute("a", [duration("a", 1800), duration("b", 1800), total], new Map([["a", 2400]]))).toEqual([{ id: "sum", text: "1 h 10 min", seconds: 4200 }]);
+  });
+});
+
+describe("formula inputs", () => {
+  const people: StoredValue = { id: "people", text: "6", kind: "count", amount: 6, origin: { noteId: "villa", sentence: "There are 6 of us." } };
+  const price: StoredValue = { id: "price", text: "£118", kind: "money", amount: 118, origin: { noteId: "flights", sentence: "6 seats at £118 each, so £708." } };
+  const total: StoredValue = { id: "total", text: "£708", kind: "money", amount: 708, origin: { noteId: "flights", sentence: "6 seats at £118 each, so £708." } };
+  const elsewhere: StoredValue = { id: "elsewhere", text: "€1,680", kind: "money", amount: 1680, origin: { noteId: "villa", sentence: "The villa is €1,680." } };
+
+  test("offer values from this note, including ones first written in another note", () => {
+    const ids = inputsFor(total, [people, price, total, elsewhere], new Set(["people", "price", "total"])).map((value) => value.id);
+    expect(ids.sort()).toEqual(["people", "price"]);
   });
 });

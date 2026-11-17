@@ -3,35 +3,38 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import { Reprint } from "../../ui/Reprint";
 import { Btn, ease, MIcon, Scramble } from "../../ui/kit";
 
-type OtherId = "budget" | "chairs" | "email";
+type OtherId = "flights" | "dinner" | "chat";
 type Phase = "idle" | "updating" | "done";
 
-const money = (n: number) => `£${n.toLocaleString("en-GB")}`;
+const pounds = (n: number) => `£${n.toLocaleString("en-GB")}`;
+const euros = (n: number) => `€${Math.round(n).toLocaleString("en-GB")}`;
+const VILLA = 1680;
 
 const OTHERS: { id: OtherId; title: string; path: string; body: (value: ReactNode, g: number) => ReactNode }[] = [
   {
-    id: "budget",
-    title: "Budget",
-    path: "Wedding → Budget",
-    body: (value, g) => (
+    id: "flights",
+    title: "Flights",
+    path: "Lisbon → Flights",
+    body: (value, people) => (
       <>
-        Food: {value} × £38 = <Reprint value={money(g * 38)} />. Barn £2,400.
+        {value} seats at £118 each, <Reprint value={pounds(people * 118)} /> in total. We land Fri 11 December.
       </>
     ),
   },
-  { id: "chairs", title: "Chair hire", path: "Wedding → Vendors", body: (value) => <>{value} chairs, plus 4 spare for the top table.</> },
-  { id: "email", title: "Email to Sam", path: "Wedding → Drafts", body: (value) => <>We're expecting {value} people on 14 June, so the barn works.</> },
+  { id: "dinner", title: "Saturday dinner", path: "Lisbon → Food", body: (value) => <>Table for {value} at Taberna da Rua, 8pm.</> },
+  { id: "chat", title: "Message to the group", path: "Lisbon → Drafts", body: (value) => <>The villa's booked for {value} of us, 11 to 14 December.</> },
 ];
 
-const START = 80;
+const START = 6;
+const MAX = 20;
 
 export function Demo() {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-20% 0px" });
   const [found, setFound] = useState(false);
-  const [guests, setGuests] = useState(START);
-  const [values, setValues] = useState<Record<OtherId, number>>({ budget: START, chairs: START, email: START });
-  const [phase, setPhase] = useState<Record<OtherId, Phase>>({ budget: "idle", chairs: "idle", email: "idle" });
+  const [people, setPeople] = useState(START);
+  const [values, setValues] = useState<Record<OtherId, number>>({ flights: START, dinner: START, chat: START });
+  const [phase, setPhase] = useState<Record<OtherId, Phase>>({ flights: "idle", dinner: "idle", chat: "idle" });
   const [skipped, setSkipped] = useState(false);
   const timers = useRef<number[]>([]);
 
@@ -43,15 +46,15 @@ export function Demo() {
 
   useEffect(() => () => timers.current.forEach((t) => window.clearTimeout(t)), []);
 
-  const stale = OTHERS.filter((other) => values[other.id] !== guests);
-  const changed = guests !== START || OTHERS.some((other) => values[other.id] !== START);
+  const stale = OTHERS.filter((other) => values[other.id] !== people);
+  const changed = people !== START || OTHERS.some((other) => values[other.id] !== START);
   const allDone = changed && stale.length === 0 && OTHERS.every((other) => phase[other.id] === "done");
 
   const edit = (next: number) => {
-    if (!Number.isInteger(next) || next < 1 || next > 999 || next === guests) return;
-    setGuests(next);
+    if (!Number.isInteger(next) || next < 1 || next > MAX || next === people) return;
+    setPeople(next);
     setSkipped(false);
-    setPhase({ budget: "idle", chairs: "idle", email: "idle" });
+    setPhase({ flights: "idle", dinner: "idle", chat: "idle" });
   };
 
   const update = () => {
@@ -60,7 +63,7 @@ export function Demo() {
         window.setTimeout(() => setPhase((p) => ({ ...p, [other.id]: "updating" })), index * 240),
         window.setTimeout(
           () => {
-            setValues((v) => ({ ...v, [other.id]: guests }));
+            setValues((v) => ({ ...v, [other.id]: people }));
             setPhase((p) => ({ ...p, [other.id]: "done" }));
           },
           index * 240 + 420,
@@ -70,33 +73,33 @@ export function Demo() {
   };
 
   const reset = () => {
-    setGuests(START);
-    setValues({ budget: START, chairs: START, email: START });
-    setPhase({ budget: "idle", chairs: "idle", email: "idle" });
+    setPeople(START);
+    setValues({ flights: START, dinner: START, chat: START });
+    setPhase({ flights: "idle", dinner: "idle", chat: "idle" });
     setSkipped(false);
   };
 
   return (
     <div ref={ref} className="grid border border-line-strong lg:grid-cols-[1.15fr_1fr]">
       <div className="border-b border-line-strong bg-card lg:border-r lg:border-b-0">
-        <Bar left="Catering quote" right={found ? "4 values · on device" : "Reading"} />
+        <Bar left="Villa" right={found ? "3 values · on device" : "Reading"} />
         <div className="px-6 py-8 sm:px-10 sm:py-10">
           <p className="text-[17px] leading-[2]">
-            Rosa's Kitchen can do a buffet for{" "}
+            The villa in Alfama sleeps{" "}
             <span
               role="textbox"
-              aria-label="Guest count"
+              aria-label="Group size"
               contentEditable
               suppressContentEditableWarning
               spellCheck={false}
-              key={guests}
+              key={people}
               className="token"
               data-found={found}
               data-state={stale.length && !skipped ? "changed" : "idle"}
               onBlur={(event) => {
                 const next = Number(event.currentTarget.textContent?.trim());
-                if (Number.isInteger(next) && next > 0 && next < 1000) edit(next);
-                else event.currentTarget.textContent = String(guests);
+                if (Number.isInteger(next) && next > 0 && next <= MAX) edit(next);
+                else event.currentTarget.textContent = String(people);
               }}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
@@ -105,29 +108,29 @@ export function Demo() {
                 }
               }}
             >
-              {guests}
+              {people}
             </span>{" "}
-            guests at{" "}
+            of us for{" "}
             <span className="token" data-found={found} style={{ "--token-delay": "120ms" } as CSSProperties}>
-              £38
-            </span>{" "}
-            a head, so roughly{" "}
+              €1,680
+            </span>
+            , so about{" "}
             <span className="token" data-kind="derived" data-found={found} style={{ "--token-delay": "240ms" } as CSSProperties}>
-              <Reprint value={money(guests * 38)} />
+              <Reprint value={euros(VILLA / people)} />
             </span>{" "}
-            before drinks.
+            each.
           </p>
 
           <div className="mt-6 flex items-center gap-3 text-[11px] tracking-[0.05em] text-faint uppercase">
-            Guest count
+            Group size
             <span className="flex border border-line-strong">
-              <button type="button" aria-label="Fewer guests" onClick={() => edit(guests - 5)} className="grid size-8 place-items-center hover:bg-chip">
+              <button type="button" aria-label="Fewer people" onClick={() => edit(people - 1)} className="grid size-8 place-items-center hover:bg-chip">
                 −
               </button>
               <span className="grid w-12 place-items-center border-x border-line-strong text-[13px] text-ink tabular-nums">
-                <Reprint value={String(guests)} />
+                <Reprint value={String(people)} />
               </span>
-              <button type="button" aria-label="More guests" onClick={() => edit(guests + 5)} className="grid size-8 place-items-center hover:bg-chip">
+              <button type="button" aria-label="More people" onClick={() => edit(people + 1)} className="grid size-8 place-items-center hover:bg-chip">
                 +
               </button>
             </span>
@@ -175,7 +178,7 @@ export function Demo() {
 
       <div className="divide-y divide-line-strong bg-panel">
         {OTHERS.map((other) => {
-          const isStale = values[other.id] !== guests;
+          const isStale = values[other.id] !== people;
           const status =
             phase[other.id] === "updating" ? (
               <span className="t-shimmer-text" data-text="Updating">

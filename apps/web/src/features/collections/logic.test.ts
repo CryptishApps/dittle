@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { Collection, Row, StoredValue } from "@/features/notes/fact";
-import { placeByDay, placeByName, rowOptions } from "./logic";
+import { placeByDay, placeByName, planCollection, rowOptions } from "./logic";
 
 const runs: Collection = {
   id: "runs",
@@ -73,5 +73,33 @@ describe("placeByName", () => {
 
   test("rejects an option number outside the list", () => {
     expect(placeByName(vendors, { row: 5 }, rowOptions(vendors, rows), price, "price", [])).toBeNull();
+  });
+});
+
+describe("planCollection", () => {
+  const sentence = "Train and Pena Palace tickets, €32 each, on Sun 13 December.";
+  const origin = { noteId: "sintra", sentence };
+  const price: StoredValue = { id: "price", text: "€32", kind: "money", name: "ticket_price", event: true, when: { on: "2026-12-13", grain: "day" }, subject: { label: "Sintra" }, origin };
+  const date: StoredValue = { id: "date", text: "Sun 13 December", kind: "date", name: "visit_date", event: true, when: { on: "2026-12-13", grain: "day" }, subject: { label: "Sintra" }, origin };
+
+  test("a dated value makes one row per day by default", () => {
+    const plan = planCollection(price, [price, date], "Things to do");
+    expect(plan.collection.key).toEqual({ by: "when", grain: "day" });
+    expect(plan.rows[0]?.period).toBe("2026-12-13");
+  });
+
+  test("an undated value in a dated sentence takes the date as a column", () => {
+    const undated: StoredValue = { ...price, event: undefined, when: undefined };
+    const plan = planCollection(undated, [undated, date], "Things to do");
+    expect(plan.collection.key).toEqual({ by: "name" });
+    expect(plan.collection.fields.map((field) => field.id)).toEqual(["ticket_price", "visit_date"]);
+  });
+
+  test("a dated value can make one row per thing, with its date as a column", () => {
+    const plan = planCollection(price, [price, date], "Things to do", "name");
+    expect(plan.collection.key).toEqual({ by: "name" });
+    expect(plan.rows).toEqual([{ id: expect.any(String), collectionId: plan.collection.id, label: "Sintra" }]);
+    expect(plan.collection.fields.map((field) => field.id)).toEqual(["ticket_price", "visit_date"]);
+    expect(plan.cells.map((cell) => cell.valueId)).toEqual(["price", "date"]);
   });
 });

@@ -5,11 +5,11 @@ import { changeEverywhere, type Quantity } from "@/features/editor/linking";
 import { acceptFormula, describeFormula, inputsFor, quantityOf } from "@/features/formulas/apply";
 import type { EditorServices } from "@/features/editor/services";
 import type { TrackedValue, ValueStore } from "@/features/editor/values";
-import type { Collection, CollectionField, StoredValue } from "./fact";
+import type { Collection, CollectionField, Row, StoredValue } from "./fact";
 import { collectionsQuery, noteQuery, notesQuery, rowsQuery, writes } from "./api";
 import { askToast, showToast } from "./toast";
 
-type ServiceInput = { queryClient: QueryClient; uid: string; noteId: string; store: ValueStore };
+type ServiceInput = { queryClient: QueryClient; uid: string; noteId: string; store: ValueStore; valuesInNote: () => string[] };
 
 export function relabelNotesUsing(queryClient: QueryClient, uid: string, factId: string, text: string, exceptNoteId?: string): void {
   const notes = queryClient.getQueryData(notesQuery(uid).queryKey) ?? [];
@@ -21,14 +21,24 @@ export function changeOutsideEditor(queryClient: QueryClient, uid: string, store
   for (const change of changeEverywhere(store, factId, text, quantity)) relabelNotesUsing(queryClient, uid, change.id, change.text);
 }
 
-export function createEditorServices({ queryClient, uid, noteId, store }: ServiceInput): EditorServices {
+export function createEditorServices({ queryClient, uid, noteId, store, valuesInNote }: ServiceInput): EditorServices {
   const notes = () => queryClient.getQueryData(notesQuery(uid).queryKey) ?? [];
   const collections = () => queryClient.getQueryData(collectionsQuery(uid).queryKey) ?? [];
-  const rows = () => queryClient.getQueryData(rowsQuery(uid).queryKey) ?? [];
+  const created: Row[] = [];
+  const rows = () => {
+    const stored = queryClient.getQueryData(rowsQuery(uid).queryKey) ?? [];
+    return [...stored, ...created.filter((row) => !stored.some((item) => item.id === row.id))];
+  };
+  let placing: Promise<void> = Promise.resolve();
 
   const put = async (collection: Collection, valueId: string, field: CollectionField, target: Pick<Placement, "row" | "newRow">, replaces?: string) => {
+    if (target.newRow) created.push({ ...target.row, createdAt: Date.now() });
     const undo = await writes.placeCell(uid, { row: target.row, newRow: target.newRow, valueId, fieldId: field.id, replaces });
-    showToast(`Added to ${collection.name} · ${rowLabel(target.row)}`, undo);
+    showToast(`Added to ${collection.name} · ${rowLabel(target.row)}`, () => {
+      const index = created.findIndex((row) => row.id === target.row.id);
+      if (index >= 0) created.splice(index, 1);
+      undo();
+    });
   };
 
   const place = async (value: TrackedValue) => {
@@ -75,7 +85,7 @@ export function createEditorServices({ queryClient, uid, noteId, store }: Servic
     const fact = { ...store.get(value.id), ...value };
     const target = quantityOf(fact);
     if (target === undefined || fact.formula) return;
-    const inputs = inputsFor(fact, store.list());
+    const inputs = inputsFor(fact, store.list(), new Set(valuesInNote()));
     if (inputs.length === 0) return;
     const { suggestFormula } = await import("@/features/ai/formula");
     const asInput = (value: StoredValue) => ({ name: value.name ?? "value", text: value.text, number: quantityOf(value)!, seconds: value.amount === undefined });
@@ -92,7 +102,7 @@ export function createEditorServices({ queryClient, uid, noteId, store }: Servic
     usage: (factId) => notes().filter((note) => note.valueIds.includes(factId)).length,
     onChanged: (factId, text) => relabelNotesUsing(queryClient, uid, factId, text, noteId),
     onNewFact: (value) => {
-      void place(value).catch((error: unknown) => console.warn("Dittle could not place a value in a collection", error));
+      placing = placing.then(() => place(value)).catch((error: unknown) => console.warn("Dittle could not place a value in a collection", error));
       void findFormula(value).catch((error: unknown) => console.warn("Dittle could not check for a formula", error));
     },
     placementOf: (value) => {
@@ -100,8 +110,8 @@ export function createEditorServices({ queryClient, uid, noteId, store }: Servic
       const collection = row && collections().find((item) => item.id === row.collectionId);
       return row && collection ? `In ${collection.name} · ${rowLabel(row)}` : undefined;
     },
-    startCollection: (value, name) => {
-      const plan = planCollection(value, store.list(), name);
+    startCollection: (value, name, per) => {
+      const plan = planCollection(value, store.list(), name, per);
       writes.createCollection(uid, plan.collection, plan.rows, plan.cells);
       showToast(`Created ${name} with ${plan.cells.length} ${plan.cells.length === 1 ? "value" : "values"}`);
     },

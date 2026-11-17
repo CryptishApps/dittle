@@ -32,7 +32,7 @@ const ENTER = { opacity: 0, y: 12, filter: "blur(6px)" };
 
 const COPY = {
   signin: { title: "Welcome back.", submit: "Sign in", busy: "Signing in", done: "Opening your notes" },
-  signup: { title: "Start writing.", submit: "Create account", busy: "Creating account", done: "Opening your notes" },
+  signup: { title: "Start planning.", submit: "Create account", busy: "Creating account", done: "Opening your notes" },
 } as const;
 
 export function AuthPage({ mode, actions, links }: AuthPageProps) {

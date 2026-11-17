@@ -1,3 +1,4 @@
+import type { RowsPer } from "@/features/collections/logic";
 import type { TrackedValue } from "./values";
 
 export type EditorServices = {
@@ -7,7 +8,7 @@ export type EditorServices = {
   onChanged?: (factId: string, text: string) => void;
   onNewFact?: (value: TrackedValue) => void;
   placementOf?: (value: TrackedValue) => string | undefined;
-  startCollection?: (value: TrackedValue, name: string) => void;
+  startCollection?: (value: TrackedValue, name: string, per: RowsPer) => void;
   ignoredRequests?: () => string[];
   ignoreRequest?: (text: string) => void;
   openValue?: (id: string, from: "pointer" | "keyboard") => void;

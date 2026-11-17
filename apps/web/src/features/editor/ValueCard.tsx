@@ -2,6 +2,7 @@ import { autoUpdate, computePosition, flip, offset, shift } from "@floating-ui/d
 import type { Editor } from "@tiptap/react";
 import { AnimatePresence, m } from "motion/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import type { RowsPer } from "@/features/collections/logic";
 import type { FactFields } from "@/features/notes/fact";
 import { ease } from "@/ui/kit";
 import { describeFormula } from "@/features/formulas/apply";
@@ -234,8 +235,8 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
           {tag && !editing && !tag.proposal && !tag.naming && !tag.field && startCollection && (
             <StartCollection
               value={tag}
-              onStart={(name) => {
-                startCollection(tag, name);
+              onStart={(name, per) => {
+                startCollection(tag, name, per);
                 setTarget(undefined);
               }}
             />
@@ -289,10 +290,11 @@ function Actions({ children }: { children: ReactNode }) {
   return <div className="mt-2.5 flex flex-wrap items-center justify-end gap-2 border-t border-line pt-2">{children}</div>;
 }
 
-export function StartCollection({ value, onStart }: { value: TrackedValue; onStart: (name: string) => void }) {
+export function StartCollection({ value, onStart }: { value: TrackedValue; onStart: (name: string, per: RowsPer) => void }) {
   const [open, setOpen] = useState(false);
   const label = value.subject?.label ?? nameOf(value);
   const [name, setName] = useState(label.charAt(0).toUpperCase() + label.slice(1));
+  const [per, setPer] = useState<RowsPer>(value.event ? "day" : "name");
   if (!open) {
     return (
       <button type="button" onClick={() => setOpen(true)} className="mt-2 text-[11px] tracking-[0.04em] text-soft underline underline-offset-4 hover:text-ink">
@@ -305,7 +307,7 @@ export function StartCollection({ value, onStart }: { value: TrackedValue; onSta
       className="mt-2.5 border-t border-line pt-2"
       onSubmit={(event) => {
         event.preventDefault();
-        if (name.trim()) onStart(name.trim());
+        if (name.trim()) onStart(name.trim(), per);
       }}
     >
       <label className="block text-[10.5px] tracking-[0.06em] text-faint uppercase" htmlFor="collection-name">
@@ -323,7 +325,25 @@ export function StartCollection({ value, onStart }: { value: TrackedValue; onSta
           Create
         </button>
       </div>
-      <p className="mt-1.5 text-faint">{value.event ? "One row per day. Other values in this note from the same day become columns." : `One row per ${label}. Other values from the same sentence become columns.`}</p>
+      {value.event && (
+        <div role="radiogroup" aria-label="Rows" className="mt-2 flex border border-line-strong">
+          {(["day", "name"] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              role="radio"
+              aria-checked={per === option}
+              onClick={() => setPer(option)}
+              className={`h-7 flex-1 px-2 text-[10.5px] tracking-[0.06em] uppercase ${per === option ? "bg-ink text-page" : "text-soft hover:text-ink"}`}
+            >
+              {option === "day" ? "Row per day" : "Row per thing"}
+            </button>
+          ))}
+        </div>
+      )}
+      <p className="mt-1.5 text-faint">
+        {per === "day" ? "One row per day. Other values in this note from the same day become columns." : `One row per ${label}. Other values from the same sentence become columns.`}
+      </p>
     </form>
   );
 }

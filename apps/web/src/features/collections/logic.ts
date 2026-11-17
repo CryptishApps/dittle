@@ -22,27 +22,30 @@ export function freeRowId(base: string, taken: (rowId: string) => boolean): stri
 
 const fieldFor = (value: StoredValue): CollectionField => ({ id: value.name ?? "value", name: (value.name ?? "value").replaceAll("_", " "), kind: value.kind ?? "text" });
 
-export function siblingsOf(value: StoredValue, values: StoredValue[]): StoredValue[] {
+export type RowsPer = "day" | "name";
+
+export function siblingsOf(value: StoredValue, values: StoredValue[], per: RowsPer = value.event ? "day" : "name"): StoredValue[] {
   return values.filter((other) => {
     if (other.id === value.id || other.field || !value.origin?.noteId || other.origin?.noteId !== value.origin.noteId) return false;
-    if (value.event) return Boolean(other.event) && periodOf(other) === periodOf(value);
-    return !other.event && other.origin?.sentence === value.origin.sentence;
+    if (per === "day") return Boolean(other.event) && periodOf(other) === periodOf(value);
+    return other.origin?.sentence === value.origin.sentence;
   });
 }
 
 export type CollectionPlan = { collection: Omit<Collection, "createdAt">; rows: Omit<Row, "createdAt">[]; cells: CellPlan[] };
 
-export function planCollection(value: StoredValue, values: StoredValue[], name: string): CollectionPlan {
+export function planCollection(value: StoredValue, values: StoredValue[], name: string, per: RowsPer = value.event ? "day" : "name"): CollectionPlan {
   const id = crypto.randomUUID();
-  const members = [value, ...siblingsOf(value, values)];
+  const byDay = per === "day" && Boolean(value.event);
+  const members = [value, ...siblingsOf(value, values, byDay ? "day" : "name")];
   const fields = new Map<string, CollectionField>();
-  if (value.event) fields.set("date", { id: "date", name: "date", kind: "date" });
+  if (byDay) fields.set("date", { id: "date", name: "date", kind: "date" });
   for (const member of members) {
     const field = fieldFor(member);
     if (!fields.has(field.id)) fields.set(field.id, field);
   }
-  const rowLabel = value.event ? value.subject?.label || name : name;
-  const row: Omit<Row, "createdAt"> = value.event
+  const rowLabel = byDay ? value.subject?.label || name : name;
+  const row: Omit<Row, "createdAt"> = byDay
     ? { id: `${id}.${periodOf(value)}`, collectionId: id, label: periodOf(value), period: periodOf(value) }
     : { id: `${id}.${crypto.randomUUID()}`, collectionId: id, label: value.subject?.label || name };
   const used = new Set<string>();
@@ -53,7 +56,7 @@ export function planCollection(value: StoredValue, values: StoredValue[], name: 
     return [{ valueId: member.id, rowId: row.id, fieldId }];
   });
   return {
-    collection: { id, name, rowLabel, fields: [...fields.values()], key: value.event ? { by: "when", grain: "day" } : { by: "name" } },
+    collection: { id, name, rowLabel, fields: [...fields.values()], key: byDay ? { by: "when", grain: "day" } : { by: "name" } },
     rows: [row],
     cells,
   };

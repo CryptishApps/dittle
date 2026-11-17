@@ -1,10 +1,12 @@
 # Dittle
 
-Change a number once. Every note that uses it follows.
+Plan things in plain notes. Change a number once, and every note that uses it follows.
 
-Plans live in notes, and plans are mostly numbers: 80 guests, £38 a head, a deposit due on 4 June, a 5 km run in 27:40. The same number ends up in three or four notes. When it changes, you go looking for every copy, and the one you miss is the one that costs you.
+A plan is mostly numbers. For a group trip to Lisbon: 6 people, a €1,680 villa, £118 flights, a fado night on Saturday 12 December. The same numbers end up in the villa note, the flights note, the budget and the message to the group. Then two more friends say yes, you update two of the four notes, and the one you miss is the one that costs you.
 
-Dittle reads the numbers as you write. It works out what each one is, which ones are the same thing in different notes, and which are calculated from others. Change "80 guests" to 95 in one note and the budget, the seating plan and the £3,040 catering total all follow. Log three runs and Dittle offers to make them a table, with the total and average distance worked out and a pace column one click away.
+Dittle reads the numbers as you write. It works out what each one is, which ones are the same thing in different notes, and which are calculated from others. Change the group from 6 to 8 in one note and the flights total goes from £708 to £944, the villa from €280 each to €210, and every other note that says 6 offers to follow. Write three things to do in three notes and they line up in one table, with the cost each added up and the next date counting down on your home page.
+
+It works for any plan with numbers in it: a trip, a wedding, an offsite, a training block.
 
 Dittle doesn't summarise your notes. The AI's job is to keep track of what the numbers in them mean.
 
@@ -16,11 +18,11 @@ Built for [#BuildHybridAI 2026](https://firebasehybridaihackathon.devpost.com). 
 
 Use desktop Chrome. If your computer can run Gemini Nano, Dittle offers to download it from the account menu (Gemini Nano, then Download). Without it, everything still works through the cloud.
 
-1. Sign up, then click "Rosa's Kitchen quoted £38 a head for 80 guests." on the first page. Dittle opens it as a note and underlines the values it found. Hover one to see what it thinks it is.
-2. Start a note called "Catering". Type `Buffet for @80` and press Tab, then `guests at @£38` and Tab, then `a head, so about @£3,040` and Tab. Tab tags the value and adds the space after it. A couple of seconds later a message says £3,040 now follows the price per head × the guest count. The wording comes from the names Nano gave the values.
-3. Start another note and type `@80`. The menu's first line makes a new value; press ↓ to pick the 80 you already have, then Tab.
-4. Click the 80, change it to 95 and choose Update all. Both notes change, and £3,040 becomes £3,610.
-5. Type `/` on a new line, pick "Ask Dittle to write…", type `a packing list for a weekend in Lisbon` and press Enter. Hover the button that appears to preview the list.
+1. Sign up, then click "The villa in Alfama is €1,680 for the 6 of us." on the first page. Dittle opens it as a note and underlines the values it found. Hover one to see what it thinks it is.
+2. Start a note called "Villa". Type `The villa is @€1,680` and press Tab, then `for @6` and Tab, then `of us, so @€280` and Tab, then `each.` Tab tags the value and adds the space after it. A few seconds later a message says €280 now follows a formula, something like villa cost ÷ guest count. The names are the ones the model gave the values.
+3. Start a note called "Flights" and type `@6`. The menu's first line makes a new value; press ↓ to pick the 6 you already have, then Tab. Carry on with `seats at @£118` and Tab, then `each, so @£708` and Tab, then `in total.`
+4. Click the 6, change it to 8 and choose Update all. Both notes change: €280 becomes €210 and £708 becomes £944.
+5. Type `/` on a new line, pick "Ask Dittle to write…", type `a packing list for a long weekend in Lisbon` and press Enter. Hover the button that appears to preview the list.
 6. Open `/ai` to see every AI call and whether it ran on your device or in the cloud.
 
 ## Where each job runs, and why
@@ -32,11 +34,11 @@ Every call goes through [Firebase AI Logic](https://firebase.google.com/docs/ai-
 | Find values in a paragraph as you type | Nano first | It runs on every paragraph you finish, so it has to be free, fast and private. Nano finds 97% of values. |
 | Describe a value (what it measures, which day, what it belongs to, its number, unit and duration) | Nano first | Same reason. It only sees the one paragraph. |
 | Place a value in a collection | Nano first | Picks a collection, column and row from numbered options. |
-| Spot a formula (£3,040 = 80 × £38) | Nano first | Suggests a formula; code checks it reproduces the number. |
-| Suggest a calculated column (pace = time ÷ distance) | Nano first | Picks two columns of a collection; code checks the units fit and works out every row. |
+| Spot a formula (£708 = 6 seats × £118) | Nano first | Suggests a formula; code checks it reproduces the number. |
+| Suggest a calculated column (price per person = total ÷ people, pace = time ÷ distance) | Nano first | Picks two columns of a collection; code checks the units fit and works out every row. |
 | Write a request ("add a packing list here") | Nano first | Short text, written from the note itself. |
 | Link a value to one you already track | Cloud first, Nano offline | Nano got 7 of 11 test cases right, the cloud 10 of 11. A wrong link merges two different values, so this one goes to the cloud when it can. |
-| Suggest collections ("you've logged 3 runs, make a Runs table?") | Cloud only | Needs every value at once. It gets the extracted values and note titles, never note text. |
+| Suggest collections ("you've written 3 things to do, make a table of them?") | Cloud only | Needs every value at once. It gets the extracted values and note titles, never note text. |
 
 "Nano first" is `PREFER_ON_DEVICE`. If the on-device call fails or takes more than 30 seconds, Dittle retries in the cloud. "Cloud first" is `PREFER_IN_CLOUD`, which uses Nano when the cloud can't be reached. The cloud model is Gemini Flash-Lite, named in [Remote Config](https://firebase.google.com/docs/remote-config) so it can change without a deploy ([ai.ts](apps/web/src/lib/ai.ts)).
 

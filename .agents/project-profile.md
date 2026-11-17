@@ -33,7 +33,7 @@ Worktree setup, services, ports, env files, and checks live in the `astack` sect
 - Firestore rules, Firestore indexes and Remote Config are not deployed by CI. Deploy them by hand when the owner asks: `bunx firebase-tools deploy --only firestore --project dittle-app` or `--only remoteconfig`.
 - CI workflows: `pr.yml` (template and evidence), `checks.yml` (`checks.focused` on every PR push), `stale-review.yml`, `sweep.yml`, and `release.yml` on pushes to `main`: `types`, `tests`, `checks` (`bun run lint`), `ready`, `build`, then `deploy`. `deploy` needs `ready` and `build`.
 - CI build variables (GitHub Actions variables, public values that ship in the bundle): `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_APP_ID`, `VITE_RECAPTCHA_ENTERPRISE_SITE_KEY`.
-- CI secret: `FIREBASE_SERVICE_ACCOUNT_DITTLE_APP`, the service account JSON the `deploy` job uses. Only the owner creates it.
+- CI secret: `FIREBASE_SERVICE_ACCOUNT_DITTLE_APP` in the `production` environment, the key for the `github-deploy@dittle-app.iam.gserviceaccount.com` service account (Hosting admin, API keys viewer, Cloud Run viewer). Created 2026-11-17 with the owner's go-ahead. Rotating it is a protected operation.
 
 ## Build storage
 
