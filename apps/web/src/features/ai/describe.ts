@@ -2,11 +2,9 @@ import { InferenceMode } from "firebase/ai";
 import { parseIsoDuration } from "@/features/formulas/duration";
 import { isCurrency, isMeasure, MEASURE_UNITS } from "@/features/formulas/units";
 import { createHybrid, type InferenceWhere } from "./hybrid";
-import { GRAINS, TAG_KINDS, validWhen, VALUE_KINDS, type Grain, type TagKind, type ValueKind } from "./value-shapes";
+import { GRAINS, plainAmount, TAG_KINDS, validWhen, VALUE_KINDS, type Grain, type TagKind, type ValueKind } from "./value-shapes";
 
 export { DESCRIBE_PROMPT_VERSION } from "./prompt-versions";
-
-export { GRAINS, TAG_KINDS, type Grain, type TagKind } from "./value-shapes";
 
 export type ValueContext = {
   about: string;
@@ -219,8 +217,8 @@ function parseDescribed(text: string, quotes: string[]): DescribedValue[] {
 }
 
 function amountOf(raw: Record<string, unknown>, quote: string): Pick<ValueContext, "amount" | "before" | "after"> {
-  const amount = typeof raw.amount === "string" && raw.amount.trim() !== "" ? Number(raw.amount) : Number.NaN;
-  if (!Number.isFinite(amount)) return {};
+  const amount = plainAmount(raw.amount);
+  if (amount === undefined) return {};
   const before = typeof raw.before === "string" && quote.startsWith(raw.before) ? raw.before : "";
   const after = typeof raw.after === "string" && quote.endsWith(raw.after) && quote.length >= before.length + raw.after.length ? raw.after : "";
   return { amount, before, after };

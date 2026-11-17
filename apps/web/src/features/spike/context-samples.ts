@@ -1,4 +1,4 @@
-import type { Grain, TagKind } from "@/features/ai/describe";
+import type { Grain, TagKind } from "@/features/ai/value-shapes";
 
 export const CONTEXT_TODAY = new Date(2026, 10, 16);
 

@@ -16,6 +16,11 @@ const WHEN_SHAPE: Record<Grain, RegExp> = {
   year: /^\d{4}$/,
 };
 
+export function plainAmount(raw: unknown): number | undefined {
+  const amount = typeof raw === "string" && raw.trim() !== "" ? Number(raw) : Number.NaN;
+  return Number.isFinite(amount) ? amount : undefined;
+}
+
 export function validWhen(on: unknown, grain: unknown): When | undefined {
   const found = GRAINS.find((candidate) => candidate === grain);
   if (!found || typeof on !== "string" || !WHEN_SHAPE[found].test(on)) return undefined;

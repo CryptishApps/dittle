@@ -2,7 +2,6 @@ import type { GenerativeModel, InferenceMode } from "firebase/ai";
 import { createHybrid, type InferenceWhere } from "./hybrid";
 import { VALUE_KINDS, type ValueKind } from "./value-shapes";
 
-export { VALUE_KINDS, type ValueKind } from "./value-shapes";
 
 export type DetectedValue = { quote: string; kind: ValueKind; name: string; existing: string };
 

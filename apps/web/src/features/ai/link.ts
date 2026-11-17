@@ -1,5 +1,5 @@
 import { InferenceMode } from "firebase/ai";
-import type { Grain, TagKind } from "./describe";
+import type { Grain, TagKind } from "./value-shapes";
 import { createHybrid, type InferenceWhere } from "./hybrid";
 
 export const LINK_PROMPT_VERSION = "v3";

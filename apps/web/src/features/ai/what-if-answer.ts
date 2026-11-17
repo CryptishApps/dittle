@@ -1,4 +1,4 @@
-import type { TagKind } from "./describe";
+import type { TagKind } from "./value-shapes";
 
 export const MAX_OPTIONS = 40;
 const MAX_QUESTION = 300;

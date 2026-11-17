@@ -1,4 +1,5 @@
-import type { KnownVariable, ValueKind } from "@/features/ai/detect";
+import type { KnownVariable } from "@/features/ai/detect";
+import type { ValueKind } from "@/features/ai/value-shapes";
 
 export type ExpectedValue = { quote: string; kind: ValueKind; existing?: string; optional?: boolean };
 export type Sample = { id: string; topic: string; text: string; values: ExpectedValue[]; requests?: string[] };
