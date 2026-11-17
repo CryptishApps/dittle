@@ -11,6 +11,7 @@ export type ExpectedContext = {
   conditions?: string[];
   remarks?: string[];
   seconds?: number;
+  unit?: string;
 };
 
 export type ContextCase = { id: string; note: string; text: string; expect: ExpectedContext[] };
@@ -20,7 +21,7 @@ export const CONTEXT_CASES: ContextCase[] = [
     id: "c1",
     note: "Training log",
     text: "I ran 5 km today.",
-    expect: [{ quote: "5 km", about: "run", event: true, when: { on: "2026-11-16", grain: "day" }, conditions: [], remarks: [] }],
+    expect: [{ quote: "5 km", about: "run", event: true, when: { on: "2026-11-16", grain: "day" }, conditions: [], remarks: [], unit: "km" }],
   },
   {
     id: "c4",
@@ -50,7 +51,7 @@ export const CONTEXT_CASES: ContextCase[] = [
     id: "c17",
     note: "Lisbon trip",
     text: "The Alfama hotel is €165 a night in August.",
-    expect: [{ quote: "€165", kind: "money", about: "hotel", event: false, conditions: ["in August"] }],
+    expect: [{ quote: "€165", kind: "money", about: "hotel", event: false, conditions: ["in August"], unit: "EUR" }],
   },
   {
     id: "c18",
@@ -72,8 +73,8 @@ export const CONTEXT_CASES: ContextCase[] = [
     note: "Training log",
     text: "Parkrun this morning: 5 km in 27:40, my best yet.",
     expect: [
-      { quote: "5 km", about: "run", event: true, when: { on: "2026-11-16", grain: "day" } },
-      { quote: "27:40", kind: "duration", about: "run", event: true, seconds: 1660 },
+      { quote: "5 km", about: "run", event: true, when: { on: "2026-11-16", grain: "day" }, unit: "km" },
+      { quote: "27:40", kind: "duration", about: "run", event: true, seconds: 1660, unit: "" },
     ],
   },
   {
@@ -96,8 +97,36 @@ export const CONTEXT_CASES: ContextCase[] = [
     note: "Cycling",
     text: "Sunday's 60 km ride took 2:05:30 with one stop.",
     expect: [
-      { quote: "60 km", about: "ride", event: true, when: { on: "2026-11-15", grain: "day" } },
-      { quote: "2:05:30", kind: "duration", about: "ride", event: true, when: { on: "2026-11-15", grain: "day" }, seconds: 7530 },
+      { quote: "60 km", about: "ride", event: true, when: { on: "2026-11-15", grain: "day" }, unit: "km" },
+      { quote: "2:05:30", kind: "duration", about: "ride", event: true, when: { on: "2026-11-15", grain: "day" }, seconds: 7530, unit: "" },
+    ],
+  },
+  {
+    id: "u1",
+    note: "Training log",
+    text: "Did 3.2 miles on the treadmill this morning at 9:45 per mile.",
+    expect: [
+      { quote: "3.2 miles", kind: "number", event: true, when: { on: "2026-11-16", grain: "day" }, unit: "mi" },
+      { quote: "9:45", kind: "duration", seconds: 585, unit: "mi" },
+    ],
+  },
+  {
+    id: "u2",
+    note: "Shopping",
+    text: "Got 2 kg of flour for $6.40 at the market yesterday.",
+    expect: [
+      { quote: "2 kg", kind: "number", unit: "kg" },
+      { quote: "$6.40", kind: "money", event: true, when: { on: "2026-11-15", grain: "day" }, unit: "USD" },
+    ],
+  },
+  {
+    id: "u3",
+    note: "Pancakes",
+    text: "The batter takes 300 ml of milk, 120 g of flour and 2 eggs.",
+    expect: [
+      { quote: "300 ml", kind: "number", event: false, unit: "ml" },
+      { quote: "120 g", kind: "number", event: false, unit: "g" },
+      { quote: "2", kind: "count", unit: "" },
     ],
   },
 ];

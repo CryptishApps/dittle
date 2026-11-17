@@ -1,9 +1,12 @@
-import type { Collection, CollectionField, Row, StoredValue } from "@/features/notes/fact";
+import type { CalculatedColumn, Collection, CollectionField, Row, StoredValue } from "@/features/notes/fact";
 import { formatAmount } from "@/features/formulas/apply";
 import { formatDuration } from "@/features/formulas/duration";
+import { isMeasure } from "@/features/formulas/units";
+import { columnAverage, columnValue, type ColumnAverage } from "./columns";
 import { rowLabel } from "./format";
+import { scaleOf, scalesOf, sizeIn, withUnits } from "./scale";
 
-export type FieldTotal = { field: CollectionField; text: string; counted: number; otherUnits: number };
+export type FieldTotal = { field: CollectionField; text: string; average?: string; counted: number; otherUnits: number };
 
 export type CollectionSummary = {
   collection: Collection;
@@ -14,24 +17,53 @@ export type CollectionSummary = {
 };
 
 const SUMMABLE = new Set(["money", "count", "number"]);
-const unitOf = (value: StoredValue) => `${(value.before ?? "").trim()}|${(value.after ?? "").trim()}`;
+
+const mean = (numbers: number[]) => numbers.reduce((total, number) => total + number, 0) / numbers.length;
 
 function durationTotal(field: CollectionField, cells: StoredValue[]): FieldTotal | undefined {
-  const lengths = cells.flatMap((cell) => cell.seconds ?? []);
+  const timed = cells.filter((cell) => cell.seconds !== undefined);
+  const lengths = timed.flatMap((cell) => (isMeasure(cell.unit) ? [] : [cell.seconds!]));
   if (lengths.length === 0) return undefined;
-  return { field, text: formatDuration(lengths.reduce((total, seconds) => total + seconds, 0)), counted: lengths.length, otherUnits: 0 };
+  const sum = lengths.reduce((total, seconds) => total + seconds, 0);
+  return {
+    field,
+    text: formatDuration(sum),
+    ...(lengths.length > 1 && { average: formatDuration(mean(lengths)) }),
+    counted: lengths.length,
+    otherUnits: timed.length - lengths.length,
+  };
 }
 
 function totalFor(field: CollectionField, cells: StoredValue[]): FieldTotal | undefined {
   if (field.kind === "duration") return durationTotal(field, cells);
   const amounts = cells.filter((cell) => cell.amount !== undefined && SUMMABLE.has(cell.kind ?? field.kind));
-  if (amounts.length === 0) return undefined;
-  const tally = new Map<string, StoredValue[]>();
-  for (const cell of amounts) tally.set(unitOf(cell), [...(tally.get(unitOf(cell)) ?? []), cell]);
-  const [main] = [...tally.values()].sort((a, b) => b.length - a.length);
-  if (!main) return undefined;
-  const sum = main.reduce((total, cell) => total + cell.amount!, 0);
-  return { field, text: formatAmount(main[0]!, sum), counted: main.length, otherUnits: amounts.length - main.length };
+  const scale = scaleOf(amounts);
+  if (!scale) return undefined;
+  const sizes = amounts.flatMap((cell) => sizeIn(cell, scale) ?? []);
+  const sum = sizes.reduce((total, size) => total + size, 0);
+  return {
+    field,
+    text: formatAmount(scale, sum, 1),
+    ...(sizes.length > 1 && { average: formatAmount(scale, sum / sizes.length, 1) }),
+    counted: sizes.length,
+    otherUnits: amounts.length - sizes.length,
+  };
+}
+
+export type RowsSummary = { totals: FieldTotal[]; columns: { column: CalculatedColumn; average?: ColumnAverage }[] };
+
+export function summariseRows(collection: Collection, rowIds: Set<string>, values: StoredValue[]): RowsSummary {
+  const mine = withUnits(values.filter((value) => value.field && rowIds.has(value.subject?.entityId ?? "")));
+  const shown = collection.fields.filter((field) => !(collection.key.by === "when" && field.kind === "date"));
+  const scales = scalesOf(collection.fields, mine);
+  const cellsOf = (rowId: string) => (fieldId: string) => mine.find((value) => value.subject?.entityId === rowId && value.field === fieldId);
+  return {
+    totals: shown.flatMap((field) => totalFor(field, mine.filter((value) => value.field === field.id)) ?? []),
+    columns: (collection.columns ?? []).map((column) => ({
+      column,
+      average: columnAverage([...rowIds].flatMap((rowId) => columnValue(column, cellsOf(rowId), scales) ?? [])),
+    })),
+  };
 }
 
 const monthOf = (today: Date) => `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
@@ -47,13 +79,11 @@ export function summariseCollection(collection: Collection, rows: Row[], values:
   const cells = newest
     ? columns.flatMap((field) => values.find((value) => value.subject?.entityId === newest.id && value.field === field.id)?.text ?? [])
     : [];
-  const countedIds = new Set(counted.map((row) => row.id));
-  const totals = columns.flatMap((field) => totalFor(field, values.filter((value) => value.field === field.id && countedIds.has(value.subject?.entityId ?? ""))) ?? []);
   return {
     collection,
     count: counted.length,
     scope: byDay && thisMonth.length > 0 ? "this month" : "in total",
-    totals,
+    totals: summariseRows(collection, new Set(counted.map((row) => row.id)), values).totals,
     latest: newest ? { label: rowLabel(newest), cells } : undefined,
   };
 }

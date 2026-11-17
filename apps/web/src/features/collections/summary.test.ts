@@ -23,13 +23,15 @@ const timed = (rowId: string, text: string, seconds?: number): StoredValue => ({
   subject: { label: "run", entityId: rowId },
   ...(seconds !== undefined && { seconds }),
 });
-const cell = (rowId: string, field: string, text: string, amount?: number, after = " km"): StoredValue => ({
+const cell = (rowId: string, field: string, text: string, amount?: number, after = " km", unit?: string): StoredValue => ({
   id: `${rowId}:${field}`,
   text,
   field,
   subject: { label: "run", entityId: rowId },
   ...(amount !== undefined && { amount, before: "", after }),
+  ...(unit && { unit }),
 });
+const km = (rowId: string, amount: number) => cell(rowId, "distance", `${amount} km`, amount, " km", "km");
 const today = new Date(2026, 10, 17);
 
 describe("summariseCollection", () => {
@@ -68,6 +70,58 @@ describe("summariseCollection", () => {
     const rows = [row("2026-11-03"), row("2026-11-10")];
     const values = [timed("c.2026-11-03", "1:05:00", 3900), timed("c.2026-11-10", "55 minutes", 3300)];
     expect(summariseCollection(runs, rows, values, today).totals).toMatchObject([{ field: { id: "time" }, text: "2 h", counted: 2 }]);
+  });
+
+  test("averages a field over the entries that have it", () => {
+    const rows = [row("2026-11-01"), row("2026-11-03"), row("2026-11-10"), row("2026-11-15")];
+    const values = [km("c.2026-11-01", 5), km("c.2026-11-03", 6.4), km("c.2026-11-15", 5.7)];
+    const summary = summariseCollection(runs, rows, values, today);
+    expect(summary.count).toBe(4);
+    expect(summary.totals[0]).toMatchObject({ text: "17.1 km", average: "5.7 km", counted: 3, otherUnits: 0 });
+  });
+
+  test("averages durations and leaves out a single entry's average", () => {
+    const rows = [row("2026-11-03"), row("2026-11-10")];
+    const two = summariseCollection(runs, rows, [timed("c.2026-11-03", "27:40", 1660), timed("c.2026-11-10", "30:00", 1800)], today);
+    expect(two.totals[0]).toMatchObject({ text: "57:40", average: "28:50" });
+    const one = summariseCollection(runs, rows, [timed("c.2026-11-03", "27:40", 1660)], today);
+    expect(one.totals[0]?.average).toBeUndefined();
+  });
+
+  test("converts units of the same dimension before adding", () => {
+    const rows = [row("2026-11-03"), row("2026-11-10"), row("2026-11-15")];
+    const values = [km("c.2026-11-03", 5), cell("c.2026-11-10", "distance", "3 miles", 3, " miles", "mi"), km("c.2026-11-15", 5)];
+    expect(summariseCollection(runs, rows, values, today).totals[0]).toMatchObject({ text: "14.8 km", average: "4.9 km", counted: 3, otherUnits: 0 });
+  });
+
+  test("leaves out entries in another dimension", () => {
+    const rows = [row("2026-11-03"), row("2026-11-10"), row("2026-11-15")];
+    const values = [km("c.2026-11-03", 5), cell("c.2026-11-10", "distance", "3 kg", 3, " kg", "kg"), km("c.2026-11-15", 5)];
+    expect(summariseCollection(runs, rows, values, today).totals[0]).toMatchObject({ text: "10 km", counted: 2, otherUnits: 1 });
+  });
+
+  test("gives older entries without a unit the unit of entries written the same way", () => {
+    const rows = [row("2026-11-03"), row("2026-11-10"), row("2026-11-15")];
+    const values = [cell("c.2026-11-03", "distance", "5 km", 5), cell("c.2026-11-10", "distance", "2 mi", 2, " mi", "mi"), km("c.2026-11-15", 5)];
+    expect(summariseCollection(runs, rows, values, today).totals[0]).toMatchObject({ text: "13.2 km", counted: 3 });
+  });
+
+  test("adds money only within one currency", () => {
+    const spend: Collection = { ...runs, fields: [{ id: "cost", name: "cost", kind: "money" }] };
+    const money = (rowId: string, before: string, amount: number, unit: string): StoredValue => ({
+      id: `${rowId}:cost`,
+      text: `${before}${amount}`,
+      kind: "money",
+      field: "cost",
+      subject: { label: "lunch", entityId: rowId },
+      amount,
+      before,
+      after: "",
+      unit,
+    });
+    const rows = [row("2026-11-03"), row("2026-11-10"), row("2026-11-15")];
+    const values = [money("c.2026-11-03", "£", 12, "GBP"), money("c.2026-11-10", "€", 20, "EUR"), money("c.2026-11-15", "£", 8.5, "GBP")];
+    expect(summariseCollection(spend, rows, values, today).totals[0]).toMatchObject({ text: "£20.50", average: "£10.25", counted: 2, otherUnits: 1 });
   });
 
   test("falls back to all rows when nothing happened this month", () => {

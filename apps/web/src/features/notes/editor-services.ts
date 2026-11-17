@@ -2,10 +2,10 @@ import type { QueryClient } from "@tanstack/react-query";
 import { dayLabel, rowLabel } from "@/features/collections/format";
 import { placeByDay, placeByName, planCollection, rowOptions, type Placement } from "@/features/collections/logic";
 import { changeEverywhere, type Quantity } from "@/features/editor/linking";
-import { acceptFormula, describeFormula, inputsFor } from "@/features/formulas/apply";
+import { acceptFormula, describeFormula, inputsFor, quantityOf } from "@/features/formulas/apply";
 import type { EditorServices } from "@/features/editor/services";
 import type { TrackedValue, ValueStore } from "@/features/editor/values";
-import type { Collection, CollectionField } from "./fact";
+import type { Collection, CollectionField, StoredValue } from "./fact";
 import { collectionsQuery, noteQuery, notesQuery, rowsQuery, writes } from "./api";
 import { askToast, showToast } from "./toast";
 
@@ -73,16 +73,14 @@ export function createEditorServices({ queryClient, uid, noteId, store }: Servic
 
   const findFormula = async (value: TrackedValue) => {
     const fact = { ...store.get(value.id), ...value };
-    if (fact.amount === undefined || fact.formula) return;
+    const target = quantityOf(fact);
+    if (target === undefined || fact.formula) return;
     const inputs = inputsFor(fact, store.list());
     if (inputs.length === 0) return;
     const { suggestFormula } = await import("@/features/ai/formula");
-    const suggested = await suggestFormula({
-      sentence: fact.origin?.sentence ?? fact.text,
-      value: { name: fact.name ?? "value", text: fact.text, amount: fact.amount },
-      inputs: inputs.map((input) => ({ name: input.name ?? "value", text: input.text, amount: input.amount! })),
-    });
-    const formula = acceptFormula(suggested, fact.amount, inputs);
+    const asInput = (value: StoredValue) => ({ name: value.name ?? "value", text: value.text, number: quantityOf(value)!, seconds: value.amount === undefined });
+    const suggested = await suggestFormula({ sentence: fact.origin?.sentence ?? fact.text, value: asInput(fact), inputs: inputs.map(asInput) });
+    const formula = acceptFormula(suggested, target, inputs);
     if (!formula) return;
     store.update(fact.id, { formula });
     showToast(`${fact.text} now follows ${describeFormula({ ...fact, formula }, (id) => store.get(id)) ?? "a formula"}`);

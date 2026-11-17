@@ -176,9 +176,14 @@ const TILE = "-mt-px -ml-px flex min-h-[132px] flex-col border border-line px-4 
 
 function CollectionTile({ summary }: { summary: CollectionSummary }) {
   const { collection, count, scope, totals, latest } = summary;
-  const [headline, ...others] = totals;
-  const skipped = totals.reduce((total, item) => total + item.otherUnits, 0);
+  const [headline] = totals;
   const entries = `${count} ${count === 1 ? "entry" : "entries"}`;
+  const partial = headline !== undefined && headline.counted < count;
+  const detail = !headline?.average
+    ? [entries, partial && `${headline.counted} with ${headline.field.name}`]
+    : partial
+      ? [`avg ${headline.average} from ${headline.counted} of ${count}`]
+      : [entries, `avg ${headline.average}`];
   return (
     <Link to="/notes/collections/$collectionId" params={{ collectionId: collection.id }} className={`${TILE} hover:bg-panel`}>
       <span className="text-[10.5px] tracking-[0.06em] text-faint uppercase">{collection.name}</span>
@@ -187,10 +192,7 @@ function CollectionTile({ summary }: { summary: CollectionSummary }) {
         <span className="text-[12px] text-faint">{headline ? `${headline.field.name} ${scope}` : scope}</span>
       </span>
       {headline && (
-        <span className="mt-1.5 text-[11.5px] text-soft">
-          {[entries, ...others.map((item) => `${item.text} ${item.field.name}`)].join(" · ")}
-          {skipped > 0 && <span className="text-faint"> · {skipped} in other units not added</span>}
-        </span>
+        <span className="mt-1.5 text-[11.5px] text-soft">{detail.filter(Boolean).join(" · ")}</span>
       )}
       {latest && (
         <span className="mt-auto line-clamp-2 pt-3 text-[11.5px] text-soft">

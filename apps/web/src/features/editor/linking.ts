@@ -1,7 +1,7 @@
 import type { Editor } from "@tiptap/core";
 import type { LinkFact } from "@/features/ai/link";
 import { periodOf } from "@/features/collections/logic";
-import { recompute } from "@/features/formulas/apply";
+import { quantityOf, recompute, type Quantity } from "@/features/formulas/apply";
 import type { FactFields } from "@/features/notes/fact";
 import { VALUE_NODE } from "./value-node";
 import type { TrackedValue, ValueStore } from "./values";
@@ -85,7 +85,7 @@ export function relabelInEditor(editor: Editor, valueId: string, label: string):
   if (tr.docChanged) editor.view.dispatch(tr);
 }
 
-export type Quantity = Pick<FactFields, "amount" | "seconds">;
+export type { Quantity };
 export type Change = { id: string; text: string } & Quantity;
 
 const sameQuantity = (fact: Quantity, next: Quantity) =>
@@ -95,7 +95,8 @@ export function changeEverywhere(store: ValueStore, factId: string, text: string
   const fact = store.get(factId);
   if (!fact || (fact.text === text && sameQuantity(fact, quantity))) return [];
   const changes: Change[] = [{ id: factId, text, ...quantity }];
-  if (quantity.amount !== undefined) changes.push(...recompute(factId, store.list(), new Map([[factId, quantity.amount]])));
+  const next = quantityOf(quantity);
+  if (next !== undefined) changes.push(...recompute(factId, store.list(), new Map([[factId, next]])));
   for (const change of changes) {
     const current = store.get(change.id);
     if (!current) continue;

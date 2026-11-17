@@ -137,7 +137,7 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
     const hit = target && foundValueAt(editor.state, target.id);
     setTarget(undefined);
     if (!hit) return;
-    const { quote, kind, name, about, event, when, conditions, remarks, amount, before, after, seconds, described, link } = hit.value;
+    const { quote, kind, name, about, event, when, conditions, remarks, amount, before, after, seconds, unit, described, link } = hit.value;
     if (link && (how === "same" || how === "update")) {
       insertTag(hit.from, hit.to, link.factId, quote);
       if (how === "update") applyEverywhere(link.factId, quote, { amount, seconds });
@@ -149,7 +149,7 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
     const value = store.add(
       quote,
       described
-        ? { kind, name, subject: about ? { label: about } : undefined, event, when, conditions, remarks, amount, before, after, seconds, notSame, origin }
+        ? { kind, name, subject: about ? { label: about } : undefined, event, when, conditions, remarks, amount, before, after, seconds, unit, notSame, origin }
         : { kind, name, notSame, origin },
     );
     insertTag(hit.from, hit.to, value.id, quote);

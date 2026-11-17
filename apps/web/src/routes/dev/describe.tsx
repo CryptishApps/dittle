@@ -101,7 +101,7 @@ function DescribePage() {
 
   const values = summarise(valueRows);
   const checks = contextRows.flatMap((row) => row.score?.checks ?? []);
-  const fields = ["found", "kind", "about", "event", "when", "conditions", "remarks", "duration"].map((field) => {
+  const fields = ["found", "kind", "about", "event", "when", "conditions", "remarks", "duration", "unit"].map((field) => {
     const scored = checks.filter((check) => check.field === field);
     const expectedFound = field === "found" ? contextRows.reduce((sum, row) => sum + (row.score?.expected ?? 0), 0) : 0;
     const okCount = field === "found" ? contextRows.reduce((sum, row) => sum + (row.score?.found ?? 0), 0) : scored.filter((check) => check.ok).length;
@@ -195,6 +195,7 @@ function DescribePage() {
                       {value.conditions.length > 0 && ` · if ${value.conditions.join(", ")}`}
                       {value.remarks.length > 0 && ` · ${value.remarks.join(", ")}`}
                       {value.seconds !== undefined && ` · ${value.seconds} s`}
+                      {value.unit && ` · ${value.unit}`}
                     </p>
                   ))}
                   {row.score?.checks

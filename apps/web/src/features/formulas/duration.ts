@@ -32,3 +32,11 @@ export function formatDuration(total: number): string {
   if (hours === 0) return seconds === 0 ? `${minutes} min` : `${minutes}:${String(seconds).padStart(2, "0")}`;
   return [`${hours} h`, minutes ? `${minutes} min` : "", seconds ? `${seconds} s` : ""].filter(Boolean).join(" ");
 }
+
+export function formatClock(total: number): string {
+  const { hours, minutes, seconds } = splitDuration(total);
+  const tail = String(seconds).padStart(2, "0");
+  return hours === 0 ? `${minutes}:${tail}` : `${hours}:${String(minutes).padStart(2, "0")}:${tail}`;
+}
+
+export const formatPace = (total: number, per: string) => `${formatClock(total)}/${per}`;

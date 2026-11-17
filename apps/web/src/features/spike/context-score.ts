@@ -28,6 +28,7 @@ function checksFor(want: ExpectedContext, got: DescribedValue): FieldCheck[] {
   }
   if (want.conditions) checks.push({ field: "conditions", ok: phrasesOk(want.conditions, got.conditions), want: list(want.conditions), got: list(got.conditions) });
   if (want.remarks) checks.push({ field: "remarks", ok: phrasesOk(want.remarks, got.remarks), want: list(want.remarks), got: list(got.remarks) });
+  if (want.unit !== undefined) checks.push({ field: "unit", ok: (got.unit ?? "") === want.unit, want: want.unit || "none", got: got.unit ?? "none" });
   if (want.seconds !== undefined) checks.push({ field: "duration", ok: got.seconds === want.seconds, want: `${want.seconds} s`, got: got.seconds === undefined ? "none" : `${got.seconds} s` });
   return checks;
 }

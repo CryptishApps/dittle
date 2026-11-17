@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { formatDuration, joinDuration, parseIsoDuration, splitDuration } from "./duration";
+import { formatClock, formatDuration, formatPace, joinDuration, parseIsoDuration, splitDuration } from "./duration";
 
 describe("parseIsoDuration", () => {
   test("reads hours, minutes and seconds", () => {
@@ -52,5 +52,14 @@ describe("splitDuration and joinDuration", () => {
     expect(splitDuration(9640)).toEqual({ hours: 2, minutes: 40, seconds: 40 });
     expect(joinDuration(splitDuration(9640))).toBe(9640);
     expect(splitDuration(259_200)).toEqual({ hours: 72, minutes: 0, seconds: 0 });
+  });
+});
+
+describe("formatClock and formatPace", () => {
+  test("show minutes and seconds, with hours when needed", () => {
+    expect(formatClock(300)).toBe("5:00");
+    expect(formatClock(332.4)).toBe("5:32");
+    expect(formatClock(3725)).toBe("1:02:05");
+    expect(formatPace(330, "km")).toBe("5:30/km");
   });
 });

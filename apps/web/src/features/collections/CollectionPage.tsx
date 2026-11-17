@@ -9,8 +9,13 @@ import { changeOutsideEditor } from "@/features/notes/editor-services";
 import type { Quantity } from "@/features/editor/linking";
 import type { NoteSummary } from "@/features/notes/store";
 import { showToast } from "@/features/notes/toast";
+import type { CalculatedColumn } from "@/features/notes/fact";
 import { ease, MIcon } from "@/ui/kit";
+import { AddColumn } from "./AddColumn";
+import { columnValue, describeColumn, type RowCells } from "./columns";
 import { rowLabel } from "./format";
+import { scalesOf, withUnits } from "./scale";
+import { summariseRows, type FieldTotal } from "./summary";
 
 export function CollectionPage({ uid, collectionId }: { uid: string; collectionId: string }) {
   const navigate = useNavigate();
@@ -42,6 +47,23 @@ export function CollectionPage({ uid, collectionId }: { uid: string; collectionI
     .filter((row) => row.collectionId === collection.id)
     .sort((a, b) => (collection.key.by === "when" ? b.id.localeCompare(a.id) : a.label.localeCompare(b.label)));
   const cell = (rowId: string, fieldId: string) => values.find((value) => value.subject?.entityId === rowId && value.field === fieldId);
+  const rowIds = new Set(mine.map((row) => row.id));
+  const cells = withUnits(values.filter((value) => value.field && rowIds.has(value.subject?.entityId ?? "")));
+  const scales = scalesOf(collection.fields, cells);
+  const lookup = (rowId: string): RowCells => (fieldId) => cells.find((value) => value.subject?.entityId === rowId && value.field === fieldId);
+  const calculated = collection.columns ?? [];
+  const { totals, columns: averages } = summariseRows(collection, rowIds, values);
+
+  const saveColumns = (next: CalculatedColumn[]) =>
+    void import("./store").then((store) => store.saveColumns(uid, collection.id, next)).catch((error: unknown) => console.error("Dittle could not save", error));
+  const addColumn = (column: CalculatedColumn) => {
+    saveColumns([...calculated, column]);
+    showToast(`Added ${column.name} to ${collection.name}`);
+  };
+  const removeColumn = (column: CalculatedColumn) => {
+    saveColumns(calculated.filter((other) => other.id !== column.id));
+    showToast(`Removed ${column.name}`);
+  };
 
   const change = (value: TrackedValue, text: string, quantity?: Quantity) => {
     setEditing(undefined);
@@ -89,6 +111,21 @@ export function CollectionPage({ uid, collectionId }: { uid: string; collectionI
                         {field.name}
                       </th>
                     ))}
+                    {calculated.map((column) => (
+                      <th key={column.id} className="group py-2 pr-6 font-normal" title={`= ${describeColumn(column, collection.fields) ?? ""}`}>
+                        <span className="inline-flex items-center gap-1.5">
+                          {column.name}
+                          <button
+                            type="button"
+                            onClick={() => removeColumn(column)}
+                            aria-label={`Remove ${column.name}`}
+                            className="text-faint opacity-0 group-hover:opacity-100 hover:text-ink focus-visible:opacity-100"
+                          >
+                            <MIcon name="close" className="size-3" />
+                          </button>
+                        </span>
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
@@ -116,15 +153,60 @@ export function CollectionPage({ uid, collectionId }: { uid: string; collectionI
                             </td>
                           );
                         })}
+                        {calculated.map((column) => (
+                          <td key={column.id} className="py-2.5 pr-6 align-top text-soft tabular-nums">
+                            {columnValue(column, lookup(row.id), scales)?.text ?? <span className="text-faint">–</span>}
+                          </td>
+                        ))}
                       </m.tr>
                     ))}
                   </AnimatePresence>
                 </tbody>
+                {mine.length > 1 && (
+                  <tfoot>
+                    <tr className="align-top text-[12px]">
+                      <td className="py-2.5 pr-6 text-faint">{mine.length} rows</td>
+                      {columns.map((field) => (
+                        <td key={field.id} className="py-2.5 pr-6">
+                          <FooterTotal total={totals.find((item) => item.field.id === field.id)} rows={mine.length} />
+                        </td>
+                      ))}
+                      {averages.map(({ column, average }) => (
+                        <td key={column.id} className="py-2.5 pr-6 text-soft">
+                          {average ? (
+                            <>
+                              avg {average.text}
+                              {average.counted < mine.length && <span className="block text-faint">from {average.counted} of {mine.length}</span>}
+                            </>
+                          ) : null}
+                        </td>
+                      ))}
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
           )}
+          {mine.length > 0 && <AddColumn collection={collection} rows={mine.map((row) => lookup(row.id))} scales={scales} onAdd={addColumn} />}
         </div>
       </div>
+    </>
+  );
+}
+
+function FooterTotal({ total, rows }: { total?: FieldTotal; rows: number }) {
+  if (!total) return null;
+  const from = total.counted < rows ? `from ${total.counted} of ${rows}` : "";
+  return (
+    <>
+      <span className="text-ink tabular-nums">{total.text}</span>
+      {(total.average || from) && (
+        <span className="block text-soft">
+          {total.average && `avg ${total.average} `}
+          <span className="text-faint">{from}</span>
+        </span>
+      )}
+      {total.otherUnits > 0 && <span className="block text-faint">{total.otherUnits} in other units not added</span>}
     </>
   );
 }
