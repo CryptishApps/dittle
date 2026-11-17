@@ -1,10 +1,14 @@
 # Dittle
 
-Change it once. Every note follows.
+Change a number once. Every note that uses it follows.
 
-You write "80 guests" in the catering quote, the budget and the seating plan. Then it's 95. In most notes apps you now hunt down three numbers. In Dittle you change one. The budget and the seating plan follow, and so does the £3,040 catering total that was worked out from it.
+Plans live in notes, and plans are mostly numbers: 80 guests, £38 a head, a deposit due on 4 June, a 5 km run in 27:40. The same number ends up in three or four notes. When it changes, you go looking for every copy, and the one you miss is the one that costs you.
 
-To do that, Dittle has to know that the "80" in one note is the same thing as the "80" in another, and that "£3,040" is 80 × £38. Gemini Nano, running in Chrome on your computer, reads each paragraph as you type and works out what its values are. Deciding whether two values are the same thing, and suggesting tables across all your notes, go to the cloud model when you're online. The cloud also covers for Nano on computers that can't run it.
+Dittle reads the numbers as you write. It works out what each one is, which ones are the same thing in different notes, and which are calculated from others. Change "80 guests" to 95 in one note and the budget, the seating plan and the £3,040 catering total all follow. Log three runs and Dittle offers to make them a table, with the total and average distance worked out and a pace column one click away.
+
+Dittle doesn't summarise your notes. The AI's job is to keep track of what the numbers in them mean.
+
+Gemini Nano, running in Chrome on your computer, reads each paragraph as you type and describes its values. Linking values across notes and suggesting tables go to the cloud model when you're online, because those need judgement across everything you've written. The cloud also covers for Nano on computers that can't run it.
 
 Built for [#BuildHybridAI 2026](https://firebasehybridaihackathon.devpost.com). Live at [dittle.app](https://dittle.app).
 
@@ -94,6 +98,17 @@ Dittle opens and works with no connection.
 - Notes and values live in Firestore with its persistent local cache. Writes are never awaited, so they show at once and sync when you're back.
 - Gemini Nano keeps finding and describing values offline, and linking falls back to it.
 - Signing out or deleting your account wipes the local Firestore cache and the kept query cache, in every open tab.
+
+## Platforms
+
+| Platform | Status | On-device model |
+|---|---|---|
+| Web, desktop Chrome | Live at [dittle.app](https://dittle.app) | Gemini Nano through Chrome's built-in AI, via Firebase AI Logic |
+| Android | Coming soon | Gemini Nano through Firebase AI Logic |
+
+Notes are stored in a small typed format ([note-doc.ts](apps/web/src/features/notes/note-doc.ts)) and formulas in plain symbols, so the Android app can read the same data.
+
+Gemini Nano in Chrome needs Windows 10 or 11, macOS 13 or later, Linux or ChromeOS, about 22 GB of free disk, and either a GPU with more than 4 GB of video memory or 16 GB of RAM with 4 CPU cores. Without it, Dittle runs every job in the cloud.
 
 ## Built on Firebase
 
