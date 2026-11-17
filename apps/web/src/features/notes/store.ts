@@ -1,4 +1,5 @@
 import {
+  arrayUnion,
   clearIndexedDbPersistence,
   collection,
   deleteDoc,
@@ -23,7 +24,7 @@ import { EMPTY_NOTE, relabel, summarise, valueIdsOf, type NoteDoc } from "./note
 
 export type NoteSummary = { id: string; title: string; preview: string; updatedAt: number; pending: boolean; folderId: string | null; valueIds: string[] };
 export type Folder = { id: string; name: string; createdAt: number };
-export type Note = NoteSummary & { doc: NoteDoc };
+export type Note = NoteSummary & { doc: NoteDoc; ignoredRequests: string[] };
 export type { StoredValue } from "./fact";
 
 const notes = (uid: string) => collection(db, "users", uid, "notes");
@@ -49,6 +50,16 @@ function summary(snapshot: DocumentSnapshot<DocumentData>): NoteSummary {
   };
 }
 
+function note(snapshot: DocumentSnapshot<DocumentData>): Note {
+  const data = snapshot.data() ?? {};
+  const ignored: unknown = data.ignoredRequests;
+  return {
+    ...summary(snapshot),
+    doc: (data.doc as NoteDoc | undefined) ?? EMPTY_NOTE,
+    ignoredRequests: Array.isArray(ignored) ? ignored.filter((item): item is string => typeof item === "string") : [],
+  };
+}
+
 export const listenNotes =
   (uid: string): Listen<NoteSummary[]> =>
   async (next, fail) =>
@@ -60,7 +71,7 @@ export const listenNote =
     onSnapshot(
       doc(notes(uid), id),
       { includeMetadataChanges: true },
-      (snapshot) => next(snapshot.exists() ? { ...summary(snapshot), doc: (snapshot.data().doc as NoteDoc | undefined) ?? EMPTY_NOTE } : null),
+      (snapshot) => next(snapshot.exists() ? note(snapshot) : null),
       fail,
     );
 
@@ -136,6 +147,10 @@ export function deleteFolder(uid: string, folder: Folder, noteIds: string[]): ()
 
 export function saveNote(uid: string, id: string, note: NoteDoc): void {
   write(updateDoc(doc(notes(uid), id), { schemaVersion: 1, doc: note, ...summarise(note), valueIds: valueIdsOf(note), updatedAt: serverTimestamp() }));
+}
+
+export function ignoreRequest(uid: string, id: string, text: string): void {
+  write(updateDoc(doc(notes(uid), id), { ignoredRequests: arrayUnion(text) }));
 }
 
 export async function deleteNote(uid: string, id: string): Promise<() => void> {

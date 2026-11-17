@@ -298,7 +298,7 @@ class Scheduler {
     }
     const meta: SetMeta = { block: { from: mapped.pos, to: mapped.pos + block.nodeSize }, placements };
     this.editor.view.dispatch(state.tr.setMeta(spottingKey, meta).setMeta("addToHistory", false));
-    const requests = result.requests.flatMap((request) => {
+    const requests = mapped.pos === 0 ? [] : result.requests.flatMap((request) => {
       const index = text.indexOf(request);
       const range = index === -1 ? undefined : docRange(segments, index, index + request.length);
       return range ? [{ ...range, text: request }] : [];

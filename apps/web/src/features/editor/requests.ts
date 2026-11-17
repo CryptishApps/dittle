@@ -7,12 +7,14 @@ export type RequestItem = { id: string; text: string; status: "writing" | "ready
 export type RequestPlacement = { from: number; to: number; text: string };
 
 type RequestsState = { decorations: DecorationSet; items: Map<string, RequestItem> };
-type RequestsMeta = { block: { from: number; to: number }; placements: (RequestPlacement & { id: string })[] } | { update: RequestItem };
+type RequestsMeta = { block: { from: number; to: number }; placements: (RequestPlacement & { id: string })[] } | { update: RequestItem } | { remove: string };
 
 export const requestsKey = new PluginKey<RequestsState>("requests");
 
 export type RequestsOptions = {
   write: (input: { request: string; noteTitle: string; noteText: string }) => Promise<Written>;
+  ignored: () => string[];
+  onIgnore: (text: string) => void;
 };
 
 function button(view: EditorView, id: string): HTMLElement {
@@ -71,6 +73,10 @@ function requestsPlugin(editor: Editor) {
         const meta = tr.getMeta(requestsKey) as RequestsMeta | undefined;
         if (!meta) return { decorations, items: previous.items };
         const items = new Map(previous.items);
+        if ("remove" in meta) {
+          items.delete(meta.remove);
+          return { decorations: decorations.remove(decorations.find(undefined, undefined, (spec) => spec.id === meta.remove)), items };
+        }
         if ("update" in meta) {
           items.set(meta.update.id, meta.update);
           const old = decorations.find(undefined, undefined, (spec) => spec.id === meta.update.id);
@@ -141,7 +147,12 @@ export function insertRequest(editor: Editor, id: string, removeRequest: boolean
   });
 }
 
-type RequestsStorage = { cache: Map<string, Written>; found: (block: { from: number; to: number }, placements: RequestPlacement[]) => void };
+type RequestsStorage = {
+  cache: Map<string, Written>;
+  ignored: Set<string>;
+  found: (block: { from: number; to: number }, placements: RequestPlacement[]) => void;
+  ignore: (id: string) => void;
+};
 
 declare module "@tiptap/core" {
   interface Storage {
@@ -153,11 +164,11 @@ export const Requests = Extension.create<RequestsOptions, RequestsStorage>({
   name: "requests",
 
   addOptions() {
-    return { write: () => Promise.reject(new Error("Requests need a writer")) };
+    return { write: () => Promise.reject(new Error("Requests need a writer")), ignored: () => [], onIgnore: () => undefined };
   },
 
   addStorage() {
-    return { cache: new Map(), found: () => undefined };
+    return { cache: new Map(), ignored: new Set(), found: () => undefined, ignore: () => undefined };
   },
 
   addProseMirrorPlugins() {
@@ -166,12 +177,20 @@ export const Requests = Extension.create<RequestsOptions, RequestsStorage>({
 
   onCreate() {
     const editor = this.editor;
-    const { cache } = this.storage;
+    const { cache, ignored } = this.storage;
     const update = (item: RequestItem) => {
       if (!editor.isDestroyed) editor.view.dispatch(editor.state.tr.setMeta(requestsKey, { update: item }).setMeta("addToHistory", false));
     };
+    this.storage.ignore = (id) => {
+      const item = requestsKey.getState(editor.state)?.items.get(id);
+      if (!item) return;
+      ignored.add(item.text);
+      this.options.onIgnore(item.text);
+      editor.view.dispatch(editor.state.tr.setMeta(requestsKey, { remove: id }).setMeta("addToHistory", false));
+    };
     this.storage.found = (block, placements) => {
-      const withIds = placements.map((placement) => ({ ...placement, id: `request:${placement.text}` }));
+      const skip = new Set([...ignored, ...this.options.ignored()]);
+      const withIds = placements.filter((placement) => !skip.has(placement.text)).map((placement) => ({ ...placement, id: `request:${placement.text}` }));
       editor.view.dispatch(editor.state.tr.setMeta(requestsKey, { block, placements: withIds }).setMeta("addToHistory", false));
       for (const placement of withIds) {
         const cached = cache.get(placement.text);

@@ -4,7 +4,7 @@ import { planCollection, rowForPlacement } from "@/features/collections/logic";
 import { acceptFormula, describeFormula, inputsFor } from "@/features/formulas/apply";
 import type { EditorServices } from "@/features/editor/services";
 import type { TrackedValue, ValueStore } from "@/features/editor/values";
-import { collectionsQuery, notesQuery, rowsQuery, writes } from "./api";
+import { collectionsQuery, noteQuery, notesQuery, rowsQuery, writes } from "./api";
 import { showToast } from "./toast";
 
 type ServiceInput = { queryClient: QueryClient; uid: string; noteId: string; store: ValueStore };
@@ -78,5 +78,7 @@ export function createEditorServices({ queryClient, uid, noteId, store }: Servic
       writes.createCollection(uid, plan.collection, plan.rows, plan.cells);
       showToast(`Created ${name} with ${plan.cells.length} ${plan.cells.length === 1 ? "value" : "values"}`);
     },
+    ignoredRequests: () => queryClient.getQueryData(noteQuery(uid, noteId).queryKey)?.ignoredRequests ?? [],
+    ignoreRequest: (text) => writes.ignoreRequest(uid, noteId, text),
   };
 }

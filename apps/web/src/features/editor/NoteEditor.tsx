@@ -100,6 +100,8 @@ export function useNoteEditor({ store, content, label, services = {}, autofocus 
       }),
       Requests.configure({
         write: (input) => import("@/features/ai/write").then(({ writeRequest }) => writeRequest(input)),
+        ignored: () => services.ignoredRequests?.() ?? [],
+        onIgnore: (text) => services.ignoreRequest?.(text),
       }),
       ValueTag({ store, onCreate: (value, context) => describeInBackground(store, value, { ...context, noteId }, (described) => void linkTag(described).catch(() => undefined)) }),
     ],

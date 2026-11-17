@@ -55,6 +55,12 @@ export function RequestPreview({ editor }: { editor: Editor }) {
     setTarget(undefined);
   };
 
+  const ignore = () => {
+    if (!target) return;
+    editor.storage.requests.ignore(target.id);
+    setTarget(undefined);
+  };
+
   return (
     <AnimatePresence>
       {target && written && (
@@ -72,7 +78,7 @@ export function RequestPreview({ editor }: { editor: Editor }) {
           className="fixed top-0 left-0 z-50 w-[340px] max-w-[calc(100vw-1rem)] border border-dashed border-line-strong bg-card px-4 py-3 text-[12.5px] shadow-pop"
         >
           <p className="text-[10.5px] tracking-[0.06em] text-faint uppercase">
-            Preview · {written.where === "on_device" ? "on this device" : "in the cloud"} · {(written.ms / 1000).toFixed(1)} s
+            Written {written.where === "on_device" ? "on this device" : "in the cloud"} from your note
           </p>
           <ul className="mt-2 max-h-[240px] space-y-0.5 overflow-y-auto leading-[1.7] text-ink">
             {written.items.map((line, index) => (
@@ -82,12 +88,15 @@ export function RequestPreview({ editor }: { editor: Editor }) {
               </li>
             ))}
           </ul>
-          <div className="mt-3 flex flex-wrap justify-end gap-2 border-t border-line pt-2">
+          <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-2">
+            <button type="button" onClick={ignore} className="mr-auto px-1 py-1 text-[10.5px] tracking-[0.06em] text-faint uppercase hover:text-ink">
+              Ignore
+            </button>
             <button type="button" onClick={() => insert(true)} className="border border-line-strong px-2 py-1 text-[10.5px] tracking-[0.06em] uppercase hover:border-ink">
-              Insert and remove request
+              Replace my text
             </button>
             <button type="button" onClick={() => insert(false)} className="bg-ink px-2 py-1 text-[10.5px] tracking-[0.06em] text-page uppercase hover:opacity-90">
-              Insert
+              Add below
             </button>
           </div>
         </m.div>

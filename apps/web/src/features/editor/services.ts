@@ -8,4 +8,6 @@ export type EditorServices = {
   onNewFact?: (value: TrackedValue) => void;
   placementOf?: (value: TrackedValue) => string | undefined;
   startCollection?: (value: TrackedValue, name: string) => void;
+  ignoredRequests?: () => string[];
+  ignoreRequest?: (text: string) => void;
 };

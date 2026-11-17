@@ -67,6 +67,7 @@ export const writes = {
   renameFolder: (uid: string, id: string, name: string) => later((store) => store.renameFolder(uid, id, name)),
   deleteFolder: async (uid: string, folder: Folder, noteIds: string[]) => (await loadStore()).deleteFolder(uid, folder, noteIds),
   saveNote: (uid: string, id: string, note: NoteDoc) => later((store) => store.saveNote(uid, id, note)),
+  ignoreRequest: (uid: string, id: string, text: string) => later((store) => store.ignoreRequest(uid, id, text)),
   deleteNote: async (uid: string, id: string) => (await loadStore()).deleteNote(uid, id),
   createValue: (uid: string, value: StoredValue) => later((store) => store.createValue(uid, value)),
   updateValue: (uid: string, id: string, patch: Partial<Omit<StoredValue, "id">>) => later((store) => store.updateValue(uid, id, patch)),
@@ -81,7 +82,7 @@ export const writes = {
 export function startNote(queryClient: QueryClient, uid: string, folderId: string | null = null): string {
   const id = writes.createNote(uid, folderId);
   const query = noteQuery(uid, id);
-  const seed: Note = { id, title: "", preview: "", updatedAt: Date.now(), pending: true, folderId, valueIds: [], doc: EMPTY_NOTE };
+  const seed: Note = { id, title: "", preview: "", updatedAt: Date.now(), pending: true, folderId, valueIds: [], doc: EMPTY_NOTE, ignoredRequests: [] };
   queryClient.setQueryData<Note | null>(query.queryKey, seed);
   void queryClient.prefetchQuery({ ...query, staleTime: 0 });
   return id;
