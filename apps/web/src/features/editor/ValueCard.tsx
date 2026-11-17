@@ -1,12 +1,13 @@
 import { autoUpdate, computePosition, flip, offset, shift } from "@floating-ui/dom";
 import type { Editor } from "@tiptap/react";
 import { AnimatePresence, m } from "motion/react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import type { FactFields } from "@/features/notes/fact";
 import { ease } from "@/ui/kit";
 import { describeFormula, formatAmount } from "@/features/formulas/apply";
+import { formatDuration, joinDuration, splitDuration, type DurationParts } from "@/features/formulas/duration";
 import { applyEverywhere as applyToNotes, changeValue, type ChangeScope } from "./change-value";
-import { repoint } from "./linking";
+import { repoint, type Quantity } from "./linking";
 import { foundValueAt, spottingKey } from "./spotting";
 import { VALUE_NODE } from "./value-tag";
 import type { EditorServices } from "./services";
@@ -106,9 +107,9 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
     setTarget(undefined);
   };
 
-  const saveEdit = (value: TrackedValue, text: string, scope: ChangeScope, amount?: number) => {
+  const saveEdit = (value: TrackedValue, text: string, scope: ChangeScope, quantity?: Quantity) => {
     close();
-    changeValue(editor, store, services, value, text, scope, amount);
+    changeValue(editor, store, services, value, text, scope, quantity);
   };
 
   const tag = target?.kind === "tag" ? values.find((value) => value.id === target.id) : undefined;
@@ -119,16 +120,16 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
   const insertTag = (from: number, to: number, id: string, label: string) =>
     editor.chain().focus().insertContentAt({ from, to }, { type: VALUE_NODE, attrs: { id, label, mentionSuggestionChar: "@" } }).run();
 
-  const applyEverywhere = (factId: string, text: string, amount?: number) => applyToNotes(editor, store, services, factId, text, amount);
+  const applyEverywhere = (factId: string, text: string, quantity?: Quantity) => applyToNotes(editor, store, services, factId, text, quantity);
 
   const trackFound = (how: "new" | "same" | "update" | "separate") => {
     const hit = target && foundValueAt(editor.state, target.id);
     setTarget(undefined);
     if (!hit) return;
-    const { quote, kind, name, about, event, when, conditions, remarks, amount, before, after, described, link } = hit.value;
+    const { quote, kind, name, about, event, when, conditions, remarks, amount, before, after, seconds, described, link } = hit.value;
     if (link && (how === "same" || how === "update")) {
       insertTag(hit.from, hit.to, link.factId, quote);
-      if (how === "update") applyEverywhere(link.factId, quote, amount);
+      if (how === "update") applyEverywhere(link.factId, quote, { amount, seconds });
       return;
     }
     const notSame = how === "separate" && link ? [link.factId] : undefined;
@@ -137,7 +138,7 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
     const value = store.add(
       quote,
       described
-        ? { kind, name, subject: about ? { label: about } : undefined, event, when, conditions, remarks, amount, before, after, notSame, origin }
+        ? { kind, name, subject: about ? { label: about } : undefined, event, when, conditions, remarks, amount, before, after, seconds, notSame, origin }
         : { kind, name, notSame, origin },
     );
     insertTag(hit.from, hit.to, value.id, quote);
@@ -151,7 +152,7 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
     if (!factId) return;
     if (!accept) return store.update(value.id, { proposal: undefined, notSame: [...(value.notSame ?? []), factId] });
     repoint(editor, value.id, factId, value.text);
-    applyEverywhere(factId, value.text, value.amount);
+    applyEverywhere(factId, value.text, { amount: value.amount, seconds: value.seconds });
     store.remove(value.id);
   };
 
@@ -189,7 +190,7 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
             {[nameOf(shown), shown.kind, shown.event === undefined ? undefined : shown.event ? "event" : "ongoing"].filter(Boolean).join(" · ")}
           </p>
           {tag && editing && !tag.proposal && !tag.formula && (
-            <EditValue value={tag} count={usage(tag.id)} onSave={(text, scope, amount) => saveEdit(tag, text, scope, amount)} onCancel={close} />
+            <EditValue value={tag} count={usage(tag.id)} onSave={(text, scope, quantity) => saveEdit(tag, text, scope, quantity)} onCancel={close} />
           )}
           {tag?.formula && <p className="mt-1 text-soft">= {describeFormula(tag, (id) => store.get(id)) ?? "a formula"}</p>}
           {tag && !editing && tag.history?.length ? <p className="mt-1 text-faint">Was {tag.history.at(-1)!.text}</p> : null}
@@ -267,6 +268,8 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
   );
 }
 
+const NUMBER_INPUT = "h-full min-w-0 bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none";
+
 function Actions({ children }: { children: ReactNode }) {
   const items = Array.isArray(children) ? children.filter(Boolean) : children;
   if (!items || (Array.isArray(items) && items.length === 0)) return null;
@@ -324,6 +327,29 @@ export function StartCollection({ value, onStart }: { value: TrackedValue; onSta
   );
 }
 
+type Edited = { text: string; quantity?: Quantity };
+
+const DURATION_UNITS = [
+  { part: "hours", label: "h" },
+  { part: "minutes", label: "min" },
+  { part: "seconds", label: "s" },
+] as const;
+
+type DurationDraft = Record<keyof DurationParts, string>;
+
+const durationDraft = (seconds: number | undefined): DurationDraft => {
+  if (seconds === undefined) return { hours: "", minutes: "", seconds: "" };
+  const parts = splitDuration(seconds);
+  return { hours: String(parts.hours), minutes: String(parts.minutes), seconds: String(parts.seconds) };
+};
+
+function durationFrom(draft: DurationDraft): Edited | undefined {
+  const parts = { hours: Number(draft.hours || 0), minutes: Number(draft.minutes || 0), seconds: Number(draft.seconds || 0) };
+  if (Object.values(parts).some((part) => !Number.isFinite(part) || part < 0)) return undefined;
+  const seconds = joinDuration(parts);
+  return seconds > 0 ? { text: formatDuration(seconds), quantity: { seconds } } : undefined;
+}
+
 export function EditValue({
   value,
   count,
@@ -333,53 +359,83 @@ export function EditValue({
 }: {
   value: TrackedValue;
   count: number;
-  onSave: (text: string, scope: ChangeScope, amount?: number) => void;
+  onSave: (text: string, scope: ChangeScope, quantity?: Quantity) => void;
   onCancel: () => void;
   autoFocus?: boolean;
 }) {
-  const numeric = value.amount !== undefined;
+  const duration = value.kind === "duration";
+  const numeric = !duration && value.amount !== undefined;
   const [text, setText] = useState(numeric ? String(value.amount) : value.text);
+  const [draft, setDraft] = useState(() => durationDraft(value.seconds));
   const [asking, setAsking] = useState(false);
-  const next = () => {
-    if (!numeric) return { text: text.trim(), amount: undefined };
+  const next = (): Edited | undefined => {
+    if (duration) return durationFrom(draft);
+    if (!numeric) return { text: text.trim() };
     const amount = Number(text);
-    return Number.isFinite(amount) && text.trim() !== "" ? { text: formatAmount(value, amount), amount } : undefined;
+    return Number.isFinite(amount) && text.trim() !== "" ? { text: formatAmount(value, amount), quantity: { amount } } : undefined;
   };
   const submit = () => {
     const result = next();
-    if (!result?.text || result.text === value.text) return onCancel();
+    if (!result?.text || result.text === value.text || (duration && result.quantity?.seconds === value.seconds)) return onCancel();
     if (count > 1) setAsking(true);
-    else onSave(result.text, "everywhere", result.amount);
+    else onSave(result.text, "everywhere", result.quantity);
   };
   const save = (scope: ChangeScope) => {
     const result = next();
-    if (result) onSave(result.text, scope, result.amount);
+    if (result) onSave(result.text, scope, result.quantity);
+  };
+  const keys = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      submit();
+    }
+    if (event.key === "Escape") onCancel();
   };
   return (
     <div className="mt-2">
-      <div className="flex h-8 items-center border border-accent bg-card px-2 text-[13px]">
-        {numeric && value.before && <span className="text-soft">{value.before}</span>}
-        <input
-          autoFocus={autoFocus}
-          type={numeric ? "number" : "text"}
-          step="any"
-          aria-label={`Change ${nameOf(value)}`}
-          value={text}
-          onChange={(event) => {
-            setText(event.target.value);
-            setAsking(false);
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              submit();
-            }
-            if (event.key === "Escape") onCancel();
-          }}
-          className="h-full min-w-0 flex-1 bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-        />
-        {numeric && value.after && <span className="text-soft">{value.after}</span>}
-      </div>
+      {duration ? (
+        <div className="flex gap-1.5" role="group" aria-label={`Change ${nameOf(value)}`}>
+          {DURATION_UNITS.map(({ part, label }, index) => (
+            <label key={part} className="flex h-8 min-w-0 flex-1 items-center border border-accent bg-card px-2 text-[13px]">
+              <input
+                autoFocus={autoFocus && index === 0}
+                type="number"
+                min={0}
+                step={1}
+                inputMode="numeric"
+                aria-label={part}
+                placeholder="0"
+                value={draft[part]}
+                onChange={(event) => {
+                  setDraft((current) => ({ ...current, [part]: event.target.value }));
+                  setAsking(false);
+                }}
+                onKeyDown={keys}
+                className={`${NUMBER_INPUT} w-full text-right tabular-nums`}
+              />
+              <span className="ml-1 text-soft">{label}</span>
+            </label>
+          ))}
+        </div>
+      ) : (
+        <div className="flex h-8 items-center border border-accent bg-card px-2 text-[13px]">
+          {numeric && value.before && <span className="text-soft">{value.before}</span>}
+          <input
+            autoFocus={autoFocus}
+            type={numeric ? "number" : "text"}
+            step="any"
+            aria-label={`Change ${nameOf(value)}`}
+            value={text}
+            onChange={(event) => {
+              setText(event.target.value);
+              setAsking(false);
+            }}
+            onKeyDown={keys}
+            className={`${NUMBER_INPUT} flex-1`}
+          />
+          {numeric && value.after && <span className="text-soft">{value.after}</span>}
+        </div>
+      )}
       {asking ? (
         <div className="mt-2">
           <p className="text-accent-ink">

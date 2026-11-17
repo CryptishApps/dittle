@@ -246,8 +246,8 @@ class Scheduler {
         placed.forEach((value, index) => {
           const described = values[index];
           if (described) {
-            const { about, event, when, conditions, remarks, amount, before, after } = described;
-            context.set(value.id, { about, event, when, conditions, remarks, amount, before, after });
+            const { about, event, when, conditions, remarks, amount, before, after, seconds } = described;
+            context.set(value.id, { about, event, when, conditions, remarks, amount, before, after, seconds });
           }
         });
         this.editor.view.dispatch(this.editor.state.tr.setMeta(spottingKey, { context }).setMeta("addToHistory", false));

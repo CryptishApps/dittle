@@ -15,6 +15,14 @@ const runs: Collection = {
   ],
 };
 const row = (period: string): Row => ({ id: `c.${period}`, collectionId: "c", label: period, period, createdAt: 0 });
+const timed = (rowId: string, text: string, seconds?: number): StoredValue => ({
+  id: `${rowId}:time`,
+  text,
+  kind: "duration",
+  field: "time",
+  subject: { label: "run", entityId: rowId },
+  ...(seconds !== undefined && { seconds }),
+});
 const cell = (rowId: string, field: string, text: string, amount?: number, after = " km"): StoredValue => ({
   id: `${rowId}:${field}`,
   text,
@@ -46,6 +54,20 @@ describe("summariseCollection", () => {
     const rows = [row("2026-11-03"), row("2026-11-10"), row("2026-11-15")];
     const values = [cell("c.2026-11-03", "distance", "6 km", 6), cell("c.2026-11-10", "distance", "3 miles", 3, " miles"), cell("c.2026-11-15", "distance", "5 km", 5)];
     expect(summariseCollection(runs, rows, values, today).totals[0]).toMatchObject({ text: "11 km", counted: 2, otherUnits: 1 });
+  });
+
+  test("adds up durations in seconds and leaves out ones without a length", () => {
+    const rows = [row("2026-11-03"), row("2026-11-10"), row("2026-11-15")];
+    const values = [timed("c.2026-11-03", "27:40", 1660), timed("c.2026-11-10", "half an hour", 1800), timed("c.2026-11-15", "2740"), cell("c.2026-11-15", "distance", "5 km", 5)];
+    const [distance, time] = summariseCollection(runs, rows, values, today).totals;
+    expect(distance).toMatchObject({ text: "5 km", counted: 1 });
+    expect(time).toMatchObject({ text: "57:40", counted: 2, otherUnits: 0 });
+  });
+
+  test("shows a duration total of an hour or more in hours and minutes", () => {
+    const rows = [row("2026-11-03"), row("2026-11-10")];
+    const values = [timed("c.2026-11-03", "1:05:00", 3900), timed("c.2026-11-10", "55 minutes", 3300)];
+    expect(summariseCollection(runs, rows, values, today).totals).toMatchObject([{ field: { id: "time" }, text: "2 h", counted: 2 }]);
   });
 
   test("falls back to all rows when nothing happened this month", () => {

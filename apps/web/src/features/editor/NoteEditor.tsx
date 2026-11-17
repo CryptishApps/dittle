@@ -28,7 +28,7 @@ const rememberedFind = remembered(
 );
 
 const rememberedDescribe = remembered(
-  `describe:${DESCRIBE_PROMPT_VERSION}:units-in-quote`,
+  `describe:${DESCRIBE_PROMPT_VERSION}`,
   (input: { paragraph: string; noteTitle: string; quotes: string[] }) => import("@/features/ai/describe").then(({ describeValues }) => describeValues(input)),
   (input) => [input.paragraph, input.noteTitle, input.quotes, today()],
 );

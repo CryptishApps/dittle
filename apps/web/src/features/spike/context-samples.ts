@@ -10,6 +10,7 @@ export type ExpectedContext = {
   when?: { on: string; grain: Grain } | null;
   conditions?: string[];
   remarks?: string[];
+  seconds?: number;
 };
 
 export type ContextCase = { id: string; note: string; text: string; expect: ExpectedContext[] };
@@ -64,6 +65,39 @@ export const CONTEXT_CASES: ContextCase[] = [
     expect: [
       { quote: "2", about: "Mia", event: true, when: { on: "2026-11-15", grain: "day" } },
       { quote: "2", about: "Leo", event: true, when: { on: "2026-11-15", grain: "day" } },
+    ],
+  },
+  {
+    id: "d1",
+    note: "Training log",
+    text: "Parkrun this morning: 5 km in 27:40, my best yet.",
+    expect: [
+      { quote: "5 km", about: "run", event: true, when: { on: "2026-11-16", grain: "day" } },
+      { quote: "27:40", kind: "duration", about: "run", event: true, seconds: 1660 },
+    ],
+  },
+  {
+    id: "d2",
+    note: "Lisbon trip",
+    text: "The flight from Gatwick to Lisbon is 2:40 each way.",
+    expect: [{ quote: "2:40", kind: "duration", about: "flight", event: false, seconds: 9600 }],
+  },
+  {
+    id: "d3",
+    note: "Recipes",
+    text: "Slow-roast the lamb shoulder for 4 hours, then rest it for 20 minutes.",
+    expect: [
+      { quote: "4 hours", kind: "duration", seconds: 14_400 },
+      { quote: "20 minutes", kind: "duration", seconds: 1200 },
+    ],
+  },
+  {
+    id: "d4",
+    note: "Cycling",
+    text: "Sunday's 60 km ride took 2:05:30 with one stop.",
+    expect: [
+      { quote: "60 km", about: "ride", event: true, when: { on: "2026-11-15", grain: "day" } },
+      { quote: "2:05:30", kind: "duration", about: "ride", event: true, when: { on: "2026-11-15", grain: "day" }, seconds: 7530 },
     ],
   },
 ];

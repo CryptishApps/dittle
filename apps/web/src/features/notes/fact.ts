@@ -19,6 +19,7 @@ export type FactFields = {
   amount?: number;
   before?: string;
   after?: string;
+  seconds?: number;
   formula?: { expr: string; inputs: string[] };
   updatedAt?: number;
 };

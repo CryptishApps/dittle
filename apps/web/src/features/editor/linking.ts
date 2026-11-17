@@ -85,19 +85,24 @@ export function relabelInEditor(editor: Editor, valueId: string, label: string):
   if (tr.docChanged) editor.view.dispatch(tr);
 }
 
-export type Change = { id: string; text: string; amount?: number };
+export type Quantity = Pick<FactFields, "amount" | "seconds">;
+export type Change = { id: string; text: string } & Quantity;
 
-export function changeEverywhere(store: ValueStore, factId: string, text: string, amount?: number): Change[] {
+const sameQuantity = (fact: Quantity, next: Quantity) =>
+  (next.amount === undefined || next.amount === fact.amount) && (next.seconds === undefined || next.seconds === fact.seconds);
+
+export function changeEverywhere(store: ValueStore, factId: string, text: string, quantity: Quantity = {}): Change[] {
   const fact = store.get(factId);
-  if (!fact || (fact.text === text && fact.amount === amount)) return [];
-  const changes: Change[] = [{ id: factId, text, amount }];
-  if (amount !== undefined) changes.push(...recompute(factId, store.list(), new Map([[factId, amount]])));
+  if (!fact || (fact.text === text && sameQuantity(fact, quantity))) return [];
+  const changes: Change[] = [{ id: factId, text, ...quantity }];
+  if (quantity.amount !== undefined) changes.push(...recompute(factId, store.list(), new Map([[factId, quantity.amount]])));
   for (const change of changes) {
     const current = store.get(change.id);
     if (!current) continue;
     store.update(change.id, {
       text: change.text,
       ...(change.amount !== undefined && { amount: change.amount }),
+      ...(change.seconds !== undefined && { seconds: change.seconds }),
       history: [...(current.history ?? []), { text: current.text, at: Date.now() }].slice(-10),
     });
   }

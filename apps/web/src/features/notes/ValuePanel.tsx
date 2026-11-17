@@ -79,7 +79,7 @@ export function ValuePanel({ uid, noteId, valueId, editor, store, services, onCl
               value={value}
               count={usedIn.length}
               autoFocus={false}
-              onSave={(text, scope, amount) => changeValue(editor, store, services, value, text, scope, amount)}
+              onSave={(text, scope, quantity) => changeValue(editor, store, services, value, text, scope, quantity)}
               onCancel={onClose}
             />
           </div>

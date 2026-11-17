@@ -1,5 +1,6 @@
 import type { Collection, CollectionField, Row, StoredValue } from "@/features/notes/fact";
 import { formatAmount } from "@/features/formulas/apply";
+import { formatDuration } from "@/features/formulas/duration";
 import { rowLabel } from "./format";
 
 export type FieldTotal = { field: CollectionField; text: string; counted: number; otherUnits: number };
@@ -15,7 +16,14 @@ export type CollectionSummary = {
 const SUMMABLE = new Set(["money", "count", "number"]);
 const unitOf = (value: StoredValue) => `${(value.before ?? "").trim()}|${(value.after ?? "").trim()}`;
 
+function durationTotal(field: CollectionField, cells: StoredValue[]): FieldTotal | undefined {
+  const lengths = cells.flatMap((cell) => cell.seconds ?? []);
+  if (lengths.length === 0) return undefined;
+  return { field, text: formatDuration(lengths.reduce((total, seconds) => total + seconds, 0)), counted: lengths.length, otherUnits: 0 };
+}
+
 function totalFor(field: CollectionField, cells: StoredValue[]): FieldTotal | undefined {
+  if (field.kind === "duration") return durationTotal(field, cells);
   const amounts = cells.filter((cell) => cell.amount !== undefined && SUMMABLE.has(cell.kind ?? field.kind));
   if (amounts.length === 0) return undefined;
   const tally = new Map<string, StoredValue[]>();

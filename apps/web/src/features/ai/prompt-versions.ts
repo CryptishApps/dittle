@@ -1,1 +1,1 @@
-export const DESCRIBE_PROMPT_VERSION = "v7";
+export const DESCRIBE_PROMPT_VERSION = "v8";
