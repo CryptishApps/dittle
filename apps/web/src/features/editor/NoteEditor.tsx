@@ -1,8 +1,13 @@
-import { TaskItem, TaskList } from "@tiptap/extension-list";
-import { Placeholder } from "@tiptap/extensions";
+import { Bold } from "@tiptap/extension-bold";
+import { HardBreak } from "@tiptap/extension-hard-break";
+import { Heading } from "@tiptap/extension-heading";
+import { Italic } from "@tiptap/extension-italic";
+import { BulletList, ListItem, ListKeymap, TaskItem, TaskList } from "@tiptap/extension-list";
+import { Paragraph } from "@tiptap/extension-paragraph";
+import { Text } from "@tiptap/extension-text";
+import { Dropcursor, Gapcursor, Placeholder, TrailingNode, UndoRedo } from "@tiptap/extensions";
 import { EditorContent, useEditor, type Content, type Editor } from "@tiptap/react";
 import { useEffect, useRef } from "react";
-import { StarterKit } from "@tiptap/starter-kit";
 import { remembered } from "@/features/ai/cache";
 import { deviceModelStatus } from "@/features/ai/device-model";
 import { DESCRIBE_PROMPT_VERSION } from "@/features/ai/prompt-versions";
@@ -76,19 +81,19 @@ export function useNoteEditor({ store, content, label, services = {}, autofocus 
     extensions: [
       TitleDocument,
       TitleKeys,
-      StarterKit.configure({
-        document: false,
-        trailingNode: { node: "paragraph" },
-        heading: { levels: [1, 2, 3] },
-        blockquote: false,
-        code: false,
-        codeBlock: false,
-        horizontalRule: false,
-        link: false,
-        orderedList: false,
-        strike: false,
-        underline: false,
-      }),
+      Bold,
+      BulletList,
+      Dropcursor,
+      Gapcursor,
+      HardBreak,
+      Heading.configure({ levels: [1, 2, 3] }),
+      UndoRedo,
+      Italic,
+      ListItem,
+      ListKeymap,
+      Paragraph,
+      Text,
+      TrailingNode.configure({ node: "paragraph" }),
       TaskList,
       TaskItem.configure({ nested: false }),
       Placeholder.configure({
