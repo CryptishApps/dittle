@@ -1,11 +1,17 @@
+import { FirebaseError } from "firebase/app";
 import {
   applyActionCode,
+  AuthErrorCodes,
   browserPopupRedirectResolver,
   checkActionCode,
   confirmPasswordReset,
   createUserWithEmailAndPassword,
+  deleteUser,
+  EmailAuthProvider,
   GoogleAuthProvider,
   onIdTokenChanged,
+  reauthenticateWithCredential,
+  reauthenticateWithPopup,
   sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
@@ -17,7 +23,7 @@ import {
   type User,
 } from "firebase/auth";
 import { auth } from "./firebase";
-import { publishSession, type Session } from "./session";
+import { confirmMethod, publishSession, type Session } from "./session";
 
 onIdTokenChanged(auth, (user) => publishSession(toSession(user)));
 
@@ -88,6 +94,21 @@ export async function recoverEmail(code: string): Promise<string | undefined> {
 
 export async function signOut(): Promise<void> {
   await firebaseSignOut(auth);
+}
+
+export async function confirmIdentity(user: User, password: string): Promise<void> {
+  if (confirmMethod(user) === "password") await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email ?? "", password));
+  else await reauthenticateWithPopup(user, new GoogleAuthProvider(), browserPopupRedirectResolver);
+}
+
+export async function deleteSignedInUser(user: User): Promise<"deleted" | "confirm-identity"> {
+  try {
+    await deleteUser(user);
+    return "deleted";
+  } catch (error) {
+    if (error instanceof FirebaseError && error.code === AuthErrorCodes.CREDENTIAL_TOO_OLD_LOGIN_AGAIN) return "confirm-identity";
+    throw error;
+  }
 }
 
 function toSession(user: User | null): Session {

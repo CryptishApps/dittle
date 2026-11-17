@@ -5,6 +5,7 @@ import {
   deleteDoc,
   doc,
   getDocFromCache,
+  getDocsFromServer,
   onSnapshot,
   orderBy,
   query,
@@ -32,6 +33,8 @@ const values = (uid: string) => collection(db, "users", uid, "values");
 const folders = (uid: string) => collection(db, "users", uid, "folders");
 const collectionsOf = (uid: string) => collection(db, "users", uid, "collections");
 const rowsOf = (uid: string) => collection(db, "users", uid, "entities");
+
+const BATCH_LIMIT = 500;
 
 const write = (pending: Promise<void>) => void pending.catch((error: unknown) => console.error("Dittle could not save", error));
 
@@ -176,6 +179,16 @@ export function deleteValue(uid: string, id: string): void {
 
 export function updateValue(uid: string, id: string, patch: Partial<Omit<StoredValue, "id">>): void {
   write(updateDoc(doc(values(uid), id), { ...patch, updatedAt: serverTimestamp() }));
+}
+
+export async function deleteEverything(uid: string): Promise<void> {
+  const all = await Promise.all([notes, values, folders, collectionsOf, rowsOf].map((of) => getDocsFromServer(of(uid))));
+  const refs = all.flatMap((snapshot) => snapshot.docs.map((item) => item.ref));
+  for (let start = 0; start < refs.length; start += BATCH_LIMIT) {
+    const batch = writeBatch(db);
+    refs.slice(start, start + BATCH_LIMIT).forEach((ref) => batch.delete(ref));
+    await batch.commit();
+  }
 }
 
 export async function forgetThisDevice(): Promise<void> {

@@ -19,6 +19,7 @@ const MESSAGES: Record<string, string> = {
   "auth/operation-not-allowed": "This sign-in method isn't turned on yet.",
   "auth/admin-restricted-operation": "This sign-in method isn't turned on yet.",
   "auth/configuration-not-found": "Sign-in isn't set up for this Firebase project yet.",
+  "auth/user-mismatch": "That's a different account. Use the one you're signed in with.",
   "auth/unauthorized-domain": "This web address isn't allowed to sign in yet.",
 };
 

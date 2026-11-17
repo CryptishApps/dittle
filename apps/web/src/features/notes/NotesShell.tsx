@@ -3,12 +3,13 @@ import { Link, Outlet, useNavigate, useRouter } from "@tanstack/react-router";
 import type { User } from "firebase/auth";
 import { AnimatePresence, m } from "motion/react";
 import { DropdownMenu } from "radix-ui";
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import { useDeviceModel, type DeviceModelStatus } from "@/features/ai/device-model";
 import { loadAuth } from "@/lib/session";
 import { Btn, ease, MIcon } from "@/ui/kit";
 import { Wordmark } from "@/ui/Wordmark";
 import { loadStore, startNote } from "./api";
+import { DeleteAccountDialog } from "./DeleteAccount";
 import { MENU_CONTENT, MenuItem } from "./NoteTree";
 import { SearchDialog, useSearchShortcut } from "./Search";
 import { dismissToast, useToast } from "./toast";
@@ -33,6 +34,8 @@ export function NotesShell({ user }: { user: User }) {
   const toast = useToast();
   const [leaving, setLeaving] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const accountButton = useRef<HTMLButtonElement>(null);
   const openSearch = useCallback(() => setSearching(true), []);
   useSearchShortcut(openSearch);
 
@@ -79,7 +82,14 @@ export function NotesShell({ user }: { user: User }) {
             <MIcon name="plus" className="size-3.5" />
             New note
           </Btn>
-          <AccountMenu user={user} online={online} leaving={leaving} onSignOut={() => void signOut()} />
+          <AccountMenu
+            user={user}
+            online={online}
+            leaving={leaving}
+            trigger={accountButton}
+            onSignOut={() => void signOut()}
+            onDeleteAccount={() => setDeletingAccount(true)}
+          />
         </div>
       </header>
 
@@ -88,6 +98,7 @@ export function NotesShell({ user }: { user: User }) {
       </main>
 
       <SearchDialog uid={user.uid} open={searching} onOpenChange={setSearching} />
+      <DeleteAccountDialog user={user} online={online} open={deletingAccount} onOpenChange={setDeletingAccount} returnFocus={() => accountButton.current?.focus()} />
 
       <AnimatePresence>
         {toast && (
@@ -121,11 +132,21 @@ export function NotesShell({ user }: { user: User }) {
   );
 }
 
-function AccountMenu({ user, online, leaving, onSignOut }: { user: User; online: boolean; leaving: boolean; onSignOut: () => void }) {
+type AccountMenuProps = {
+  user: User;
+  online: boolean;
+  leaving: boolean;
+  trigger: RefObject<HTMLButtonElement | null>;
+  onSignOut: () => void;
+  onDeleteAccount: () => void;
+};
+
+function AccountMenu({ user, online, leaving, trigger, onSignOut, onDeleteAccount }: AccountMenuProps) {
   const name = user.displayName ?? user.email ?? "Account";
   return (
     <DropdownMenu.Root modal={false}>
       <DropdownMenu.Trigger
+        ref={trigger}
         aria-label="Account and status"
         className="relative grid size-7 place-items-center border border-line-strong bg-card text-[11px] font-medium text-ink uppercase hover:border-ink data-[state=open]:border-ink"
       >
@@ -134,19 +155,22 @@ function AccountMenu({ user, online, leaving, onSignOut }: { user: User; online:
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content align="end" sideOffset={6} className={`${MENU_CONTENT} w-[260px] text-[12px]`}>
-          <p className="truncate px-2.5 pt-1.5 pb-2 text-faint">{name}</p>
+          <DropdownMenu.Label className="truncate px-2.5 pt-1.5 pb-2 text-faint">{name}</DropdownMenu.Label>
           <DropdownMenu.Separator className="my-1 h-px bg-line" />
           <DropdownMenu.Item asChild>
             <Link to="/ai" className="flex items-center gap-2 px-2.5 py-1.5 text-soft outline-none data-[highlighted]:bg-panel data-[highlighted]:text-ink">
               <DeviceModelStatus />
             </Link>
           </DropdownMenu.Item>
-          <p className="flex items-center gap-2 px-2.5 py-1.5 text-soft">
+          <DropdownMenu.Label className="flex items-center gap-2 px-2.5 py-1.5 text-soft">
             <span aria-hidden className={`size-1.5 ${online ? "bg-ink" : "bg-accent"}`} />
             {online ? "Online · synced" : "Offline · saved on this device"}
-          </p>
+          </DropdownMenu.Label>
           <DropdownMenu.Separator className="my-1 h-px bg-line" />
           <MenuItem onSelect={onSignOut}>{leaving ? "Signing out" : "Sign out"}</MenuItem>
+          <MenuItem onSelect={onDeleteAccount} danger>
+            Delete account
+          </MenuItem>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>

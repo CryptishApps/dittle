@@ -36,6 +36,12 @@ export function useSession(): Session | undefined {
   );
 }
 
+export type ConfirmMethod = "password" | "google";
+
+export function confirmMethod(user: User): ConfirmMethod {
+  return user.providerData.some((info) => info.providerId === "password") ? "password" : "google";
+}
+
 let loading: Promise<typeof import("./auth")> | undefined;
 
 export function loadAuth(): Promise<typeof import("./auth")> {
