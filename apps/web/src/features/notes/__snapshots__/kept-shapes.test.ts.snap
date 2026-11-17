@@ -4,6 +4,17 @@ exports[`shapes kept on the device change KEPT_SHAPES_VERSION whenever this snap
 {
   "shapes": {
     "collection": {
+      "columns": [
+        {
+          "expr": "string",
+          "id": "string",
+          "inputs": [
+            "string",
+            "string",
+          ],
+          "name": "string",
+        },
+      ],
       "createdAt": "number",
       "fields": [
         {
@@ -131,6 +142,7 @@ exports[`shapes kept on the device change KEPT_SHAPES_VERSION whenever this snap
         "label": "string",
       },
       "text": "string",
+      "unit": "string",
       "updatedAt": "number",
       "when": {
         "grain": "string",
@@ -138,6 +150,6 @@ exports[`shapes kept on the device change KEPT_SHAPES_VERSION whenever this snap
       },
     },
   },
-  "version": "2",
+  "version": "3",
 }
 `;

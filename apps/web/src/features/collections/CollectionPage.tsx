@@ -54,8 +54,7 @@ export function CollectionPage({ uid, collectionId }: { uid: string; collectionI
   const calculated = collection.columns ?? [];
   const { totals, columns: averages } = summariseRows(collection, rowIds, values);
 
-  const saveColumns = (next: CalculatedColumn[]) =>
-    void import("./store").then((store) => store.saveColumns(uid, collection.id, next)).catch((error: unknown) => console.error("Dittle could not save", error));
+  const saveColumns = (next: CalculatedColumn[]) => writes.saveColumns(uid, collection.id, next);
   const addColumn = (column: CalculatedColumn) => {
     saveColumns([...calculated, column]);
     showToast(`Added ${column.name} to ${collection.name}`);

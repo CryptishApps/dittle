@@ -14,7 +14,7 @@ Use desktop Chrome. If your computer can run Gemini Nano, Dittle offers to downl
 
 1. Sign up, then click "Rosa's Kitchen quoted £38 a head for 80 guests." on the first page. Dittle opens it as a note and underlines the values it found. Hover one to see what it thinks it is.
 2. Start a note called "Catering". Type `Buffet for @80` and press Tab, then `guests at @£38` and Tab, then `a head, so about @£3,040` and Tab. Tab tags the value and adds the space after it. A couple of seconds later a message says £3,040 now follows the price per head × the guest count. The wording comes from the names Nano gave the values.
-3. Start another note, type `@80` and pick the 80 you already have from the menu.
+3. Start another note and type `@80`. The menu's first line makes a new value; press ↓ to pick the 80 you already have, then Tab.
 4. Click the 80, change it to 95 and choose Update all. Both notes change, and £3,040 becomes £3,610.
 5. Type `/` on a new line, pick "Ask Dittle to write…", type `a packing list for a weekend in Lisbon` and press Enter. Hover the button that appears to preview the list.
 6. Open `/ai` to see every AI call and whether it ran on your device or in the cloud.
@@ -26,9 +26,10 @@ Every call goes through [Firebase AI Logic](https://firebase.google.com/docs/ai-
 | Job | Runs | Why |
 |---|---|---|
 | Find values in a paragraph as you type | Nano first | It runs on every paragraph you finish, so it has to be free, fast and private. Nano finds 97% of values. |
-| Describe a value (what it measures, which day, what it belongs to, its number, its duration) | Nano first | Same reason. It only sees the one paragraph. |
+| Describe a value (what it measures, which day, what it belongs to, its number, unit and duration) | Nano first | Same reason. It only sees the one paragraph. |
 | Place a value in a collection | Nano first | Picks a collection, column and row from numbered options. |
 | Spot a formula (£3,040 = 80 × £38) | Nano first | Suggests a formula; code checks it reproduces the number. |
+| Suggest a calculated column (pace = time ÷ distance) | Nano first | Picks two columns of a collection; code checks the units fit and works out every row. |
 | Write a request ("add a packing list here") | Nano first | Short text, written from the note itself. |
 | Link a value to one you already track | Cloud first, Nano offline | Nano got 7 of 11 test cases right, the cloud 10 of 11. A wrong link merges two different values, so this one goes to the cloud when it can. |
 | Suggest collections ("you've logged 3 runs, make a Runs table?") | Cloud only | Needs every value at once. It gets the extracted values and note titles, never note text. |
@@ -42,22 +43,24 @@ The models never write into your notes directly. Every answer goes through a che
 - **Quotes are grounded.** A value Find returns is only used if its text appears exactly in your paragraph. Same for a new row name in a collection.
 - **Choices come from a list.** Kinds come from a fixed set. Collections, columns, rows and link targets are numbered options. An answer outside the list is dropped.
 - **Code does the maths.** Formulas run in a small parser ([engine.ts](apps/web/src/features/formulas/engine.ts)), not `eval` and not the model. A suggested formula is kept only if it reproduces the written number within 2% ([apply.ts](apps/web/src/features/formulas/apply.ts)).
+- **Units come from a fixed list.** Describe names a unit (km, mi, kg…) or an ISO 4217 currency code. Code converts miles to km with fixed factors for totals and averages, never converts currencies, and leaves out entries it can't combine instead of guessing ([units.ts](apps/web/src/features/formulas/units.ts)).
 - **Durations come back as ISO 8601.** "27:40" for a run is `PT27M40S`; "2:40" for a flight is `PT2H40M`. The model reads the context and code parses the strict format into seconds ([duration.ts](apps/web/src/features/formulas/duration.ts)).
 - **Nothing changes silently.** If a new value looks like one you already track but the text differs, Dittle asks before touching anything.
 - **No keyword guessing.** No regex or word list decides what your text means. The few places that split text use `Intl.Segmenter` for sentence ends or the exact position of a quote.
 
 ## How well it works
 
-The test page at `/dev/describe` (dev server only) runs 28 paragraphs, 12 context cases and 11 link cases through the real prompts and scores them ([spike](apps/web/src/features/spike)). The prompt examples are kept different from the test sentences.
+The test page at `/dev/describe` (dev server only) runs 28 paragraphs, 15 context cases and 11 link cases through the real prompts and scores them ([spike](apps/web/src/features/spike)). The prompt examples are kept different from the test sentences.
 
-| | Cloud (Find v9) | Gemini Nano in Chrome 157 (Find v8) |
+| | Cloud (prompts v10) | Gemini Nano in Chrome 157 (prompts v8) |
 |---|---|---|
 | Values found | 100% | 97% |
 | Found values that are right | 98.5% | 97% |
 | Kind right | 100% | 98% |
 | Requests told apart from reminders | 100% | 93% |
-| Context fields right (not counting durations) | 70 of 71 | 64 of 71 |
-| Durations read correctly | 5 of 5 | not measured; Chrome sent these to the cloud |
+| Context fields right (not counting durations) | 71 of 71 | 64 of 71 |
+| Durations read correctly | 6 of 6 | not measured; Chrome sent these to the cloud |
+| Unit right | 12 of 13 | not measured yet |
 | Links | 10 of 11 | 7 of 11 |
 | Median time per paragraph | about 1 s | about 3 s |
 
@@ -127,7 +130,7 @@ Deploy with `bun run deploy`, which builds and then deploys Hosting and the Fire
 apps/web/src/features/ai           Prompts, schemas and answer checks for each job; hybrid.ts wraps AI Logic
 apps/web/src/features/editor       Tiptap editor: @ tags, / menu, value spotting, requests, value cards
 apps/web/src/features/notes        Firestore store, TanStack Query wiring, home page, note page, value panel, search
-apps/web/src/features/collections  Collections: placement, totals, suggestions, collection page
+apps/web/src/features/collections  Collections: placement, totals and averages, calculated columns, suggestions
 apps/web/src/features/formulas     Formula parser, checks and recalculation; duration parsing
 apps/web/src/features/spike        Test sets and scoring for /dev/describe
 apps/web/build                     Vite plugins: route preloading, service worker

@@ -8,12 +8,13 @@ const LIMIT = 5;
 export function menuItems(values: TrackedValue[], query: string): MenuItem[] {
   const text = query.trim();
   const needle = text.toLowerCase();
+  const isExact = (value: TrackedValue) => value.text.toLowerCase() === needle;
   const matches = values
     .filter((value) => value.text.toLowerCase().includes(needle) || value.name?.replaceAll("_", " ").includes(needle))
+    .sort((a, b) => Number(isExact(b)) - Number(isExact(a)))
     .slice(0, LIMIT)
     .map((value): MenuItem => ({ kind: "existing", value }));
-  const exact = values.some((value) => value.text.toLowerCase() === needle);
-  return text && !exact ? [{ kind: "new", text }, ...matches] : matches;
+  return text ? [{ kind: "new", text }, ...matches] : matches;
 }
 
 const menuContext = (value: TrackedValue) => [value.subject?.label, ...(value.conditions ?? [])].filter(Boolean).join(" · ");
