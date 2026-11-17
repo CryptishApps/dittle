@@ -46,7 +46,7 @@ Every call goes through [Firebase AI Logic](https://firebase.google.com/docs/ai-
 
 The models never write into your notes directly. Every answer goes through a check first.
 
-- **Quotes are grounded.** A value Find returns is only used if its text appears exactly in your paragraph. Same for a new row name in a collection.
+- **Quotes are grounded.** A value Find returns is only used if its text appears exactly in your paragraph. A new row name in a collection must appear in the sentence too; if the model changed its capitals, the row takes the sentence's own spelling.
 - **Choices come from a list.** Kinds come from a fixed set. Collections, columns, rows and link targets are numbered options. An answer outside the list is dropped.
 - **Code does the maths.** Formulas run in a small parser ([engine.ts](apps/web/src/features/formulas/engine.ts)), not `eval` and not the model. A suggested formula is kept only if it reproduces the written number within 2% ([apply.ts](apps/web/src/features/formulas/apply.ts)).
 - **Units come from a fixed list.** Describe names a unit (km, mi, kg…) or an ISO 4217 currency code. Code converts miles to km with fixed factors for totals and averages, never converts currencies, and leaves out entries it can't combine instead of guessing ([units.ts](apps/web/src/features/formulas/units.ts)).
