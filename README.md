@@ -18,12 +18,15 @@ Built for [#BuildHybridAI 2026](https://firebasehybridaihackathon.devpost.com). 
 
 Use desktop Chrome. If your computer can run Gemini Nano, Dittle offers to download it from the account menu (Gemini Nano, then Download). Without it, everything still works through the cloud.
 
+In a hurry? Click "Try a sample trip" on the first page for a ready-made long weekend in Lisbon, then go to step 5.
+
 1. Sign up, then click "The villa in Alfama is €1,680 for the 6 of us." on the first page. Dittle opens it as a note and underlines the values it found. Hover one to see what it thinks it is.
 2. Start a note called "Villa". Type `The villa is @€1,680` and press Tab, then `for @6` and Tab, then `of us, so @€280` and Tab, then `each.` Tab tags the value and adds the space after it. A few seconds later a message says €280 now follows a formula, something like villa cost ÷ guest count. The names are the ones the model gave the values.
 3. Start a note called "Flights" and type `@6`. The menu's first line makes a new value; press ↓ to pick the 6 you already have, then Tab. Carry on with `seats at @£118` and Tab, then `each, so @£708` and Tab, then `in total.`
 4. Click the 6, change it to 8 and choose Update all. Both notes change: €280 becomes €210 and £708 becomes £944.
-5. Type `/` on a new line, pick "Ask Dittle to write…", type `a packing list for a long weekend in Lisbon` and press Enter. Hover the button that appears to preview the list.
-6. Open `/ai` to see every AI call and whether it ran on your device or in the cloud.
+5. On the home page, type `What if 2 more people come?` in Ask and press Enter. Dittle shows how it read the question, such as Group size 6 → 8, and rolls every value that follows to its new number. Nothing changes until you choose Make it so.
+6. Type `/` on a new line, pick "Ask Dittle to write…", type `a packing list for a long weekend in Lisbon` and press Enter. Hover the button that appears to preview the list.
+7. Open `/ai` to see every AI call and whether it ran on your device or in the cloud.
 
 ## Where each job runs, and why
 
@@ -38,6 +41,7 @@ Every call goes through [Firebase AI Logic](https://firebase.google.com/docs/ai-
 | Suggest a calculated column (price per person = total ÷ people, pace = time ÷ distance) | Nano first | Picks two columns of a collection; code checks the units fit and works out every row. |
 | Write a request ("add a packing list here") | Nano first | Short text, written from the note itself. |
 | Link a value to one you already track | Cloud first, Nano offline | Nano got 7 of 11 test cases right, the cloud 10 of 11. A wrong link merges two different values, so this one goes to the cloud when it can. |
+| Answer a what-if ("what if 2 more people come?") | Cloud first, Nano offline | Picks one tracked value from a numbered list and returns set, add, subtract or multiply with a number. Like linking, a wrong pick changes the wrong value everywhere. Code works out every value that follows and changes nothing until you choose Make it so. |
 | Suggest collections ("you've written 3 things to do, make a table of them?") | Cloud only | Needs every value at once. It gets the extracted values and note titles, never note text. |
 
 "Nano first" is `PREFER_ON_DEVICE`. If the on-device call fails or takes more than 30 seconds, Dittle retries in the cloud. "Cloud first" is `PREFER_IN_CLOUD`, which uses Nano when the cloud can't be reached. The cloud model is Gemini Flash-Lite, named in [Remote Config](https://firebase.google.com/docs/remote-config) so it can change without a deploy ([ai.ts](apps/web/src/lib/ai.ts)).
@@ -51,6 +55,7 @@ The models never write into your notes directly. Every answer goes through a che
 - **Code does the maths.** Formulas run in a small parser ([engine.ts](apps/web/src/features/formulas/engine.ts)), not `eval` and not the model. A suggested formula is kept only if it reproduces the written number within 2% ([apply.ts](apps/web/src/features/formulas/apply.ts)).
 - **Units come from a fixed list.** Describe names a unit (km, mi, kg…) or an ISO 4217 currency code. Code converts miles to km with fixed factors for totals and averages, never converts currencies, and leaves out entries it can't combine instead of guessing ([units.ts](apps/web/src/features/formulas/units.ts)).
 - **Durations come back as ISO 8601.** "27:40" for a run is `PT27M40S`; "2:40" for a flight is `PT2H40M`. The model reads the context and code parses the strict format into seconds ([duration.ts](apps/web/src/features/formulas/duration.ts)).
+- **A what-if shows its reading.** Code works out the effects of a what-if with the same recalculation as an edit, writes nothing, and shows the reading plainly (Group size 6 → 8) so you can see what it understood before you apply it.
 - **Nothing changes silently.** If a new value looks like one you already track but the text differs, Dittle asks before touching anything.
 - **No keyword guessing.** No regex or word list decides what your text means. The few places that split text use `Intl.Segmenter` for sentence ends or the exact position of a quote.
 
@@ -69,6 +74,8 @@ The test page at `/dev/describe` (dev server only) runs 28 paragraphs, 15 contex
 | Unit right | 12 of 13 | not measured yet |
 | Links | 10 of 11 | 7 of 11 |
 | Median time per paragraph | about 1 s | about 3 s |
+
+`/dev/what-if` runs 20 what-if questions against the sample trip: 14 that change a value (including "doubled", "half price" and "rose 10%") and 6 that should be refused because they are about nothing tracked. The cloud gets 20 of 20 on prompt v1, in about 1 s each. Nano is not measured yet.
 
 Nano's misses are mostly small: "today" filed as a condition, "garden" instead of "tomato". The link misses were not small, which is why linking prefers the cloud.
 
@@ -149,7 +156,7 @@ apps/web/src/features/editor       Tiptap editor: @ tags, / menu, value spotting
 apps/web/src/features/notes        Firestore store, TanStack Query wiring, home page, note page, value panel, search
 apps/web/src/features/collections  Collections: placement, totals and averages, calculated columns, suggestions
 apps/web/src/features/formulas     Formula parser, checks and recalculation; duration parsing
-apps/web/src/features/spike        Test sets and scoring for /dev/describe
+apps/web/src/features/spike        Test sets and scoring for /dev/describe and /dev/what-if
 apps/web/build                     Vite plugins: route preloading, service worker
 ```
 
