@@ -273,9 +273,10 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
               </>
             )}
           </Actions>
-          {tag && !tag.proposal && tag.describedBy && (
+          {tag && !tag.proposal && (
             <p className="mt-2 border-t border-line pt-2 text-faint">
-              {openValue ? "Click or ⌘/Ctrl Enter for details" : tag.formula ? "Calculated" : "Click to change"} · described {tag.describedBy.where === "on_device" ? "on this device" : "in the cloud"}
+              {openValue ? "Click or ⌘/Ctrl Enter for details" : tag.formula ? "Calculated" : "Click to change"}
+              {tag.describedBy && <> · described {tag.describedBy.where === "on_device" ? "on this device" : "in the cloud"}</>}
             </p>
           )}
         </m.div>
