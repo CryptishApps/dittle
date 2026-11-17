@@ -4,9 +4,12 @@ import { useState } from "react";
 import { useCollectionSuggestions, type Suggestion } from "@/features/collections/suggestions";
 import { daysUntil, summariseCollection, upcomingDates, type CollectionSummary, type Upcoming } from "@/features/collections/summary";
 import { dayLabel } from "@/features/collections/format";
+import { changeable } from "@/features/what-if/plan";
+import { WhatIf } from "@/features/what-if/WhatIf";
 import { MIcon } from "@/ui/kit";
 import { collectionsQuery, foldersQuery, notesQuery, rowsQuery, startNote, valuesQuery, writes } from "./api";
 import { noteWith } from "./note-doc";
+import { sampleTrip } from "./sample-trip";
 import { NoteTree } from "./NoteTree";
 import { useOnline } from "./NotesShell";
 import { showToast } from "./toast";
@@ -52,7 +55,7 @@ export function HomePage({ uid }: { uid: string }) {
     showToast(`Created ${collection.name} with ${newRows.length} rows`);
   };
 
-  if (notes.length === 0 && folders.length === 0) return <FirstVisit onStart={start} />;
+  if (notes.length === 0 && folders.length === 0) return <FirstVisit onStart={start} onSample={() => writes.createPlan(uid, sampleTrip())} />;
 
   const summaries = collections.map((collection) => summariseCollection(collection, rows, values));
   const upcoming = upcomingDates(values);
@@ -74,6 +77,8 @@ export function HomePage({ uid }: { uid: string }) {
             ))}
           </section>
         )}
+
+        {changeable(values).length > 0 && <WhatIf uid={uid} values={values} notes={notes} />}
 
         <StartNote onStart={(title) => start(title)} />
 
@@ -103,7 +108,7 @@ export function HomePage({ uid }: { uid: string }) {
   );
 }
 
-function FirstVisit({ onStart }: { onStart: (title?: string, body?: string) => void }) {
+function FirstVisit({ onStart, onSample }: { onStart: (title?: string, body?: string) => void; onSample: () => void }) {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto max-w-[640px] px-5 pt-16 pb-24 sm:px-8 sm:pt-24">
@@ -115,7 +120,14 @@ function FirstVisit({ onStart }: { onStart: (title?: string, body?: string) => v
           <StartNote onStart={(title) => onStart(title)} autoFocus />
         </div>
         <p className="mt-8 text-[10.5px] tracking-[0.06em] text-faint uppercase">Or try one</p>
-        <ul className="mt-3 flex flex-wrap gap-2">
+        <button type="button" onClick={onSample} className="mt-3 flex w-full items-center justify-between gap-4 border border-ink px-4 py-3 text-left hover:bg-panel">
+          <span>
+            <span className="block text-[14px] font-medium">Try a sample trip</span>
+            <span className="mt-0.5 block text-[12.5px] text-soft">A long weekend in Lisbon for 6 friends: villa, flights and three things to do, already linked and added up.</span>
+          </span>
+          <MIcon name="right" className="size-4 shrink-0" />
+        </button>
+        <ul className="mt-2 flex flex-wrap gap-2">
           {EXAMPLES.map((example) => (
             <li key={example.title}>
               <button
