@@ -24,7 +24,16 @@ function rowFrom(data: { row?: unknown; label?: unknown }, collection: PlaceColl
   const existing = indexIn(ROW_KEYS, data.row, Math.min(MAX_ROWS, collection.rows.length));
   if (existing !== null) return { row: existing };
   const label = typeof data.label === "string" ? data.label.trim() : "";
-  return data.row === "new" && label && label.length <= MAX_LABEL && sentence.includes(label) ? { label } : null;
+  const quoted = label && label.length <= MAX_LABEL ? quoteIn(sentence, label) : undefined;
+  return data.row === "new" && quoted ? { label: quoted } : null;
+}
+
+function quoteIn(sentence: string, label: string): string | undefined {
+  if (sentence.includes(label)) return label;
+  const wanted = label.toLocaleLowerCase();
+  const at = sentence.toLocaleLowerCase().indexOf(wanted);
+  const found = at >= 0 ? sentence.slice(at, at + label.length) : undefined;
+  return found?.toLocaleLowerCase() === wanted ? found : undefined;
 }
 
 export function readPlaceAnswer(text: string, shown: PlaceCollection[], sentence: string): PlaceAnswer {

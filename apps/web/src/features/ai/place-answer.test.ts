@@ -16,10 +16,16 @@ describe("readPlaceAnswer", () => {
     expect(readPlaceAnswer(answer({ collection: "k2", field: "f1", row: "r2" }), shown, sentence)).toEqual({ collection: 1, field: 0, row: { row: 1 } });
   });
 
-  test("accepts a new row only when its label is quoted exactly from the sentence", () => {
+  test("accepts a new row only when its label is quoted from the sentence", () => {
     expect(readPlaceAnswer(answer({ collection: "k2", field: "f1", row: "new", label: " Green Fork " }), shown, sentence).row).toEqual({ label: "Green Fork" });
-    expect(readPlaceAnswer(answer({ collection: "k2", field: "f1", row: "new", label: "green fork" }), shown, sentence).row).toBeNull();
+    expect(readPlaceAnswer(answer({ collection: "k2", field: "f1", row: "new", label: "Green Forks" }), shown, sentence).row).toBeNull();
     expect(readPlaceAnswer(answer({ collection: "k2", field: "f1", row: "new", label: "" }), shown, sentence).row).toBeNull();
+  });
+
+  test("takes a new row's capitals from the sentence when the model changed them", () => {
+    expect(readPlaceAnswer(answer({ collection: "k2", field: "f1", row: "new", label: "green fork" }), shown, sentence).row).toEqual({ label: "Green Fork" });
+    const accented = "Jerónimos Monastery and pastéis, €18 each.";
+    expect(readPlaceAnswer(answer({ collection: "k2", field: "f1", row: "new", label: "jerónimos monastery and pastéis" }), shown, accented).row).toEqual({ label: "Jerónimos Monastery and pastéis" });
   });
 
   test("rejects numbers outside the options shown", () => {
