@@ -3,6 +3,7 @@ import { afterFirstPaint } from "@/lib/first-paint";
 import { ensureLive, live } from "@/lib/live-query";
 import { EMPTY_NOTE, summarise, type NoteDoc } from "./note-doc";
 import type { CalculatedColumn, Collection, Row } from "./fact";
+import type { SamplePlan } from "./sample-trip";
 import type { CellPlacement, CellWrite, Folder, Note, NoteSummary, StoredValue } from "./store";
 
 export const loadStore = () => import("./store");
@@ -83,6 +84,7 @@ export const writes = {
   placeCell: async (uid: string, placement: CellPlacement) => (await loadStore()).placeCell(uid, placement),
   deleteCollection: (uid: string, id: string) => later((store) => store.deleteCollection(uid, id)),
   saveColumns: (uid: string, collectionId: string, columns: CalculatedColumn[]) => later((store) => store.saveColumns(uid, collectionId, columns)),
+  createPlan: (uid: string, plan: SamplePlan) => later((store) => store.createPlan(uid, plan)),
   relabelNotes: (uid: string, valueId: string, label: string, noteIds: string[]) => later((store) => void store.relabelNotes(uid, valueId, label, noteIds)),
 };
 

@@ -22,6 +22,7 @@ import { db } from "@/lib/firestore";
 import type { Listen } from "@/lib/live-query";
 import type { CalculatedColumn, Collection, Row, StoredValue } from "./fact";
 import { EMPTY_NOTE, relabel, summarise, valueIdsOf, type NoteDoc } from "./note-doc";
+import type { SamplePlan } from "./sample-trip";
 
 export type NoteSummary = { id: string; title: string; preview: string; text: string; updatedAt: number; pending: boolean; folderId: string | null; valueIds: string[] };
 export type Folder = { id: string; name: string; createdAt: number };
@@ -268,6 +269,17 @@ export function placeCell(uid: string, { row, newRow, valueId, fieldId, replaces
 
 export function saveColumns(uid: string, collectionId: string, columns: CalculatedColumn[]): void {
   write(updateDoc(doc(collectionsOf(uid), collectionId), { columns, updatedAt: serverTimestamp() }));
+}
+
+export function createPlan(uid: string, plan: SamplePlan): void {
+  const batch = writeBatch(db);
+  const created = { createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
+  plan.notes.forEach((note) => batch.set(doc(notes(uid), note.id), { schemaVersion: 1, doc: note.doc, ...summarise(note.doc), valueIds: valueIdsOf(note.doc), folderId: null, ...created }));
+  plan.values.forEach(({ id, ...fields }) => batch.set(doc(values(uid), id), { ...fields, ...created }));
+  const { id: collectionId, ...collectionFields } = plan.collection;
+  batch.set(doc(collectionsOf(uid), collectionId), { ...collectionFields, ...created });
+  plan.rows.forEach(({ id, ...row }) => batch.set(doc(rowsOf(uid), id), { ...row, createdAt: serverTimestamp() }));
+  write(batch.commit());
 }
 
 export function deleteCollection(uid: string, id: string): void {
