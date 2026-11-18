@@ -191,9 +191,9 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
     for (const { fact, collection, field, placement } of ordered) {
       const byDay = collection.key.by === "when";
       const mine = groups.filter((group) => group.collection.id === collection.id);
-      if (!byDay && fact.kind === "date" && mine.some((group) => join(group, fact, field))) continue;
       const key = byDay || !placement.newRow ? placement.row.id : `new:${placement.row.label}`;
       if (mine.some((group) => group.key === key && join(group, fact, field))) continue;
+      if (!byDay && fact.kind === "date" && mine.some((group) => join(group, fact, field))) continue;
       const clash = mine.some((group) => group.key === key);
       const target = !clash
         ? { row: placement.row, newRow: placement.newRow }
@@ -210,30 +210,40 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
     return groups;
   };
 
-  const fileGroup = async ({ collection, target, entries }: Group): Promise<boolean> => {
-    const byDay = collection.key.by === "when";
-    const occupantOf = (entry: Entry) => store.list().find((other) => other.id !== entry.fact.id && other.subject?.entityId === target.row.id && other.field === entry.field.id);
-    const withOccupants = entries.map((entry) => ({ ...entry, occupant: target.newRow ? undefined : occupantOf(entry) }));
-    const occupied = withOccupants.flatMap((entry) => (entry.occupant ? [entry.occupant.text] : []));
-    if (occupied.length === 0) {
-      await fillRow(collection, withOccupants, target, false);
-      return true;
+  const fileGroups = async (groups: Group[]): Promise<boolean> => {
+    const filling = new Set(groups.map((group) => group.target.row.id));
+    const occupantOf = (group: Group, entry: Entry) =>
+      group.target.newRow ? undefined : store.list().find((other) => other.id !== entry.fact.id && other.subject?.entityId === group.target.row.id && other.field === entry.field.id);
+    const checked = groups.map((group) => ({ group, entries: group.entries.map((entry) => ({ ...entry, occupant: occupantOf(group, entry) })) }));
+    const clashing = checked.filter(({ entries }) => entries.some((entry) => entry.occupant));
+    let written = false;
+    for (const { group, entries } of checked) {
+      if (clashing.some((item) => item.group === group)) continue;
+      await fillRow(group.collection, entries, group.target, false);
+      written = true;
     }
-    if (byDay) {
-      const busy = (id: string) => store.list().some((other) => other.subject?.entityId === id && entries.some((entry) => entry.field.id === other.field));
-      const id = freeRowId(target.row.id, busy);
-      const another = { row: rows().find((row) => row.id === id) ?? { ...target.row, id }, newRow: !rows().some((row) => row.id === id) };
-      askToast(`${collection.name} already has ${occupied.join(" and ")} on ${dayLabel(target.row.period)}`, [
-        { label: "Skip" },
-        { label: "Add another", primary: true, run: () => void fillRow(collection, entries, another, false) },
-      ]);
-      return false;
-    }
-    askToast(`${collection.name} already has ${occupied.join(" and ")} for ${target.row.label}`, [
+    if (clashing.length === 0) return written;
+    const answers = clashing.map(({ group, entries }) => {
+      const occupied = entries.flatMap((entry) => (entry.occupant ? [entry.occupant.text] : [])).join(" and ");
+      if (group.collection.key.by !== "when") {
+        return { text: `${group.collection.name} already has ${occupied} for ${group.target.row.label}`, replace: true, run: () => fillRow(group.collection, entries, { row: group.target.row, newRow: false }, true) };
+      }
+      const busy = (id: string) => filling.has(id) || store.list().some((other) => other.subject?.entityId === id && entries.some((entry) => entry.field.id === other.field));
+      const id = freeRowId(group.target.row.id, busy);
+      filling.add(id);
+      const another = { row: rows().find((row) => row.id === id) ?? { ...group.target.row, id }, newRow: !rows().some((row) => row.id === id) };
+      return { text: `${group.collection.name} already has ${occupied} on ${dayLabel(group.target.row.period)}`, replace: false, run: () => fillRow(group.collection, entries, another, false) };
+    });
+    const label = answers.every((answer) => !answer.replace)
+      ? "Add another"
+      : answers.every((answer) => answer.replace)
+        ? `Use ${clashing.flatMap(({ entries }) => entries.map((entry) => entry.fact.text)).join(" and ")}`
+        : "Add them";
+    askToast(answers.map((answer) => answer.text).join(". "), [
       { label: "Skip" },
-      { label: `Use ${entries.map((entry) => entry.fact.text).join(" and ")}`, primary: true, run: () => void fillRow(collection, withOccupants, { row: target.row, newRow: false }, true) },
+      { label, primary: true, run: () => void answers.reduce((previous, answer) => previous.then(answer.run), Promise.resolve()) },
     ]);
-    return false;
+    return written;
   };
 
   const fileValues = async (values: TrackedValue[], list: string, sentence: string): Promise<boolean> => {
@@ -253,9 +263,7 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
     const fits = decisions.filter((decision): decision is Fits => decision.kind === "fits");
     const declined = decisions.filter((decision): decision is Declined => decision.kind === "declined");
     if (fits.length > 0) {
-      let written = false;
-      for (const group of groupsOf(fits, declined)) written = (await fileGroup(group)) || written;
-      return written;
+      return fileGroups(groupsOf(fits, declined));
     }
     if (declined.length > 0) {
       const asked = offer;

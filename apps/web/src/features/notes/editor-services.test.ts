@@ -12,14 +12,21 @@ const placed: CellPlacement[] = [];
 const created: string[] = [];
 const asked: Asked[] = [];
 const shown: string[] = [];
+const order: string[] = [];
 
 mock.module("@/features/ai/place", () => ({
   placeValue: async () => ({ ...(answers.shift() ?? { collection: null, field: null, row: null, sure: false }), where: "in_cloud", ms: 1 }),
 }));
 mock.module("@/features/collections/name-columns", () => ({ tidyColumnNames: async () => undefined }));
 mock.module("./toast", () => ({
-  askToast: (text: string, actions: Asked["actions"]) => asked.push({ text, actions }),
-  showToast: (text: string) => shown.push(text),
+  askToast: (text: string, actions: Asked["actions"]) => {
+    asked.push({ text, actions });
+    order.push(`ask: ${text}`);
+  },
+  showToast: (text: string) => {
+    shown.push(text);
+    order.push(`show: ${text}`);
+  },
 }));
 mock.module("./api", () => ({
   collectionsQuery: (uid: string) => ({ queryKey: ["collections", uid] }),
@@ -99,6 +106,7 @@ beforeEach(() => {
   created.length = 0;
   asked.length = 0;
   shown.length = 0;
+  order.length = 0;
 });
 
 describe("filing a sentence's values into a collection", () => {
@@ -225,6 +233,46 @@ describe("filing a sentence's values into a collection", () => {
     expect(placed).toHaveLength(2);
     expect(placed[0]!.row.id).not.toBe(placed[1]!.row.id);
     expect(placed.map((cell) => cell.row.period)).toEqual(["2026-11-18", "2026-11-18"]);
+  });
+
+  test("a paragraph about a busy day and a free day files the free day and then asks about the busy one", async () => {
+    const mondayRow = { id: "c2.2026-11-16", collectionId: "c2", label: "2026-11-16", period: "2026-11-16", createdAt: 0 };
+    const sixK: TrackedValue = { ...logged[0]!, id: "six", text: "6 km", subject: { label: "run", entityId: mondayRow.id }, when: { on: "2026-11-16", grain: "day" } };
+    const monday: TrackedValue = { ...walk[0]!, id: "m1", text: "5k", amount: 5, when: { on: "2026-11-16", grain: "day" } };
+    const tuesday: TrackedValue = { ...walk[0]!, id: "t1", text: "7k", amount: 7, when: { on: "2026-11-17", grain: "day" } };
+    answers.push({ collection: 0, field: 1, row: null, sure: true }, { collection: 0, field: 1, row: null, sure: true });
+    const filing = services(runs, [sixK, monday, tuesday], [mondayRow]);
+    expect(await filing.fileValues?.([monday, tuesday], "Runs", "Ran 5k on Monday and 7k on Tuesday. Add these to my runs.")).toBe(true);
+    expect(placed.map((cell) => cell.row.period)).toEqual(["2026-11-17"]);
+    expect(order.at(-1)).toStartWith("ask: Runs already has 6 km on ");
+    asked.at(-1)!.actions.find((action) => action.label === "Add another")!.run!();
+    await settle();
+    expect(placed.map((cell) => cell.row.id)).toEqual(["c2.2026-11-17", "c2.2026-11-16.2"]);
+  });
+
+  test("two runs on a day that already has one go in two new rows, after one question", async () => {
+    const morning: TrackedValue = { ...walk[0]!, id: "a1", text: "3k", amount: 3 };
+    const tonight: TrackedValue = { ...walk[0]!, id: "a2", text: "4k", amount: 4 };
+    answers.push({ collection: 0, field: 1, row: null, sure: true }, { collection: 0, field: 1, row: null, sure: true });
+    const filing = services(runs, [...logged, morning, tonight]);
+    await filing.fileValues?.([morning, tonight], "Runs", "Ran 3k this morning and 4k tonight. Add these to my runs.");
+    expect(placed).toHaveLength(1);
+    expect(order.at(-1)).toStartWith("ask: Runs already has 5 km on ");
+    asked.at(-1)!.actions.find((action) => action.label === "Add another")!.run!();
+    await settle();
+    const ids = placed.map((cell) => cell.row.id);
+    expect(new Set([...ids, loggedRow.id]).size).toBe(3);
+  });
+
+  test("a date goes in the row the model picked for it", async () => {
+    const palace: TrackedValue = { ...price, id: "p1", text: "€14", subject: { label: "Pena Palace" } };
+    const castle: TrackedValue = { ...price, id: "p2", text: "€8", subject: { label: "Moorish Castle" } };
+    const saturday: TrackedValue = { ...day, id: "d1", text: "Saturday", subject: { label: "Moorish Castle" } };
+    answers.push(sure(0, "Pena Palace"), sure(0, "Moorish Castle"), sure(1, "Moorish Castle"));
+    const filing = services(things, [palace, castle, saturday]);
+    await filing.fileValues?.([palace, castle, saturday], "Things to do", "Pena Palace €14, Moorish Castle €8 on Saturday. Add these to things to do.");
+    const dated = placed.find((cell) => cell.fieldId === "date")!;
+    expect(dated.row.label).toBe("Moorish Castle");
   });
 
   test("asking to file a paragraph with no list that fits starts one", async () => {
