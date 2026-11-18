@@ -1,33 +1,61 @@
+import { MotionConfig } from "motion/react";
 import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
 import { FieldDescription } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import type { PasswordCheck } from "@/lib/auth";
+import { Icon, type IconName } from "@/features/welcome/quiet";
+import "@/features/welcome/welcome.css";
 import { MIcon } from "@/ui/kit";
-import { Shot } from "@/ui/Shot";
 import { Wordmark } from "@/ui/Wordmark";
+import { Showcase } from "./Showcase";
 
 export type Nav = { href: string; go: () => void };
 
 export function AuthShell({ home, children }: { home: Nav; children: ReactNode }) {
   return (
-    <div className="grid min-h-dvh bg-page text-ink lg:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)]">
-      <div className="flex min-h-dvh flex-col px-6 py-6 sm:px-10">
-        <header>
-          <NavLink nav={home} label="Dittle home" className="-m-1 inline-flex p-1">
-            <Wordmark className="text-[21px]" />
-          </NavLink>
-        </header>
-        <main className="flex flex-1 items-center justify-center py-14">{children}</main>
-        <div aria-hidden className="h-8" />
+    <MotionConfig reducedMotion="user">
+      <div className="welcome grid min-h-dvh bg-page text-ink lg:grid-cols-[minmax(0,1fr)_minmax(0,1.12fr)]">
+        <div className="relative isolate flex min-h-dvh flex-col px-5 py-5 sm:px-10 sm:py-6">
+          <div aria-hidden className="welcome-wash absolute inset-x-0 top-0 -z-10 h-80 [mask-image:linear-gradient(to_bottom,#000,transparent)] lg:hidden" />
+          <header>
+            <NavLink nav={home} label="Dittle home" className="-m-1 inline-flex p-1">
+              <Wordmark className="text-[21px]" />
+            </NavLink>
+          </header>
+          <main className="flex flex-1 flex-col items-center pt-8 pb-2 sm:justify-center sm:py-8">
+            {children}
+            <TrustLine />
+          </main>
+        </div>
+        <Showcase />
       </div>
-      <AppPeek />
-    </div>
+    </MotionConfig>
+  );
+}
+
+const TRUST: { icon: IconName; label: string }[] = [
+  { icon: "spark", label: "Free" },
+  { icon: "offline", label: "Works offline" },
+  { icon: "chip", label: "AI on your device where it can" },
+];
+
+function TrustLine() {
+  return (
+    <ul aria-label="About Dittle" className="mt-8 flex w-full max-w-[380px] flex-wrap justify-center gap-x-4 gap-y-1.5 border-t border-line pt-5 text-[13px] text-soft sm:justify-start">
+      {TRUST.map(({ icon, label }) => (
+        <li key={label} className="flex items-center gap-1.5">
+          <Icon name={icon} className="size-3.5 text-[var(--sky-ink)]" />
+          {label}
+        </li>
+      ))}
+    </ul>
   );
 }
 
 export const LABEL = "text-[13px] leading-snug font-semibold text-soft";
-export const INPUT = "h-12 px-4 text-[15px] focus-visible:outline-none";
-export const BUTTON = "h-12 gap-2 text-[15px]";
+export const INPUT = "h-12 rounded-xl px-4 text-[15px] focus-visible:border-[var(--brand-blue)] focus-visible:shadow-[0_0_0_4px_var(--sky-strong)] focus-visible:outline-none";
+export const BUTTON = "h-12 gap-2 rounded-xl text-[15px]";
+export const PRIMARY = `${BUTTON} welcome-cta bg-[var(--brand-blue)] text-white hover:bg-[#1a52d6] hover:opacity-100 [--spin-mark:var(--brand-blue)]`;
 
 type PasswordInputProps = { id: string; value: string; onChange: (value: string) => void; autoComplete: "current-password" | "new-password" };
 
@@ -76,13 +104,13 @@ export function usePasswordCheck(password: string, checkPassword: (password: str
 }
 
 export function PasswordRules({ check }: { check?: PasswordCheck }) {
-  if (!check) return <FieldDescription className="text-[13px] text-faint">Checked against your project's password rules as you type.</FieldDescription>;
+  if (!check) return <FieldDescription className="text-[13px] text-faint">Checked against the password rules as you type.</FieldDescription>;
   return (
     <ul aria-live="polite" className="flex flex-wrap gap-1.5 pt-0.5">
       {check.rules.map((rule) => (
         <li
           key={rule.label}
-          className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[12.5px] font-medium transition-colors ${rule.met ? "bg-ink text-page" : "bg-chip text-soft"}`}
+          className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[12.5px] font-medium transition-colors ${rule.met ? "bg-[var(--sky-strong)] text-[var(--sky-ink)]" : "bg-chip text-soft"}`}
         >
           {rule.met && <MIcon name="check" className="size-3" />}
           {rule.label}
@@ -125,21 +153,5 @@ export function GoogleMark() {
         d="M21.35 11.1H12v2.98h5.35c-.23 1.4-1.66 4.1-5.35 4.1-3.22 0-5.85-2.67-5.85-5.96S8.78 6.26 12 6.26c1.83 0 3.06.78 3.76 1.45l2.56-2.47C16.68 3.72 14.55 2.8 12 2.8 6.92 2.8 2.8 6.92 2.8 12s4.12 9.2 9.2 9.2c5.31 0 8.83-3.73 8.83-8.99 0-.6-.07-1.06-.15-1.51z"
       />
     </svg>
-  );
-}
-
-const PEEK_SHOWN = "(min-width: 1024px)";
-
-function AppPeek() {
-  const [shown] = useState(() => window.matchMedia(PEEK_SHOWN).matches);
-  return (
-    <aside aria-hidden className="relative m-3 hidden overflow-hidden rounded-2xl border border-line bg-panel lg:block">
-      <div className="absolute top-[14%] left-[10%] w-[110%] overflow-hidden rounded-xl border border-line bg-card p-1">
-        <div className="overflow-hidden rounded-xl">
-          <Shot name="hero" alt="" focus={{ x: 21, y: 0, zoom: 1.27 }} priority={shown} sizes={`${PEEK_SHOWN} 80vw, 1px`} />
-        </div>
-      </div>
-      <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-b from-transparent to-panel" />
-    </aside>
   );
 }
