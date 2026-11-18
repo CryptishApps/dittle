@@ -10,7 +10,7 @@ It works for any plan with numbers in it: a trip, a wedding, an offsite, a train
 
 Dittle doesn't summarise your notes. The AI's job is to keep track of what the numbers in them mean.
 
-Gemini Nano, running in Chrome on your computer, reads each paragraph as you type and describes its values. Linking values across notes and suggesting tables go to the cloud model when you're online, because those need judgement across everything you've written. The cloud also covers for Nano on computers that can't run it.
+Gemini Nano, running in Chrome on your computer, reads each paragraph as you type and lights up its values. Describing those values, filing them into collections, linking them across notes and suggesting tables go to the cloud model first, because those decide where your values go. Nano takes them over when you're offline, and the cloud covers for Nano on computers that can't run it.
 
 Built for [#BuildHybridAI 2026](https://firebasehybridaihackathon.devpost.com). Live at [dittle.app](https://dittle.app).
 
