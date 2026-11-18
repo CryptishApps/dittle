@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Editor } from "@tiptap/react";
 import { AnimatePresence, m, useReducedMotion } from "motion/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { trackedTextOf } from "@/features/collections/logic";
 import { trackAllSpotted } from "@/features/editor/filing";
 import { NoteEditorView, useNoteEditor } from "@/features/editor/NoteEditor";
@@ -13,20 +13,30 @@ import { fromNoteDoc, noteWith, summarise, toNoteDoc, valueIdsOf } from "@/featu
 import { ease } from "@/ui/kit";
 import { Icon } from "./icons";
 import { Heading, PRIMARY } from "./parts";
-import { placeCollections, practiceExample, shelfOf, whereFrom, type Where } from "./practice";
+import { placeCollections, practiceExample, sentenceIndex, shelfOf, whereFrom, withDays, type Where } from "./practice";
 import type { Recipe } from "./recipes";
 
 const TITLE = "My day";
 
 type Props = { uid: string; recipes: Recipe[]; today: Date; onDone: (noteId?: string) => void };
 
-function useSpotted(editor: Editor | null): Spotted[] {
-  const [spotted, setSpotted] = useState<Spotted[]>([]);
+type Found = Spotted & { group: string };
+
+function useSpotted(editor: Editor | null): Found[] {
+  const [spotted, setSpotted] = useState<Found[]>([]);
   useEffect(() => {
     if (!editor) return;
     const update = () => {
-      const bodyStart = editor.state.doc.firstChild?.nodeSize ?? 0;
-      setSpotted(spottedValues(editor.state).filter((item) => item.from >= bodyStart));
+      const { doc } = editor.state;
+      const bodyStart = doc.firstChild?.nodeSize ?? 0;
+      setSpotted(
+        spottedValues(editor.state)
+          .filter((item) => item.from >= bodyStart)
+          .map((item) => {
+            const at = doc.resolve(item.from);
+            return { ...item, group: `${at.before()}:${sentenceIndex(item.sentence, at.parentOffset)}` };
+          }),
+      );
     };
     update();
     editor.on("transaction", update);
@@ -52,15 +62,17 @@ export default function PracticeStep({ uid, recipes, today, onDone }: Props) {
   tracked.current = trackedTextOf(shelf.collections);
   const [wheres, setWheres] = useState<ReadonlyMap<string, Where>>(new Map());
   const asked = useRef(new Set<string>());
-  const [typing, setTyping] = useState(false);
   const [empty, setEmpty] = useState(true);
   const [keeping, setKeeping] = useState(false);
+  const [exampled, setExampled] = useState(false);
 
   useEffect(() => {
     if (!editor) return;
     const check = () => {
       const { doc } = editor.state;
-      setEmpty(!doc.textBetween(doc.firstChild?.nodeSize ?? 0, doc.content.size, " ").trim());
+      const blank = !doc.textBetween(doc.firstChild?.nodeSize ?? 0, doc.content.size, " ").trim();
+      setEmpty(blank);
+      if (blank) setExampled(false);
     };
     check();
     editor.on("update", check);
@@ -84,24 +96,13 @@ export default function PracticeStep({ uid, recipes, today, onDone }: Props) {
     }
   }, [spotted, shelf, today]);
 
-  const typeExample = () => {
-    if (!editor || typing) return;
-    editor.chain().focus("end").run();
-    if (still) {
-      editor.chain().insertContent(example).run();
-      return;
-    }
-    setTyping(true);
-    const words = example.split(" ").map((word, at, all) => (at < all.length - 1 ? `${word} ` : word));
-    let index = 0;
-    const next = () => {
-      if (editor.isDestroyed) return;
-      editor.chain().insertContent(words[index]!).run();
-      index += 1;
-      if (index < words.length) window.setTimeout(next, 90);
-      else setTyping(false);
-    };
-    next();
+  const writeExample = () => {
+    if (!editor) return;
+    editor.chain().focus("end").insertContent(example).run();
+    setExampled(true);
+    if (still) return;
+    const added = Array.from(editor.view.dom.children).slice(1);
+    for (const element of added) element.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 420, easing: "cubic-bezier(0.22, 1, 0.36, 1)" });
   };
 
   const keep = () => {
@@ -122,7 +123,10 @@ export default function PracticeStep({ uid, recipes, today, onDone }: Props) {
     onDone(noteId);
   };
 
-  const filed = spotted.filter((item) => wheres.get(keyOf(item))?.at === "collection").length;
+  const placed = withDays(spotted.map((item) => ({ group: item.group, where: wheres.get(keyOf(item)) })));
+  const filed = placed.filter((where) => where?.at === "collection").length;
+  const fade = { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: still ? 0 : 0.2, ease } };
+  const status = empty ? "empty" : spotted.length > 0 ? "found" : exampled ? "reading" : "looking";
 
   return (
     <div className="mx-auto max-w-[680px] px-5 pt-14 pb-24 sm:pt-20">
@@ -139,42 +143,52 @@ export default function PracticeStep({ uid, recipes, today, onDone }: Props) {
       <div className="mt-7 rounded-2xl border border-line bg-page px-5 pt-4 pb-5 transition-colors focus-within:border-line-strong sm:px-6 [&_.note-editor]:min-h-[132px] [&_.note-editor_h1]:text-[15px]! [&_.note-editor_h1]:font-medium! [&_.note-editor_h1]:tracking-normal! [&_.note-editor_h1]:text-faint [&_.note-editor_h1+*]:mt-2!">
         <NoteEditorView editor={editor} store={store} />
       </div>
-      <div className="mt-2.5 flex min-h-6 flex-wrap items-center gap-x-1.5 text-[13.5px] text-faint">
-        {empty ? (
-          <>
-            <span>Stuck?</span>
-            <button type="button" onClick={typeExample} className="text-soft underline decoration-line-strong underline-offset-4 transition-colors hover:text-ink hover:decoration-ink">
-              Write the example for me
-            </button>
-          </>
-        ) : spotted.length === 0 ? (
-          <span>Keep going. Dittle looks for amounts, times, days, people and places{tracked.current.length > 0 ? ", and anything your collections track" : ""}.</span>
-        ) : (
-          <span>
-            Found {spotted.length} {spotted.length === 1 ? "value" : "values"}
-            {filed > 0 && `, ${filed} with a place to go`}
-          </span>
-        )}
+      <div className="mt-2.5 grid min-h-6 text-[13.5px] text-faint">
+        <AnimatePresence initial={false}>
+          <m.p key={status} {...fade} className="col-start-1 row-start-1 flex flex-wrap items-center gap-x-1.5">
+            {status === "empty" ? (
+              <>
+                <span>Stuck?</span>
+                <button type="button" onClick={writeExample} className="text-soft underline decoration-line-strong underline-offset-4 transition-colors hover:text-ink hover:decoration-ink">
+                  Write the example for me
+                </button>
+              </>
+            ) : status === "reading" ? (
+              <span className="t-shimmer-text" data-text="Reading what you wrote">
+                Reading what you wrote
+              </span>
+            ) : status === "looking" ? (
+              <span>Keep going. Dittle looks for amounts, times, days, people and places{tracked.current.length > 0 ? ", and what your collections track" : ""}.</span>
+            ) : (
+              <span className="tabular-nums">
+                Found {spotted.length} {spotted.length === 1 ? "value" : "values"}
+                {filed > 0 && `, ${filed} with a place to go`}
+              </span>
+            )}
+          </m.p>
+        </AnimatePresence>
       </div>
 
       <section aria-label="What Dittle found" aria-live="polite" className="mt-7">
         <ul>
           <AnimatePresence initial={false}>
-            {spotted.map((item) => (
+            {spotted.map((item, index) => (
               <m.li
                 key={item.value.id}
-                layout="position"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.22, ease }}
-                className="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-4 gap-y-0.5 border-b border-line py-3 sm:grid-cols-[auto_minmax(0,1fr)_auto]"
+                layout={still ? false : "position"}
+                initial={{ opacity: 0, height: still ? "auto" : 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: still ? "auto" : 0 }}
+                transition={{ duration: still ? 0 : 0.32, ease, opacity: { duration: still ? 0 : 0.24, ease } }}
+                className="overflow-hidden"
               >
-                <span className="rounded-[5px] bg-accent-tint px-1.5 text-[15px] text-accent-ink tabular-nums">{item.value.quote}</span>
-                <span className="truncate text-[13.5px] text-faint">{[item.value.about, item.value.kind].filter(Boolean).join(" · ")}</span>
-                <span className="col-span-2 text-[14px] sm:col-span-1 sm:text-right">
-                  <Destination where={wheres.get(keyOf(item))} reading={!item.value.described} none={shelf.collections.length === 0} />
-                </span>
+                <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-0.5 border-b border-line py-3 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
+                  <span className="rounded-[5px] bg-accent-tint px-1.5 text-[15px] text-accent-ink tabular-nums">{item.value.quote}</span>
+                  <Swap text={[item.value.about, item.value.kind].filter(Boolean).join(" · ")} still={still} className="text-[13.5px] text-faint" />
+                  <span className="col-span-2 text-[14px] sm:col-span-1 sm:text-right">
+                    <Destination where={placed[index]} reading={!item.value.described} none={shelf.collections.length === 0} still={still} />
+                  </span>
+                </div>
               </m.li>
             ))}
           </AnimatePresence>
@@ -194,21 +208,49 @@ export default function PracticeStep({ uid, recipes, today, onDone }: Props) {
   );
 }
 
-function Destination({ where, reading, none }: { where?: Where; reading: boolean; none: boolean }) {
-  if (!where && (reading || !none)) {
-    const text = reading ? "Reading" : "Finding its place";
-    return (
-      <span className="t-shimmer-text text-faint" data-text={text}>
-        {text}
-      </span>
-    );
-  }
-  if (!where || where.at === "note") return <span className="text-faint">Stays in this note</span>;
-  const target = [where.collection, where.row, where.field].filter(Boolean).join(" · ");
+function Swap({ text, still, className = "", children }: { text: string; still: boolean; className?: string; children?: ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-ink">
-      <Icon name="table" className="size-3.5 text-faint" />
-      {where.sure ? target : `Asks before adding to ${where.collection}`}
+    <span className={`grid min-w-0 ${className}`}>
+      <AnimatePresence initial={false}>
+        <m.span
+          key={text}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: still ? 0 : 0.24, ease }}
+          className="col-start-1 row-start-1 min-w-0 truncate"
+        >
+          {children ?? text}
+        </m.span>
+      </AnimatePresence>
     </span>
+  );
+}
+
+function destinationOf(where: Where | undefined, reading: boolean, none: boolean): { text: string; waiting?: true; placed?: true } {
+  if (!where && (reading || !none)) return { text: reading ? "Reading" : "Finding its place", waiting: true };
+  if (!where || where.at === "note") return { text: "Stays in this note" };
+  if (!where.sure) return { text: `Asks before adding to ${where.collection}`, placed: true };
+  if (where.day) return { text: where.row ? `${where.collection} · ${where.row} · the day` : `Sets the day in ${where.collection}`, placed: true };
+  return { text: [where.collection, where.row, where.field].filter(Boolean).join(" · "), placed: true };
+}
+
+function Destination({ where, reading, none, still }: { where?: Where; reading: boolean; none: boolean; still: boolean }) {
+  const { text, waiting, placed } = destinationOf(where, reading, none);
+  return (
+    <Swap text={text} still={still}>
+      {waiting ? (
+        <span className="t-shimmer-text text-faint" data-text={text}>
+          {text}
+        </span>
+      ) : placed ? (
+        <span className="flex min-w-0 items-center gap-1.5 text-ink sm:justify-end">
+          <Icon name="table" className="size-3.5 shrink-0 text-faint" />
+          {text}
+        </span>
+      ) : (
+        <span className="text-faint">{text}</span>
+      )}
+    </Swap>
   );
 }

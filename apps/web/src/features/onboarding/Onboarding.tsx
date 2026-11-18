@@ -540,7 +540,7 @@ function ChangeStep({ uid, written, today, onFinish }: { uid: string; written: W
     <div
       className="mx-auto max-w-[640px] px-5 pt-14 pb-24 sm:pt-20"
       onKeyDown={(event) => {
-        if (!isEnter(event)) return;
+        if (!isEnter(event) || event.target instanceof HTMLButtonElement) return;
         event.preventDefault();
         advance();
       }}
@@ -554,12 +554,15 @@ function ChangeStep({ uid, written, today, onFinish }: { uid: string; written: W
         className="mt-7 flex h-14 w-full items-center justify-between rounded-2xl border border-ink px-5 text-left text-[17px] text-ink disabled:border-line disabled:text-soft"
       >
         {options[chosen]!.sentence}
-        <Icon name="enter" className="size-4 text-faint" />
+        <Icon name={applied ? "check" : "enter"} className="size-4 shrink-0 text-faint" />
       </button>
       {!applied && options.length > 1 && (
         <p className="mt-2.5 text-[13.5px] text-faint">
           Or try{" "}
-          <button type="button" onClick={() => setChosen(chosen === 0 ? 1 : 0)} className="text-soft underline decoration-line-strong underline-offset-4 hover:text-ink">
+          <button type="button" onClick={() => {
+              setChosen(chosen === 0 ? 1 : 0);
+              boxRef.current?.focus();
+            }} className="text-soft underline decoration-line-strong underline-offset-4 hover:text-ink">
             {options[chosen === 0 ? 1 : 0]!.sentence}
           </button>
         </p>
@@ -613,10 +616,20 @@ function ChangeStep({ uid, written, today, onFinish }: { uid: string; written: W
           </m.section>
         )}
       </AnimatePresence>
-      <button ref={finishRef} type="button" onClick={onFinish} className={`${PRIMARY} mt-8`}>
-        {applied ? "See my notes" : "Skip this"}
-        <Icon name="enter" className="size-4 opacity-70" />
-      </button>
+      {applied ? (
+        <button ref={finishRef} type="button" onClick={onFinish} className={`${PRIMARY} mt-8`}>
+          See my notes
+          <Icon name="enter" className="size-4 opacity-70" />
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={onFinish}
+          className="mt-8 text-[14px] text-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-ink"
+        >
+          Skip this
+        </button>
+      )}
     </div>
   );
 }
