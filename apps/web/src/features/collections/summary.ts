@@ -90,9 +90,11 @@ export function summariseCollection(collection: Collection, rows: Row[], values:
 
 export type Upcoming = { value: StoredValue; on: string };
 
-export function upcomingDates(values: StoredValue[], today = new Date(), limit = 3): Upcoming[] {
+export function upcomingDates(values: StoredValue[], rows: Row[], today = new Date(), limit = 3): Upcoming[] {
   const from = dayOf(today);
+  const entries = new Set(rows.map((row) => row.id));
   return values
+    .filter((value) => value.field === undefined && !entries.has(value.subject?.entityId ?? ""))
     .flatMap((value) => {
       const on = value.when && (value.when.grain === "day" || value.when.grain === "time") ? value.when.on.slice(0, 10) : undefined;
       return value.kind === "date" && on && on >= from ? [{ value, on }] : [];

@@ -54,7 +54,7 @@ export function HomePage({ uid }: { uid: string }) {
 
   if (onboardingView !== "home") return <Onboarding uid={uid} view={onboardingView} onStart={(title) => start(title)} onStartFrom={startFrom} />;
 
-  const upcoming = upcomingDates(values);
+  const upcoming = upcomingDates(values, rows);
   const tracking = collections.length > 0 || upcoming.length > 0 || suggestions.suggestions.length > 0;
   const noteTitle = (noteId: string | undefined) => notes.find((note) => note.id === noteId)?.title || "Untitled";
 

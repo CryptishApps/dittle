@@ -12,7 +12,6 @@ import { sampleText, type Sample } from "./sample-clips";
 import { Samples } from "./Samples";
 import { PasteView, type Paste } from "./PasteView";
 
-const TODAY = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long" });
 
 export function CaptureBox({ uid, onStartNote }: { uid: string; onStartNote: (title: string) => void }) {
   const queryClient = useQueryClient();
@@ -59,7 +58,6 @@ export function CaptureBox({ uid, onStartNote }: { uid: string; onStartNote: (ti
 
   return (
     <section aria-label="Capture" className="mx-auto w-full max-w-[700px]">
-      <p className="text-[14px] text-faint">{TODAY.format(new Date())}</p>
       <ImageDropZone onText={take}>
         <CaptureInput onSubmit={take} onPasteLines={(text) => setPaste({ text })} mic={<MicButton onText={take} />} />
       </ImageDropZone>

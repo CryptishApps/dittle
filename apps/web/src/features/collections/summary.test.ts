@@ -139,7 +139,13 @@ describe("upcomingDates", () => {
 
   test("lists future day dates soonest first and skips past or vague ones", () => {
     const values = [date("a", "2026-12-01"), date("b", "2026-11-20"), date("c", "2026-11-01"), date("d", "2026-12", "month"), date("e", "2026-11-17T18:00", "time")];
-    expect(upcomingDates(values, today).map((item) => item.value.id)).toEqual(["e", "b", "a"]);
+    expect(upcomingDates(values, [], today).map((item) => item.value.id)).toEqual(["e", "b", "a"]);
+  });
+
+  test("leaves out dates that are entries in a collection", () => {
+    const row = { id: "r1", collectionId: "c1", label: "Fri", createdAt: 0 };
+    const values = [date("a", "2026-11-20"), { ...date("b", "2026-11-21"), subject: { label: "Fri", entityId: "r1" } }, { ...date("c", "2026-11-22"), field: "date" }];
+    expect(upcomingDates(values, [row], today).map((item) => item.value.id)).toEqual(["a"]);
   });
 
   test("counts whole days", () => {
