@@ -211,7 +211,7 @@ export function MicButton({ onText }: { onText: (text: string) => void }) {
   const caption =
     state.phase === "recording" || state.phase === "starting" ? (
       <span className="text-faint">
-        {state.phase === "starting" ? "Waiting for the microphone…" : "Listening…"} <span className="text-quiet">Esc to cancel</span>
+        {state.phase === "starting" ? "Waiting for the microphone…" : "Listening…"} <span className="text-soft">Esc to cancel</span>
       </span>
     ) : state.phase === "error" ? (
       <span role="alert" className="text-danger">

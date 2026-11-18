@@ -100,8 +100,12 @@ export function upcomingDates(values: StoredValue[], rows: Row[], today = new Da
       return value.kind === "date" && on && on >= from ? [{ value, on }] : [];
     })
     .sort((a, b) => a.on.localeCompare(b.on))
+    .filter((item, index, all) => all.findIndex((other) => sameEvent(other, item)) === index)
     .slice(0, limit);
 }
+
+const eventOf = ({ value }: Upcoming) => value.subject?.entityId ?? value.subject?.label ?? value.id;
+const sameEvent = (a: Upcoming, b: Upcoming) => a.on === b.on && eventOf(a) === eventOf(b);
 
 export function daysUntil(on: string, today = new Date()): number {
   const start = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());

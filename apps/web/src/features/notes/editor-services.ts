@@ -104,7 +104,7 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
     held = { collectionId: collection.id, values: [...heldFor(collection.id), fact], at: Date.now() };
   };
 
-  const place = async (value: TrackedValue, sentence?: string): Promise<boolean> => {
+  const place = async (value: TrackedValue, sentence?: string, declinedInto?: (collection: Collection) => void): Promise<boolean> => {
     const fact = { ...store.get(value.id), ...value };
     const all = collections();
     if (fact.field || all.length === 0) return false;
@@ -129,7 +129,8 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
       return false;
     }
     const declined = () => {
-      if (!sentence) suggest(fact, collection, result.row && "label" in result.row ? { label: result.row.label } : { row: existing });
+      declinedInto?.(collection);
+      suggest(fact, collection, result.row && "label" in result.row ? { label: result.row.label } : { row: existing });
       return false;
     };
     if (result.field === null || !result.sure) return declined();
@@ -177,8 +178,14 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
       return true;
     }
     let placed = false;
-    for (const value of values) placed = (await place(value, sentence)) || placed;
+    const asked = offer;
+    const picked: Collection[] = [];
+    for (const value of values) placed = (await place(value, sentence, (collection) => picked.push(collection))) || placed;
     if (placed) return true;
+    if (picked.length > 0) {
+      if (offer === asked) showToast(`${picked[0]!.name} has no column for ${values.map((value) => value.text).join(" and ")}`);
+      return true;
+    }
     const lead = values.find((value) => value.event) ?? values[0]!;
     const known = new Map(store.list().map((value) => [value.id, value]));
     for (const value of values) known.set(value.id, { ...known.get(value.id), ...value });
