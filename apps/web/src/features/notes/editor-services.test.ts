@@ -17,7 +17,7 @@ const order: string[] = [];
 mock.module("@/features/ai/place", () => ({
   placeValue: async () => ({ ...(answers.shift() ?? { collection: null, field: null, row: null, sure: false }), where: "in_cloud", ms: 1 }),
 }));
-mock.module("@/features/collections/name-columns", () => ({ tidyColumnNames: async () => undefined }));
+mock.module("@/features/collections/name-columns", () => ({ tidyColumnNames: async () => undefined, columnsSettled: async () => undefined }));
 mock.module("./toast", () => ({
   askToast: (text: string, actions: Asked["actions"]) => {
     asked.push({ text, actions });

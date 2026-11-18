@@ -1,6 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { dayLabel, rowLabel } from "@/features/collections/format";
-import { tidyColumnNames } from "@/features/collections/name-columns";
+import { columnsSettled, tidyColumnNames } from "@/features/collections/name-columns";
 import { freeRowId, placeByDay, placeByName, planCollection, rowOptions, trackedTextOf, type Placement } from "@/features/collections/logic";
 import { changeEverywhere, type Quantity } from "@/features/editor/linking";
 import { acceptFormula, describeFormula, inputsFor, quantityOf } from "@/features/formulas/apply";
@@ -111,6 +111,7 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
   };
 
   const decide = async (value: TrackedValue, sentence?: string): Promise<Decision> => {
+    await columnsSettled();
     const fact = { ...store.get(value.id), ...value };
     const all = collections();
     if (fact.field || all.length === 0) return { kind: "none", fact };
