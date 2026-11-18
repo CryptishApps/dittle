@@ -197,6 +197,36 @@ describe("filing a sentence's values into a collection", () => {
     expect(placed[0]!.replaces).toBe("old");
   });
 
+  test("a paragraph about two things puts each in its own row", async () => {
+    const palace: TrackedValue = { ...price, id: "p1", text: "€14", subject: { label: "Pena Palace" } };
+    const castle: TrackedValue = { ...price, id: "p2", text: "€8", subject: { label: "Moorish Castle" } };
+    answers.push(sure(0, "Pena Palace"), sure(0, "Moorish Castle"));
+    const filing = services(things, [palace, castle]);
+    expect(await filing.fileValues?.([palace, castle], "Things to do", "Pena Palace €14, Moorish Castle €8. Add these to things to do.")).toBe(true);
+    expect(placed.map((cell) => cell.row.label)).toEqual(["Pena Palace", "Moorish Castle"]);
+    expect(placed[0]!.row.id).not.toBe(placed[1]!.row.id);
+  });
+
+  test("a paragraph about two days puts each run in its own day's row", async () => {
+    const monday: TrackedValue = { ...walk[0]!, id: "m1", text: "5k", amount: 5, when: { on: "2026-11-16", grain: "day" } };
+    const tuesday: TrackedValue = { ...walk[0]!, id: "t1", text: "7k", amount: 7, when: { on: "2026-11-17", grain: "day" } };
+    answers.push({ collection: 0, field: 1, row: null, sure: true }, { collection: 0, field: 1, row: null, sure: true });
+    const filing = services(runs, [monday, tuesday], []);
+    expect(await filing.fileValues?.([monday, tuesday], "Runs", "Ran 5k on Monday and 7k on Tuesday. Add these to my runs.")).toBe(true);
+    expect(placed.map((cell) => cell.row.period)).toEqual(["2026-11-16", "2026-11-17"]);
+  });
+
+  test("two distances for the same day go in two rows", async () => {
+    const first: TrackedValue = { ...walk[0]!, id: "a1", text: "5k" };
+    const second: TrackedValue = { ...walk[0]!, id: "a2", text: "3k" };
+    answers.push({ collection: 0, field: 1, row: null, sure: true }, { collection: 0, field: 1, row: null, sure: true });
+    const filing = services(runs, [first, second], []);
+    expect(await filing.fileValues?.([first, second], "Runs", "Ran 5k this morning and 3k tonight. Add these to my runs.")).toBe(true);
+    expect(placed).toHaveLength(2);
+    expect(placed[0]!.row.id).not.toBe(placed[1]!.row.id);
+    expect(placed.map((cell) => cell.row.period)).toEqual(["2026-11-18", "2026-11-18"]);
+  });
+
   test("asking to file a paragraph with no list that fits starts one", async () => {
     answers.push({ collection: null, field: null, row: null, sure: false });
     const filing = services();
