@@ -3,7 +3,8 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { CaptureBox } from "@/features/capture/CaptureBox";
 import { useCollectionSuggestions, type Suggestion } from "@/features/collections/suggestions";
-import { glanceOf, type GlanceView } from "@/features/collections/glance";
+import { glanceOf, timelineOf } from "@/features/collections/glance";
+import { FIGURE, GlanceCard, MiniChart, useFigure } from "@/features/collections/GlanceCard";
 import { daysUntil, upcomingDates, type Upcoming } from "@/features/collections/summary";
 import { dayLabel } from "@/features/collections/format";
 import { Onboarding, useOnboardingView } from "@/features/onboarding/Onboarding";
@@ -16,7 +17,6 @@ import { sampleTrip } from "./sample-trip";
 import { NoteTree } from "./NoteTree";
 import { useOnline } from "./NotesShell";
 import { showToast } from "./toast";
-import type { Collection } from "./fact";
 import type { Folder, NoteSummary } from "./store";
 
 export function HomePage({ uid }: { uid: string }) {
@@ -113,8 +113,7 @@ export function HomePage({ uid }: { uid: string }) {
 
 const TODAY = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long" });
 const SECTION = "text-[13px] font-semibold text-faint";
-const CARD = "flex min-h-[96px] flex-col rounded-xl border border-line px-4 pt-3.5 pb-3";
-const FIGURE = "text-[26px] leading-none font-semibold tracking-[-0.03em] tabular-nums";
+const CARD = "flex min-h-[96px] flex-col rounded-xl border border-line px-4 pt-3 pb-3";
 
 function FoundHint({ values, count }: { values: string[]; count: number }) {
   return (
@@ -131,65 +130,23 @@ function FoundHint({ values, count }: { values: string[]; count: number }) {
   );
 }
 
-function GlanceCard({ collection, view }: { collection: Collection; view: GlanceView }) {
-  return (
-    <Link to="/notes/collections/$collectionId" params={{ collectionId: collection.id }} className={`${CARD} transition-colors hover:bg-panel`}>
-      <span className="flex items-start justify-between gap-3 text-[13.5px] text-soft">
-        <span className="truncate">{collection.name}</span>
-        {view.aside ? <span className="shrink-0 text-faint">{view.aside}</span> : <Mini view={view} />}
-      </span>
-      <span className="mt-auto flex min-w-0 items-baseline gap-1.5 pt-2">
-        <span className={FIGURE}>{view.figure}</span>
-        <span className="truncate text-[14px] text-soft">{view.caption}</span>
-      </span>
-    </Link>
-  );
-}
-
-function Mini({ view }: { view: GlanceView }) {
-  if (view.bars?.length) {
-    return (
-      <span aria-hidden className="flex h-[18px] shrink-0 items-end gap-[3px]">
-        {view.bars.map((height, index, all) => (
-          <span key={index} className={`w-[5px] rounded-[1.5px] ${index === all.length - 1 ? "bg-ink" : "bg-line-strong"}`} style={{ height: `${Math.max(3, height * 18)}px` }} />
-        ))}
-      </span>
-    );
-  }
-  if (view.dots) {
-    return (
-      <span aria-hidden className="flex h-[18px] shrink-0 items-center gap-[5px]">
-        {view.dots.map((on, index) => (
-          <span key={index} className={`size-[6px] rounded-full ${on ? "bg-ink" : "bg-line-strong"}`} />
-        ))}
-      </span>
-    );
-  }
-  if (view.line && view.line.length > 1) {
-    const step = 48 / (view.line.length - 1);
-    const points = view.line.map((height, index) => `${(index * step).toFixed(1)},${(16 - height * 14).toFixed(1)}`).join(" ");
-    return (
-      <svg aria-hidden viewBox="-1 0 50 18" className="h-[18px] w-[50px] shrink-0 text-soft">
-        <polyline points={points} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-  return null;
-}
-
 function NextUpCard({ items, noteTitle }: { items: Upcoming[]; noteTitle: (noteId: string | undefined) => string }) {
   const [first, ...rest] = items;
+  const days = first ? daysUntil(first.on) : 0;
+  const { figure, grow } = useFigure("next-up", days === 0 ? "Today" : `${days} ${days === 1 ? "day" : "days"}`);
   if (!first) return null;
-  const days = daysUntil(first.on);
   return (
     <div className={CARD}>
-      <span className="flex items-start justify-between gap-3 text-[13.5px] text-soft">
-        <span>Next up</span>
-        <span className="shrink-0 text-faint">{dayLabel(first.on)}</span>
-      </span>
-      <Link to="/notes/$noteId" params={{ noteId: first.value.origin?.noteId ?? "" }} disabled={!first.value.origin?.noteId} className="group mt-auto flex min-w-0 items-baseline gap-1.5 pt-2">
-        <span className={FIGURE}>{days === 0 ? "Today" : `${days} ${days === 1 ? "day" : "days"}`}</span>
-        <span className="truncate text-[14px] text-soft group-hover:text-ink">{first.value.subject?.label ?? noteTitle(first.value.origin?.noteId)}</span>
+      <span className="text-[13.5px] leading-[18px] text-soft">Next up</span>
+      <Link to="/notes/$noteId" params={{ noteId: first.value.origin?.noteId ?? "" }} disabled={!first.value.origin?.noteId} className="group mt-auto flex min-w-0 flex-col">
+        <span className="flex items-end gap-3">
+          <span className={FIGURE}>{figure}</span>
+          <MiniChart chart={timelineOf(items.map((item) => daysUntil(item.on)))} grow={grow} />
+        </span>
+        <span className="mt-0.5 truncate text-[13px] leading-4 text-soft group-hover:text-ink">
+          {first.value.subject?.label ?? noteTitle(first.value.origin?.noteId)}
+          <span className="text-faint"> · {dayLabel(first.on)}</span>
+        </span>
       </Link>
       {rest.length > 0 && (
         <ul className="mt-2.5 space-y-0.5 border-t border-line pt-2 text-[13px]">
