@@ -277,3 +277,24 @@ export function setGlance(uid: string, collectionId: string, glance: Glance): vo
 export function deleteCollection(uid: string, id: string): void {
   write(deleteDoc(doc(collectionsOf(uid), id)));
 }
+
+export type StarterSeed = { folder: { id: string; name: string }; note: { id: string; doc: NoteDoc }; values: StoredValue[]; collection: Omit<Collection, "createdAt">; rows: Omit<Row, "createdAt">[] };
+
+export function seedStarter(uid: string, { folder, note: start, values: seeded, collection: created, rows }: StarterSeed): void {
+  const batch = writeBatch(db);
+  batch.set(doc(folders(uid), folder.id), { name: folder.name, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  batch.set(doc(notes(uid), start.id), {
+    schemaVersion: 1,
+    doc: start.doc,
+    ...summarise(start.doc),
+    valueIds: valueIdsOf(start.doc),
+    folderId: folder.id,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  seeded.forEach(({ id, ...fields }) => batch.set(doc(values(uid), id), { ...fields, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }));
+  const { id, ...fields } = created;
+  batch.set(doc(collectionsOf(uid), id), { ...fields, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  rows.forEach(({ id: rowId, ...row }) => batch.set(doc(rowsOf(uid), rowId), { ...row, createdAt: serverTimestamp() }));
+  write(batch.commit());
+}
