@@ -1,5 +1,6 @@
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { MotionConfig } from "motion/react";
 import { useState } from "react";
 import { CaptureBox } from "@/features/capture/CaptureBox";
 import { useCollectionSuggestions, type Suggestion } from "@/features/collections/suggestions";
@@ -14,7 +15,7 @@ import { Btn, MIcon } from "@/ui/kit";
 import { collectionsQuery, foldersQuery, notesQuery, rowsQuery, startNote, valuesQuery, writes } from "./api";
 import { noteWith, type NoteDoc } from "./note-doc";
 import { sampleTrip } from "./sample-trip";
-import { NoteTree } from "./NoteTree";
+import { NotesViewSwitch, NoteTree, RecentList, useNotesView } from "./NoteTree";
 import { useOnline } from "./NotesShell";
 import { showToast } from "./toast";
 import type { Folder, NoteSummary } from "./store";
@@ -30,6 +31,7 @@ export function HomePage({ uid }: { uid: string }) {
   const online = useOnline();
   const suggestions = useCollectionSuggestions(values, online);
   const [creatingFolder, setCreatingFolder] = useState(false);
+  const [notesView, setNotesView] = useNotesView();
   const onboardingView = useOnboardingView(uid, notes.length === 0 && folders.length === 0);
 
   const open = (noteId: string) => void navigate({ to: "/notes/$noteId", params: { noteId } });
@@ -68,7 +70,7 @@ export function HomePage({ uid }: { uid: string }) {
         <p className="mb-3.5 text-[14px] text-faint">{TODAY.format(new Date())}</p>
         <CaptureBox uid={uid} onStartNote={(title) => start(title)} />
         {tracking && (
-          <section aria-labelledby="tracking-heading" className="mt-9">
+          <section aria-labelledby="tracking-heading" className="mt-7">
             <h2 id="tracking-heading" className={SECTION}>
               Tracking
             </h2>
@@ -87,25 +89,44 @@ export function HomePage({ uid }: { uid: string }) {
         {changeable(values).length > 0 && <WhatIf uid={uid} values={values} notes={notes} />}
         {!tracking && values.length > 0 && <FoundHint values={values.slice(0, 3).map((value) => value.text)} count={values.length} />}
 
-        <div className="mt-9 flex items-center justify-between">
-          <h2 className={SECTION}>Notes</h2>
-          <Btn variant="quiet" onClick={() => setCreatingFolder(true)}>
-            <MIcon name="folder" className="size-4" />
-            New folder
-          </Btn>
-        </div>
-        <nav aria-label="Notes" className="mt-1.5">
-          <NoteTree
-            uid={uid}
-            notes={notes}
-            folders={folders}
-            creatingFolder={creatingFolder}
-            onFolderCreated={() => setCreatingFolder(false)}
-            onNewNote={(folderId) => start("", "", folderId)}
-            onDeleteNote={(note) => void removeNote(note)}
-            onDeleteFolder={(folder) => void removeFolder(folder)}
-          />
-        </nav>
+        <MotionConfig reducedMotion="user">
+          <section aria-labelledby="notes-heading" className="mt-10">
+            <div className="flex min-h-9 items-center gap-2 border-b border-line pb-2">
+              <h2 id="notes-heading" className={`${SECTION} mr-auto`}>
+                Notes
+              </h2>
+              {notesView === "folders" && (
+                <Btn variant="quiet" onClick={() => setCreatingFolder(true)}>
+                  <MIcon name="folder" className="size-4" />
+                  New folder
+                </Btn>
+              )}
+              <NotesViewSwitch
+                view={notesView}
+                onChange={(view) => {
+                  setNotesView(view);
+                  if (view === "recent") setCreatingFolder(false);
+                }}
+              />
+            </div>
+            <nav aria-label="Notes" className="mt-1.5">
+              {notesView === "recent" ? (
+                <RecentList uid={uid} notes={notes} folders={folders} onDeleteNote={(note) => void removeNote(note)} />
+              ) : (
+                <NoteTree
+                  uid={uid}
+                  notes={notes}
+                  folders={folders}
+                  creatingFolder={creatingFolder}
+                  onFolderCreated={() => setCreatingFolder(false)}
+                  onNewNote={(folderId) => start("", "", folderId)}
+                  onDeleteNote={(note) => void removeNote(note)}
+                  onDeleteFolder={(folder) => void removeFolder(folder)}
+                />
+              )}
+            </nav>
+          </section>
+        </MotionConfig>
       </div>
     </div>
   );

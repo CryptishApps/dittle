@@ -103,7 +103,7 @@ function monthChart(fieldId: string, rows: Row[], values: StoredValue[], today: 
   const top = Math.max(now.at(-1) ?? 0, then?.at(-1) ?? 0);
   const fit = (series: number[]) => series.map((size) => (top > 0 ? size / top : 0));
   const chart: GlanceChart = { kind: "month", length, current: fit(now), ...(then && { previous: fit(then) }) };
-  return { chart, previousRows: previous, previousMonth: MONTH.format(before) };
+  return { chart, currentRows: current, previousRows: previous, previousMonth: MONTH.format(before) };
 }
 
 const spread = (numbers: number[]) => {
@@ -222,9 +222,16 @@ export function glanceOf(collection: Collection, rows: Row[], values: StoredValu
   }
 
   if (scope === "this month") {
-    const { chart, previousRows, previousMonth } = monthChart(headline.field.id, mine, values, today);
+    const { chart, currentRows, previousRows, previousMonth } = monthChart(headline.field.id, mine, values, today);
     const before = summariseRows(collection, new Set(previousRows.map((row) => row.id)), values).totals.find((total) => total.field.id === headline.field.id);
-    return { glance, figure: headline.text, caption: scope, context: before ? `${before.text} in ${previousMonth}` : lastEntry(collection, mine, today), chart };
+    const sparse = currentRows.length < 2 && previousRows.length === 0;
+    return {
+      glance,
+      figure: headline.text,
+      caption: scope,
+      context: before ? `${before.text} in ${previousMonth}` : lastEntry(collection, mine, today),
+      chart: sparse ? { kind: "days", weeks: activityWeeks(mine, today) } : chart,
+    };
   }
 
   const sizes = sizesOf(headline.field.id, inScope, values);

@@ -4,10 +4,82 @@ import { DropdownMenu } from "radix-ui";
 import { useRef, useState, type DragEvent, type ReactNode } from "react";
 import { ease, MIcon } from "@/ui/kit";
 import { writes } from "./api";
+import { recentNotes } from "./recent";
 import type { Folder, NoteSummary } from "./store";
 
 const NOTE_DRAG_TYPE = "application/x-dittle-note";
 const COLLAPSED_KEY = "dittle.collapsedFolders";
+const VIEW_KEY = "dittle.notesView";
+
+export type NotesView = "recent" | "folders";
+
+function readView(): NotesView {
+  try {
+    return localStorage.getItem(VIEW_KEY) === "folders" ? "folders" : "recent";
+  } catch {
+    return "recent";
+  }
+}
+
+export function useNotesView(): [NotesView, (view: NotesView) => void] {
+  const [view, setView] = useState(readView);
+  const choose = (next: NotesView) => {
+    setView(next);
+    try {
+      localStorage.setItem(VIEW_KEY, next);
+    } catch {}
+  };
+  return [view, choose];
+}
+
+export function NotesViewSwitch({ view, onChange }: { view: NotesView; onChange: (view: NotesView) => void }) {
+  return (
+    <div role="group" aria-label="Show notes" className="flex h-8 items-center rounded-lg p-0.5 shadow-[inset_0_0_0_1px_var(--line)]">
+      {(["recent", "folders"] as const).map((option) => (
+        <button
+          key={option}
+          type="button"
+          aria-pressed={view === option}
+          onClick={() => onChange(option)}
+          className="h-7 rounded-md px-2.5 text-[13px] text-faint transition-colors hover:text-ink aria-pressed:bg-chip aria-pressed:font-medium aria-pressed:text-ink"
+        >
+          {option === "recent" ? "Recent" : "Folders"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+type RecentListProps = {
+  uid: string;
+  notes: NoteSummary[];
+  folders: Folder[];
+  onDeleteNote: (note: NoteSummary) => void;
+};
+
+export function RecentList({ uid, notes, folders, onDeleteNote }: RecentListProps) {
+  if (notes.length === 0) return <EmptyNotes />;
+  return (
+    <ul className="space-y-px">
+      <AnimatePresence initial={false}>
+        {recentNotes(notes, folders).map(({ note, folder }) => (
+          <NoteRow
+            key={note.id}
+            note={note}
+            folder={folder?.name}
+            folders={folders}
+            onMove={(folderId) => writes.moveNote(uid, note.id, folderId)}
+            onDelete={() => onDeleteNote(note)}
+          />
+        ))}
+      </AnimatePresence>
+    </ul>
+  );
+}
+
+function EmptyNotes() {
+  return <p className="py-3 text-[15px] text-faint">No notes yet. Start one and it saves as you type, even offline.</p>;
+}
 
 const ago = new Intl.RelativeTimeFormat("en", { numeric: "auto", style: "narrow" });
 const day = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
@@ -79,7 +151,7 @@ export function NoteTree({ uid, notes, folders, creatingFolder, onFolderCreated,
   );
 
   if (notes.length === 0 && folders.length === 0 && !creatingFolder) {
-    return <p className="py-3 text-[15px] text-faint">No notes yet. Start one and it saves as you type, even offline.</p>;
+    return <EmptyNotes />;
   }
 
   return (
@@ -240,7 +312,7 @@ function FolderRow({
 const HOVER_ONLY = "transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100";
 const ICON_BTN = "grid size-8 place-items-center rounded-lg text-soft hover:bg-chip-hover hover:text-ink";
 
-function NoteRow({ note, folders, onMove, onDelete }: { note: NoteSummary; folders: Folder[]; onMove: (folderId: string | null) => void; onDelete: () => void }) {
+function NoteRow({ note, folder, folders, onMove, onDelete }: { note: NoteSummary; folder?: string; folders: Folder[]; onMove: (folderId: string | null) => void; onDelete: () => void }) {
   return (
     <m.li
       layout="position"
@@ -261,6 +333,13 @@ function NoteRow({ note, folders, onMove, onDelete }: { note: NoteSummary; folde
         className="flex items-baseline gap-3.5 rounded-lg px-3 py-2.5 transition-colors hover:bg-panel"
       >
         <span className={`max-w-[60%] shrink-0 truncate text-[15.5px] font-medium ${note.title ? "text-ink" : "text-faint"}`}>{note.title || "Untitled"}</span>
+        {folder && (
+          <span className="flex max-w-[30%] shrink-0 items-baseline gap-1 text-[12.5px] text-faint">
+            <MIcon name="folder" className="size-3.5 shrink-0 self-center" />
+            <span className="sr-only">in </span>
+            <span className="truncate">{folder}</span>
+          </span>
+        )}
         <span className="min-w-0 flex-1 truncate text-[14.5px] text-faint max-sm:hidden">{note.preview}</span>
         <span className="ml-auto shrink-0 pr-0 text-[13px] text-faint tabular-nums [@media(hover:none)]:pr-8 [@media(hover:hover)]:group-focus-within:invisible [@media(hover:hover)]:group-hover:invisible">
           {edited(note.updatedAt)}

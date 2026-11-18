@@ -12,13 +12,13 @@ import { sampleText, type Sample } from "./sample-clips";
 import { Samples } from "./Samples";
 import { PasteView, type Paste } from "./PasteView";
 
-
 export function CaptureBox({ uid, onStartNote }: { uid: string; onStartNote: (title: string) => void }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const store = useMemo(() => createSyncedValueStore(queryClient, uid, writes), [queryClient, uid]);
   const context: CaptureContext = useMemo(() => ({ queryClient, uid, store }), [queryClient, uid, store]);
   const [paste, setPaste] = useState<Paste | null>(null);
+  const [text, setText] = useState("");
   const receipts = useReceipts();
 
   const openNote = (noteId: string) => void navigate({ to: "/notes/$noteId", params: { noteId } });
@@ -57,54 +57,87 @@ export function CaptureBox({ uid, onStartNote }: { uid: string; onStartNote: (ti
   }
 
   return (
-    <section aria-label="Capture" className="mx-auto w-full max-w-[700px]">
+    <section aria-label="Capture" className="group/capture mx-auto w-full max-w-[700px]">
       <ImageDropZone onText={take}>
-        <CaptureInput onSubmit={take} onPasteLines={(text) => setPaste({ text })} mic={<MicButton onText={take} />} />
+        <CaptureInput text={text} onText={setText} onSubmit={take} onPasteLines={(lines) => setPaste({ text: lines })} mic={<MicButton onText={take} />} />
       </ImageDropZone>
-      <p className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-faint">
-        <span>Type anything</span>
-        <span>⌘V paste a chat or list</span>
-        <span>Drop a screenshot</span>
-        <span>
-          Hold <span className="rounded-[5px] border border-line-strong px-1.5 text-[12px]">M</span> to talk
-        </span>
-      </p>
-      <Samples onSample={trySample} className="mt-1.5" />
+      <div className="@container mt-2.5 min-h-5">
+        {!text && <CaptureHints onSample={trySample} />}
+      </div>
       {receipts.length > 0 && <Receipts receipts={receipts} />}
     </section>
   );
 }
 
-function CaptureInput({ onSubmit, onPasteLines, mic }: { onSubmit: (text: string) => void; onPasteLines: (text: string) => void; mic: ReactNode }) {
-  const [text, setText] = useState("");
+const SHOW_ON_FOCUS =
+  "invisible opacity-0 group-focus-within/capture:visible group-focus-within/capture:opacity-100 group-has-[[data-mic-busy]]/capture:invisible group-has-[[data-mic-busy]]/capture:opacity-0 motion-safe:transition-[opacity,visibility] motion-safe:duration-200 [@media(hover:hover)]:group-hover/capture:visible [@media(hover:hover)]:group-hover/capture:opacity-100";
+
+function CaptureHints({ onSample }: { onSample: (sample: Sample) => void }) {
+  return (
+    <div className={`flex items-baseline justify-between gap-x-6 px-1 text-[13px] text-faint ${SHOW_ON_FOCUS}`}>
+      <p className="hidden items-baseline gap-x-1.5 whitespace-nowrap @min-[600px]:flex [@media(pointer:coarse)]:hidden">
+        <span>Paste a chat or list</span>
+        <span aria-hidden>·</span>
+        <span>drop a screenshot</span>
+        <span aria-hidden>·</span>
+        <span>
+          hold <kbd className="rounded-[5px] px-1.5 font-sans text-[12px] shadow-[inset_0_0_0_1px_var(--line-strong)]">M</kbd> to talk
+        </span>
+      </p>
+      <Samples onSample={onSample} lead="Try" className="text-[13px] whitespace-nowrap" />
+    </div>
+  );
+}
+
+function CaptureInput({
+  text,
+  onText,
+  onSubmit,
+  onPasteLines,
+  mic,
+}: {
+  text: string;
+  onText: (text: string) => void;
+  onSubmit: (text: string) => void;
+  onPasteLines: (text: string) => void;
+  mic: ReactNode;
+}) {
+  const filing = text.trim().length > 0;
   return (
     <form
       onSubmit={(event) => {
         event.preventDefault();
         onSubmit(text);
-        setText("");
+        onText("");
       }}
-      className="mt-3.5 flex h-[52px] items-center gap-2.5 rounded-xl bg-card pr-2 pl-[18px] shadow-[inset_0_0_0_1px_var(--line-strong)] transition-shadow focus-within:shadow-[inset_0_0_0_1.5px_var(--ink)]"
+      className="group/box mt-3.5 flex h-14 items-center gap-1 rounded-2xl bg-card pr-2 pl-4 shadow-[inset_0_0_0_1px_var(--line-strong),0_1px_2px_rgb(18_20_24/0.04),0_10px_24px_-18px_rgb(18_20_24/0.25)] focus-within:shadow-[inset_0_0_0_1.5px_var(--ink),0_0_0_4px_var(--chip)] motion-safe:transition-shadow motion-safe:duration-200"
     >
+      <CaptureIcon name="pen" className="size-[18px] shrink-0 text-faint max-sm:hidden group-focus-within/box:text-ink motion-safe:transition-colors" />
       <input
         value={text}
-        onChange={(event) => setText(event.target.value)}
+        onChange={(event) => onText(event.target.value)}
         onPaste={(event) => {
           const pasted = event.clipboardData.getData("text/plain");
           if (!pasted.trim().includes("\n")) return;
           event.preventDefault();
           onPasteLines(`${text}${pasted}`.trim());
-          setText("");
+          onText("");
         }}
         placeholder="New note, or jot something down"
         aria-label="New note, or jot something down"
-        className="h-full min-w-0 flex-1 bg-transparent text-[16.5px] text-ink outline-none placeholder:text-faint"
+        className="h-full min-w-0 flex-1 bg-transparent text-[16px] text-ink outline-none placeholder:text-faint sm:pl-2.5 sm:text-[16.5px]"
         style={{ outline: "none" }}
       />
       {mic}
-      <button type="submit" className="flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-[13px] text-faint transition-colors hover:bg-chip hover:text-ink">
-        <CaptureIcon name="enter" className="size-3.5" />
-        {text.trim() ? "File" : "New note"}
+      <button
+        type="submit"
+        className={`flex h-9 shrink-0 items-center gap-2 rounded-[10px] max-sm:w-9 max-sm:justify-center sm:pr-2 sm:pl-3 text-[13.5px] font-medium motion-safe:transition-colors ${filing ? "bg-ink text-page hover:opacity-90" : "text-soft hover:bg-chip hover:text-ink"}`}
+      >
+        <span className="max-sm:sr-only">{filing ? "File" : "New note"}</span>
+        <kbd aria-hidden className={`grid h-5 min-w-5 place-items-center rounded-[5px] font-sans shadow-[inset_0_0_0_1px_currentColor] max-sm:hidden [@media(pointer:coarse)]:hidden ${filing ? "opacity-60" : "text-faint opacity-70"}`}>
+          <CaptureIcon name="enter" className="size-3" />
+        </kbd>
+        {filing ? <CaptureIcon name="arrow" className="size-[18px] sm:hidden" /> : <MIcon name="plus" className="size-[18px] sm:hidden" />}
       </button>
     </form>
   );

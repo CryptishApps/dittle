@@ -48,6 +48,11 @@ describe("glanceOf", () => {
     expect(view.chart && "previous" in view.chart).toBe(false);
   });
 
+  test("a month total with one entry and no earlier month shows the day grid instead of a one-step climb", () => {
+    const view = glanceOf(runs(), rows.slice(-1), values.filter((value) => value.subject?.entityId === rows.at(-1)!.id), today);
+    expect(view.chart).toMatchObject({ kind: "days" });
+  });
+
   test("count shows entries in the last seven days against the week before", () => {
     expect(glanceOf(runs("count"), rows, values, today)).toEqual({
       glance: "count",

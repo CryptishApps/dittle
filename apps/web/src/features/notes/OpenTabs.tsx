@@ -16,7 +16,8 @@ export function OpenTabs({ uid, onNewNote }: { uid: string; onNewNote: () => voi
   const notes = useQuery(notesQuery(uid)).data;
   const collections = useQuery(collectionsQuery(uid)).data;
 
-  const noteMatch = matchRoute({ to: "/notes/$noteId" });
+  const onAccount = Boolean(matchRoute({ to: "/notes/account" }));
+  const noteMatch = onAccount ? false : matchRoute({ to: "/notes/$noteId" });
   const collectionMatch = matchRoute({ to: "/notes/collections/$collectionId" });
   const current: Tab | undefined = noteMatch ? { kind: "note", id: noteMatch.noteId } : collectionMatch ? { kind: "collection", id: collectionMatch.collectionId } : undefined;
   const onHome = Boolean(matchRoute({ to: "/notes" }));
