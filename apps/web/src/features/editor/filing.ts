@@ -41,6 +41,15 @@ function trackSpotted(editor: Editor, store: ValueStore, block: Block, noteId: s
   return added;
 }
 
+export function trackAllSpotted(editor: Editor, store: ValueStore, noteId: string | undefined): TrackedValue[] {
+  const blocks: Block[] = [];
+  editor.state.doc.descendants((node, pos) => {
+    if (node.isTextblock && pos > 0) blocks.push({ from: pos, to: pos + node.nodeSize });
+    return !node.isTextblock;
+  });
+  return blocks.reverse().flatMap((block) => trackSpotted(editor, store, block, noteId));
+}
+
 function tagIdsIn(editor: Editor, block: Block): string[] {
   const ids: string[] = [];
   editor.state.doc.nodesBetween(block.from, Math.min(block.to, editor.state.doc.content.size), (node) => {

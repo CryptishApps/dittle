@@ -34,8 +34,8 @@ export type OnboardingView = "flow" | "start" | "home";
 
 export function onboardingView(stage: Stage | undefined, isRunning: boolean, empty: boolean): OnboardingView {
   if (isRunning) return "flow";
-  if (!empty || stage === "done") return "home";
-  return stage === "skipped" ? "start" : "flow";
+  if (!empty) return "home";
+  return stage ? "start" : "flow";
 }
 
 export function useOnboardingView(uid: string, empty: boolean): OnboardingView {

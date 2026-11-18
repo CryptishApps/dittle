@@ -1,6 +1,7 @@
 import { AnimatePresence, m, useInView } from "motion/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ease } from "../../ui/kit";
+import { Browser } from "./quiet";
 
 export function Reveal({ children, className, delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
   return (
@@ -31,14 +32,15 @@ export function StickySteps({ steps }: { steps: Step[] }) {
       <div className="hidden lg:block">
         <div className="sticky top-[14vh] flex h-[72vh] flex-col justify-center">
           <div className="mb-3 flex items-center justify-between px-1 text-[13px] text-faint">
-            <span>{current.label}</span>
+            <span className="font-semibold text-[var(--sky-ink)]">{current.label}</span>
             <span className="flex gap-1.5">
               {steps.map((step, index) => (
-                <span key={step.key} className={`h-1.5 rounded-full transition-all duration-500 ${index === active ? "w-[18px] bg-ink" : "w-1.5 bg-line-strong"}`} />
+                <span key={step.key} className={`h-1.5 rounded-full transition-all duration-500 ${index === active ? "w-[18px] bg-[var(--brand-blue)]" : "w-1.5 bg-line-strong"}`} />
               ))}
             </span>
           </div>
-          <div className="relative aspect-[16/11] overflow-hidden rounded-2xl border border-line bg-page">
+          <Browser>
+            <div className="relative aspect-[16/11] overflow-hidden">
             <AnimatePresence mode="popLayout" initial={false}>
               <m.div
                 key={current.key}
@@ -51,7 +53,8 @@ export function StickySteps({ steps }: { steps: Step[] }) {
                 {current.visual}
               </m.div>
             </AnimatePresence>
-          </div>
+            </div>
+          </Browser>
         </div>
       </div>
     </div>
@@ -68,11 +71,17 @@ function StepText({ step, index, total, onActive, active }: { step: Step; index:
     <div ref={ref} className="flex flex-col justify-center py-8 lg:min-h-[72vh] lg:py-0">
       <div className={active ? "" : "lg:[&_h3]:text-faint lg:[&_p]:text-faint"}>
         <p className="text-[13px] text-faint tabular-nums">
-          {index + 1} of {total} · {step.label}
+          <span aria-hidden className="mr-2 inline-grid size-6 place-items-center rounded-full bg-[var(--brand-blue)] text-[12px] font-semibold text-white">{index + 1}</span>
+          <span className="sr-only">
+            Step {index + 1} of {total}.{" "}
+          </span>
+          {step.label}
         </p>
         <h3 className="mt-3 transition-colors duration-500 text-[26px] leading-[1.15] font-semibold tracking-[-0.03em] sm:text-[32px]">{step.title}</h3>
         <p className="mt-3 max-w-[44ch] text-[16px] leading-[1.7] text-soft">{step.body}</p>
-        <div className="relative mt-6 aspect-[16/11] overflow-hidden rounded-2xl border border-line bg-page lg:hidden">{step.visual}</div>
+        <Browser className="mt-6 lg:hidden">
+          <div className="relative aspect-[16/11] overflow-hidden">{step.visual}</div>
+        </Browser>
       </div>
     </div>
   );

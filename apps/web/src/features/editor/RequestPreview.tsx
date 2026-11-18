@@ -4,6 +4,7 @@ import { AnimatePresence, m } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { Btn, ease, POPOVER } from "@/ui/kit";
 import { insertRequest, requestsKey } from "./requests";
+import { onEditorDom } from "./editor-dom";
 
 type Target = { id: string; element: HTMLElement };
 
@@ -12,24 +13,27 @@ export function RequestPreview({ editor }: { editor: Editor }) {
   const card = useRef<HTMLDivElement>(null);
   const hideTimer = useRef<number | undefined>(undefined);
 
-  useEffect(() => {
-    const dom = editor.view.dom;
-    const over = (event: MouseEvent) => {
-      const element = (event.target as HTMLElement).closest<HTMLElement>('.request-button[data-status="ready"]');
-      if (!element?.dataset.request) return;
-      window.clearTimeout(hideTimer.current);
-      setTarget({ id: element.dataset.request, element });
-    };
-    const out = (event: MouseEvent) => {
-      if ((event.target as HTMLElement).closest(".request-button")) hide();
-    };
-    dom.addEventListener("mouseover", over);
-    dom.addEventListener("mouseout", out);
-    return () => {
-      dom.removeEventListener("mouseover", over);
-      dom.removeEventListener("mouseout", out);
-    };
-  }, [editor]);
+  useEffect(
+    () =>
+      onEditorDom(editor, (dom) => {
+        const over = (event: MouseEvent) => {
+          const element = (event.target as HTMLElement).closest<HTMLElement>('.request-button[data-status="ready"]');
+          if (!element?.dataset.request) return;
+          window.clearTimeout(hideTimer.current);
+          setTarget({ id: element.dataset.request, element });
+        };
+        const out = (event: MouseEvent) => {
+          if ((event.target as HTMLElement).closest(".request-button")) hide();
+        };
+        dom.addEventListener("mouseover", over);
+        dom.addEventListener("mouseout", out);
+        return () => {
+          dom.removeEventListener("mouseover", over);
+          dom.removeEventListener("mouseout", out);
+        };
+      }),
+    [editor],
+  );
 
   useEffect(() => {
     const floating = card.current;

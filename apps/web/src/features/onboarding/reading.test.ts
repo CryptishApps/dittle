@@ -64,8 +64,10 @@ describe("onboardingView", () => {
   test("walks a new empty account through onboarding", () => expect(onboardingView(undefined, false, true)).toBe("flow"));
   test("keeps the flow open while it seeds notes", () => expect(onboardingView(undefined, true, false)).toBe("flow"));
   test("does not force an account that skipped back into onboarding", () => expect(onboardingView("skipped", false, true)).toBe("start"));
-  test("shows the normal home once there are notes or onboarding is done", () => {
+  test("shows the normal home once there are notes", () => {
     expect(onboardingView(undefined, false, false)).toBe("home");
-    expect(onboardingView("done", false, true)).toBe("home");
+    expect(onboardingView("done", false, false)).toBe("home");
+    expect(onboardingView("skipped", false, false)).toBe("home");
   });
+  test("offers the way back into onboarding when a finished account is empty again", () => expect(onboardingView("done", false, true)).toBe("start"));
 });

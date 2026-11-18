@@ -14,7 +14,7 @@ export function NumberRoll({ from, to, cell = "1.25em" }: { from: string; to: st
   const [settled, setSettled] = useState(reducedMotion);
 
   useEffect(() => {
-    if (rolled || !root.current) return;
+    if (reducedMotion() || !root.current) return;
     const style = getComputedStyle(root.current);
     const duration = readMs(style, "--reel-dur");
     const stagger = readMs(style, "--reel-stagger");
@@ -37,7 +37,7 @@ export function NumberRoll({ from, to, cell = "1.25em" }: { from: string; to: st
       });
     });
     return () => cancelAnimationFrame(frame);
-  }, [rolled]);
+  }, []);
 
   let reelIndex = 0;
   return (
@@ -47,7 +47,7 @@ export function NumberRoll({ from, to, cell = "1.25em" }: { from: string; to: st
         if (column.kind === "still") {
           return (
             <span key={index} aria-hidden className="t-reel-digit">
-              {column.char}
+              {column.char === " " ? "\u00a0" : column.char}
             </span>
           );
         }

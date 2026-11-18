@@ -5,7 +5,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import type { PasswordCheck } from "@/lib/auth";
 import { authMessage } from "@/lib/auth-errors";
 import { ease, MIcon, TypeOn } from "@/ui/kit";
-import { AuthShell, BUTTON, BusyLabel, LABEL, PasswordInput, PasswordRules, usePasswordCheck, type Nav } from "./parts";
+import { AuthShell, BUTTON, BusyLabel, LABEL, PasswordInput, PasswordRules, PRIMARY, usePasswordCheck, type Nav } from "./parts";
 
 export type ActionMode = "verifyEmail" | "verifyAndChangeEmail" | "resetPassword" | "recoverEmail";
 
@@ -55,7 +55,7 @@ export function ActionPage({ mode, code, actions, links }: ActionPageProps) {
         initial={{ opacity: 0, y: 12, filter: "blur(6px)" }}
         animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
         transition={{ duration: 0.5, ease }}
-        className="w-full max-w-[360px]"
+        className="w-full max-w-[380px]"
       >
         {state.step === "checking" && (
           <Heading title="Checking your link" sub="This takes a moment.">
@@ -107,7 +107,7 @@ function attempt(mode: ActionMode, code: string, actions: EmailActions): Promise
 function Heading({ title, sub, children }: { title: string; sub: string; children?: ReactNode }) {
   return (
     <>
-      <h1 className="text-[34px] leading-[1.1] font-semibold tracking-[-0.03em]">
+      <h1 className="text-[34px] leading-[1.08] font-semibold tracking-[-0.035em] sm:text-[40px]">
         <TypeOn key={title} text={title} duration={520} />
       </h1>
       <p className="mt-3 text-[16px] leading-[1.6] text-soft">{sub}</p>
@@ -118,7 +118,7 @@ function Heading({ title, sub, children }: { title: string; sub: string; childre
 
 function Next({ nav, label }: { nav: Nav; label: string }) {
   return (
-    <Button asChild className={`${BUTTON} mt-9 w-full`}>
+    <Button asChild className={`${PRIMARY} mt-9 w-full`}>
       <a
         href={nav.href}
         onClick={(event) => {
@@ -127,7 +127,7 @@ function Next({ nav, label }: { nav: Nav; label: string }) {
         }}
       >
         {label}
-        <MIcon name="right" className="size-3.5" />
+        <MIcon name="right" className="welcome-cta-arrow size-3.5" />
       </a>
     </Button>
   );
@@ -170,9 +170,9 @@ function ChoosePassword({ code, email, actions, next }: { code: string; email: s
             <PasswordRules check={check} />
           </Field>
           <Field className="mt-1">
-            <Button type="submit" className={BUTTON} disabled={busy || !password}>
+            <Button type="submit" className={PRIMARY} disabled={busy || !password}>
               <BusyLabel state={busy ? "busy" : "idle"} text="Save and sign in" busyText="Saving" />
-              {!busy && <MIcon name="right" className="size-3.5" />}
+              {!busy && <MIcon name="right" className="welcome-cta-arrow size-3.5" />}
             </Button>
           </Field>
           {error && <Alert tone="error">{error}</Alert>}
@@ -215,7 +215,7 @@ function Alert({ tone, children }: { tone: "error" | "info"; children: ReactNode
   return (
     <p
       role={tone === "error" ? "alert" : "status"}
-      className={`mt-4 rounded-xl px-4 py-3 text-[14px] leading-[1.55] ${tone === "error" ? "bg-danger-tint text-danger" : "bg-panel text-ink"}`}
+      className={`mt-4 rounded-xl px-4 py-3 text-[14px] leading-[1.55] ${tone === "error" ? "bg-danger-tint text-danger" : "bg-[var(--sky)] text-ink"}`}
     >
       {children}
     </p>

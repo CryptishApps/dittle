@@ -49,8 +49,8 @@ Every call goes through [Firebase AI Logic](https://firebase.google.com/docs/ai-
 | Read an update from pasted text (a supplier's email) | Cloud first, Nano offline | It compares the message with every value you track, and a wrong match changes a value in every note. |
 | Read an update from a photo or PDF of a quote | Cloud only | Files always go to the cloud, and only when you upload one. |
 | Suggest collections ("you've written 3 things to do, make a table of them?") | Cloud only | Needs every value at once. It gets the extracted values and note titles, never note text. |
-| Decide where an entry in the home box goes (file it, update a value, add to a note, start a note) | Cloud only | It weighs the entry against every collection and tracked value at once. Offline, the entry is saved as a note and the receipt says so. |
-| Tidy a pasted chat or list into a note | Cloud only | Same reason, and it writes the whole note in one go. |
+| Decide where an entry in the home box goes (file it, update a value, add to a note, start a note) | Cloud first, Nano offline | It weighs the entry against every collection and tracked value at once, which the cloud does best. Offline, Nano decides; code checks its pick against the numbered options. If neither answers within 15 seconds, the entry is saved as a note and the receipt says so. |
+| Tidy a pasted chat or list into a note | Cloud first, Nano offline | It writes the whole note in one go. Offline, Nano tidies it; if that fails, the paste is kept as it is. |
 | Read a typed onboarding entry, or propose a table for "Something else" | Cloud only | The sample entries come already read, so the model runs only for text you type. |
 | Turn a voice recording or a screenshot into text for the home box | Cloud only | Audio and images go to the cloud only when you record or drop one. |
 

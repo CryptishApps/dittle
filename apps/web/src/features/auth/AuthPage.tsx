@@ -8,7 +8,8 @@ import { authMessage, isCancelled } from "@/lib/auth-errors";
 import { hasPainted } from "@/lib/first-paint";
 import { ease, MIcon, TypeOn } from "@/ui/kit";
 import { SpinCheck } from "@/ui/SpinCheck";
-import { AuthShell, BUTTON, BusyLabel, GoogleMark, INPUT, LABEL, NavLink, PasswordInput, PasswordRules, usePasswordCheck, type Nav } from "./parts";
+import { Eyebrow } from "@/features/welcome/quiet";
+import { AuthShell, BUTTON, BusyLabel, GoogleMark, INPUT, LABEL, NavLink, PasswordInput, PasswordRules, PRIMARY, usePasswordCheck, type Nav } from "./parts";
 
 export type AuthMode = "signin" | "signup";
 
@@ -31,8 +32,24 @@ type AuthPageProps = {
 const ENTER = { opacity: 0, y: 12, filter: "blur(6px)" };
 
 const COPY = {
-  signin: { title: "Welcome back.", submit: "Sign in", busy: "Signing in", done: "Opening your notes" },
-  signup: { title: "Start planning.", submit: "Create account", busy: "Creating account", done: "Opening your notes" },
+  signin: {
+    eyebrow: { tone: "sky", icon: "sync", text: "Your notes, on every device" },
+    title: "Welcome back.",
+    accent: "Your plans are waiting.",
+    sub: "Sign in to pick up where you left off. Anything you wrote offline syncs when you’re back online.",
+    submit: "Sign in",
+    busy: "Signing in",
+    done: "Opening your notes",
+  },
+  signup: {
+    eyebrow: { tone: "sun", icon: "spark", text: "Free, set up in about a minute" },
+    title: "Start planning.",
+    accent: "Your notes keep up.",
+    sub: "Write plans as plain notes. Dittle spots the prices and dates, keeps every copy in step and adds them up.",
+    submit: "Create account",
+    busy: "Creating account",
+    done: "Opening your notes",
+  },
 } as const;
 
 export function AuthPage({ mode, actions, links }: AuthPageProps) {
@@ -92,8 +109,6 @@ export function AuthPage({ mode, actions, links }: AuthPageProps) {
     });
   };
 
-  const sub = mode === "signin" ? "Pick up your notes on any device." : "Free, private, and your notes work offline.";
-
   return (
     <AuthShell home={links.home}>
           <m.div
@@ -101,14 +116,18 @@ export function AuthPage({ mode, actions, links }: AuthPageProps) {
             initial={enter}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             transition={{ duration: 0.5, ease }}
-            className="w-full max-w-[360px]"
+            className="w-full max-w-[380px]"
           >
-            <h1 className="text-[34px] leading-[1.1] font-semibold tracking-[-0.03em]">
+            <Eyebrow tone={copy.eyebrow.tone} icon={copy.eyebrow.icon}>
+              {copy.eyebrow.text}
+            </Eyebrow>
+            <h1 className="text-[34px] leading-[1.08] font-semibold tracking-[-0.035em] sm:text-[40px]">
               <TypeOn key={mode} text={copy.title} duration={520} />
+              <span className="welcome-headline block pb-1">{copy.accent}</span>
             </h1>
-            <p className="mt-3 text-[16px] leading-[1.6] text-soft">{sub}</p>
+            <p className="mt-3 text-[16px] leading-[1.6] text-soft">{copy.sub}</p>
 
-            <form onSubmit={submit} className="mt-9" noValidate aria-busy={!!pending}>
+            <form onSubmit={submit} className="mt-8" noValidate aria-busy={!!pending}>
               <fieldset disabled={!!pending} className="m-0 min-w-0 border-0 p-0">
               <FieldGroup className="gap-4">
                 <Field>
@@ -167,9 +186,9 @@ export function AuthPage({ mode, actions, links }: AuthPageProps) {
                 </Field>
 
                 <Field className="mt-1">
-                  <Button type="submit" className={`${BUTTON} disabled:opacity-100`}>
+                  <Button type="submit" className={`${PRIMARY} disabled:opacity-100`}>
                     <BusyLabel state={stateOf("email")} text={copy.submit} busyText={copy.busy} doneText={copy.done} />
-                    {pending === "email" ? <SpinCheck done={signedIn} className="-my-1 -mr-1" /> : <MIcon name="right" className="size-3.5" />}
+                    {pending === "email" ? <SpinCheck done={signedIn} className="-my-1 -mr-1" /> : <MIcon name="right" className="welcome-cta-arrow size-3.5" />}
                   </Button>
                 </Field>
 
@@ -179,7 +198,7 @@ export function AuthPage({ mode, actions, links }: AuthPageProps) {
                     initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.25, ease }}
-                    className={`rounded-xl px-4 py-3 text-[14px] leading-[1.55] ${error ? "bg-danger-tint text-danger" : "bg-panel text-ink"}`}
+                    className={`rounded-xl px-4 py-3 text-[14px] leading-[1.55] ${error ? "bg-danger-tint text-danger" : "bg-[var(--sky)] text-ink"}`}
                   >
                     {error ?? notice}
                   </m.p>

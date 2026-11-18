@@ -8,8 +8,8 @@ export type { CaptureRoute, CaptureShown, DraftParagraph, DraftValue, NoteDraft,
 
 type Timed = { where: InferenceWhere; ms: number };
 
-const router = createHybrid("Route a capture", InferenceMode.ONLY_IN_CLOUD, ROUTE_INSTRUCTIONS, ROUTE_SCHEMA);
-const tidier = createHybrid("Tidy a paste", InferenceMode.ONLY_IN_CLOUD, TIDY_INSTRUCTIONS, TIDY_SCHEMA);
+const router = createHybrid("Route a capture", InferenceMode.PREFER_IN_CLOUD, ROUTE_INSTRUCTIONS, ROUTE_SCHEMA);
+const tidier = createHybrid("Tidy a paste", InferenceMode.PREFER_IN_CLOUD, TIDY_INSTRUCTIONS, TIDY_SCHEMA);
 
 export async function routeCapture(entry: string, shown: CaptureShown, today = new Date()): Promise<{ route: CaptureRoute } & Timed> {
   const { text, where, ms } = await router.ask(routePrompt(entry, datesLine(today), shown));
