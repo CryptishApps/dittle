@@ -13,6 +13,7 @@ import { foundValueAt, spottingKey } from "./spotting";
 import { VALUE_NODE } from "./value-node";
 import type { EditorServices } from "./services";
 import { describeInBackground, useValues, type TrackedValue, type ValueStore } from "./values";
+import { onEditorDom } from "./editor-dom";
 
 type Target = { kind: "tag" | "found"; id: string; element: HTMLElement };
 
@@ -50,53 +51,56 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
     return () => void editor.off("transaction", bump);
   }, [editor, target]);
 
-  useEffect(() => {
-    const dom = editor.view.dom;
-    const over = (event: MouseEvent) => {
-      const element = (event.target as HTMLElement).closest<HTMLElement>(".value-tag, .value-found");
-      if (!element) return;
-      window.clearTimeout(hideTimer.current);
-      const kind = element.classList.contains("value-found") ? "found" : "tag";
-      const id = kind === "found" ? element.dataset.found : element.dataset.id;
-      if (id) setTarget({ kind, id, element });
-    };
-    const out = (event: MouseEvent) => {
-      if ((event.target as HTMLElement).closest(".value-tag, .value-found")) hide();
-    };
-    const open = (element: HTMLElement | null | undefined, from: "pointer" | "keyboard") => {
-      const id = element?.dataset.id;
-      if (!element || !id) return false;
-      window.clearTimeout(hideTimer.current);
-      if (openValue) {
-        setTarget(undefined);
-        openValue(id, from);
-      } else {
-        setTarget({ kind: "tag", id, element });
-        setEditing(true);
-      }
-      return true;
-    };
-    const click = (event: MouseEvent) => void open((event.target as HTMLElement).closest<HTMLElement>(".value-tag"), "pointer");
-    const key = (event: globalThis.KeyboardEvent) => {
-      if (event.key !== "Enter" || !(event.metaKey || event.ctrlKey)) return;
-      const { $from, empty } = editor.state.selection;
-      const id: unknown = empty ? [$from.nodeBefore, $from.nodeAfter].find((node) => node?.type.name === VALUE_NODE)?.attrs.id : undefined;
-      if (typeof id !== "string" || !open(dom.querySelector<HTMLElement>(`.value-tag[data-id="${CSS.escape(id)}"]`), "keyboard")) return;
-      event.preventDefault();
-      event.stopPropagation();
-    };
-    const keys = dom.parentElement ?? dom;
-    dom.addEventListener("mouseover", over);
-    dom.addEventListener("mouseout", out);
-    dom.addEventListener("click", click);
-    keys.addEventListener("keydown", key, { capture: true });
-    return () => {
-      dom.removeEventListener("mouseover", over);
-      dom.removeEventListener("mouseout", out);
-      dom.removeEventListener("click", click);
-      keys.removeEventListener("keydown", key, { capture: true });
-    };
-  }, [editor]);
+  useEffect(
+    () =>
+      onEditorDom(editor, (dom) => {
+        const over = (event: MouseEvent) => {
+          const element = (event.target as HTMLElement).closest<HTMLElement>(".value-tag, .value-found");
+          if (!element) return;
+          window.clearTimeout(hideTimer.current);
+          const kind = element.classList.contains("value-found") ? "found" : "tag";
+          const id = kind === "found" ? element.dataset.found : element.dataset.id;
+          if (id) setTarget({ kind, id, element });
+        };
+        const out = (event: MouseEvent) => {
+          if ((event.target as HTMLElement).closest(".value-tag, .value-found")) hide();
+        };
+        const open = (element: HTMLElement | null | undefined, from: "pointer" | "keyboard") => {
+          const id = element?.dataset.id;
+          if (!element || !id) return false;
+          window.clearTimeout(hideTimer.current);
+          if (openValue) {
+            setTarget(undefined);
+            openValue(id, from);
+          } else {
+            setTarget({ kind: "tag", id, element });
+            setEditing(true);
+          }
+          return true;
+        };
+        const click = (event: MouseEvent) => void open((event.target as HTMLElement).closest<HTMLElement>(".value-tag"), "pointer");
+        const key = (event: globalThis.KeyboardEvent) => {
+          if (event.key !== "Enter" || !(event.metaKey || event.ctrlKey)) return;
+          const { $from, empty } = editor.state.selection;
+          const id: unknown = empty ? [$from.nodeBefore, $from.nodeAfter].find((node) => node?.type.name === VALUE_NODE)?.attrs.id : undefined;
+          if (typeof id !== "string" || !open(dom.querySelector<HTMLElement>(`.value-tag[data-id="${CSS.escape(id)}"]`), "keyboard")) return;
+          event.preventDefault();
+          event.stopPropagation();
+        };
+        const keys = dom.parentElement ?? dom;
+        dom.addEventListener("mouseover", over);
+        dom.addEventListener("mouseout", out);
+        dom.addEventListener("click", click);
+        keys.addEventListener("keydown", key, { capture: true });
+        return () => {
+          dom.removeEventListener("mouseover", over);
+          dom.removeEventListener("mouseout", out);
+          dom.removeEventListener("click", click);
+          keys.removeEventListener("keydown", key, { capture: true });
+        };
+      }),
+    [editor],
+  );
 
   useEffect(() => {
     const floating = card.current;
