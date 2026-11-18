@@ -1,5 +1,5 @@
 import { MAX_OPTIONS, type Operation, type WhatIfOption } from "@/features/ai/what-if-answer";
-import { recompute, withQuantity } from "@/features/formulas/apply";
+import { formatAmount, recompute, withQuantity } from "@/features/formulas/apply";
 import type { StoredValue } from "@/features/notes/fact";
 
 export type TitledNote = { id: string; title: string; valueIds: string[] };
@@ -7,9 +7,12 @@ export type TitledNote = { id: string; title: string; valueIds: string[] };
 const CHANGEABLE = new Set<StoredValue["kind"]>(["money", "count", "number", "percent"]);
 
 export function changeable(values: StoredValue[]): StoredValue[] {
+  const followers = (id: string) => values.filter((value) => value.formula?.inputs.includes(id)).length;
   return values
-    .filter((value) => value.amount !== undefined && !value.formula && !value.proposal && CHANGEABLE.has(value.kind))
-    .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))
+    .filter((value) => value.event === false && value.amount !== undefined && !value.formula && !value.proposal && CHANGEABLE.has(value.kind))
+    .map((value) => ({ value, followers: followers(value.id) }))
+    .sort((a, b) => b.followers - a.followers || (b.value.updatedAt ?? 0) - (a.value.updatedAt ?? 0))
+    .map(({ value }) => value)
     .slice(0, MAX_OPTIONS);
 }
 
@@ -22,6 +25,33 @@ export function labelOf(value: Pick<StoredValue, "name" | "subject" | "text">): 
   const words = value.name?.replaceAll("_", " ").trim() || value.subject?.label || value.text;
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
+
+function exampleAmount(value: StoredValue & { amount: number }): number {
+  if (value.kind === "count") return value.amount + 2;
+  if (value.kind === "percent") return value.amount + 5;
+  return value.amount < 5 ? value.amount + 1 : Math.round(value.amount * 1.2);
+}
+
+export function exampleQuestion(value: StoredValue): string {
+  if (value.amount === undefined) return `What if ${labelOf(value)} changes?`;
+  return `What if ${labelOf(value)} goes from ${value.text} to ${formatAmount(value, exampleAmount({ ...value, amount: value.amount }))}?`;
+}
+
+const LIST = new Intl.ListFormat("en-GB", { type: "conjunction" });
+
+function brief(words: string[], more: (count: number) => string): string {
+  if (words.length <= 3) return LIST.format(words);
+  return `${words.slice(0, 2).join(", ")} and ${more(words.length - 2)}`;
+}
+
+export function scopeOf(shown: StoredValue[], notes: TitledNote[]): string {
+  const labels = [...new Set(shown.map(labelOf))];
+  const titles = [...new Set(shown.flatMap((value) => notesUsing(value.id, notes)))];
+  const where = titles.length > 0 ? ` in ${brief(titles, (count) => `${count} more ${count === 1 ? "note" : "notes"}`)}` : "";
+  return `Tries it on ${brief(labels, (count) => `${count} more`)}${where}`;
+}
+
+export const inNotes = (titles: string[]) => (titles.length > 0 ? `in ${LIST.format(titles)}` : "");
 
 export function applyOperation(current: number, operation: Operation, number: number): number {
   const next = operation === "set" ? number : operation === "add" ? current + number : operation === "subtract" ? current - number : current * number;

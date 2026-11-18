@@ -10,7 +10,7 @@ import type { StoredValue } from "@/features/notes/fact";
 import { showToast } from "@/features/notes/toast";
 import { MIcon } from "@/ui/kit";
 import { NumberRoll } from "./NumberRoll";
-import { changeable, labelOf, optionsFor, previewWhatIf, type Effect, type TitledNote } from "./plan";
+import { changeable, exampleQuestion, inNotes, labelOf, optionsFor, previewWhatIf, scopeOf, type Effect, type TitledNote } from "./plan";
 
 type Understood = { valueId: string; operation: Operation; number: number; where: InferenceWhere };
 
@@ -33,9 +33,9 @@ export function WhatIf({ uid, values, notes }: { uid: string; values: StoredValu
   const [question, setQuestion] = useState("");
   const [state, setState] = useState<State>({ status: "idle" });
   const latest = useRef(0);
+  const shown = changeable(values);
 
   const ask = async (asked: string) => {
-    const shown = changeable(values);
     const run = (latest.current += 1);
     setState({ status: "asking", question: asked });
     try {
@@ -77,6 +77,9 @@ export function WhatIf({ uid, values, notes }: { uid: string; values: StoredValu
     dismiss();
   };
 
+  const [first] = shown;
+  if (!first) return null;
+
   return (
     <section aria-label="What if" className="mt-6">
       <form
@@ -92,13 +95,14 @@ export function WhatIf({ uid, values, notes }: { uid: string; values: StoredValu
         <input
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
-          placeholder="What if 2 more people come?"
+          placeholder={exampleQuestion(first)}
           aria-label="Ask what would change if"
           className="h-full min-w-0 flex-1 bg-transparent text-[16px] text-ink outline-none placeholder:text-faint"
           style={{ outline: "none" }}
         />
         <span className="hidden text-[13px] text-faint sm:block">Enter</span>
       </form>
+      <p className="mt-2 px-4 text-[13px] text-faint">{scopeOf(shown, notes)}</p>
 
       <div aria-live="polite">
         {state.status === "asking" && (
@@ -111,7 +115,7 @@ export function WhatIf({ uid, values, notes }: { uid: string; values: StoredValu
         {state.status === "understood" && value && !preview && <Note onDismiss={dismiss}>That would take {labelOf(value).toLowerCase()} below zero.</Note>}
         {(state.status === "unclear" || (state.status === "understood" && !value)) && (
           <Note onDismiss={dismiss}>
-            Dittle couldn't tie "{state.question}" to a number you track. Try naming one, such as the group size or a price.
+            Dittle couldn't tie "{state.question}" to a number you track. Try naming one, such as {labelOf(first).toLowerCase()}.
           </Note>
         )}
         {state.status === "failed" && <Note onDismiss={dismiss}>Dittle couldn't work that out just now. Try again in a moment.</Note>}
@@ -124,7 +128,10 @@ export function WhatIf({ uid, values, notes }: { uid: string; values: StoredValu
               </button>
             </div>
             <p className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="text-[15px] font-medium">{labelOf(value)}</span>
+              <span className="text-[15px] font-medium">
+                {labelOf(value)}
+                {preview.changed.notes.length > 0 && <span className="font-normal text-soft"> {inNotes(preview.changed.notes)}</span>}
+              </span>
               <span className="flex items-baseline gap-2 text-[24px] leading-none font-medium tracking-[-0.03em] tabular-nums">
                 <span className="text-faint">{preview.changed.from}</span>
                 <span aria-hidden className="text-[15px] text-faint">
@@ -135,7 +142,7 @@ export function WhatIf({ uid, values, notes }: { uid: string; values: StoredValu
               </span>
             </p>
             <p className="mt-1.5 text-[13px] text-soft">
-              {[howChanged(value, understood), preview.changed.notes.length > 0 && `in ${preview.changed.notes.join(", ")}`, understood.where === "on_device" ? "read on this device" : "read in the cloud"]
+              {[howChanged(value, understood), understood.where === "on_device" ? "read on this device" : "read in the cloud"]
                 .filter(Boolean)
                 .join(" · ")}
             </p>
