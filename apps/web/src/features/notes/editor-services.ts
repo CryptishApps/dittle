@@ -130,7 +130,12 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
     usage: (factId) => notes().filter((note) => note.valueIds.includes(factId)).length,
     onChanged: (factId, text) => relabelNotesUsing(queryClient, uid, factId, text, noteId),
     onNewFact: (value) => {
-      placing = placing.then(() => void place(value)).catch((error: unknown) => console.warn("Dittle could not place a value in a collection", error));
+      placing = placing
+        .then(() => place(value))
+        .then(
+          () => undefined,
+          (error: unknown) => console.warn("Dittle could not place a value in a collection", error),
+        );
       void findFormula(value).catch((error: unknown) => console.warn("Dittle could not check for a formula", error));
     },
     placementOf: (value) => {
