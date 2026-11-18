@@ -81,7 +81,7 @@ export function OpenTabs({ uid, onNewNote }: { uid: string; onNewNote: () => voi
               type="button"
               onClick={() => close(tab)}
               aria-label={`Close ${name}`}
-              className={`ml-1 grid size-6 shrink-0 place-items-center rounded-md text-faint transition-colors hover:bg-chip hover:text-ink ${active ? "" : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100"}`}
+              className="ml-1 grid size-6 shrink-0 place-items-center rounded-md text-faint transition-colors hover:bg-chip hover:text-ink"
             >
               <MIcon name="close" className="size-3" />
             </button>
