@@ -220,7 +220,7 @@ export function MicButton({ onText }: { onText: (text: string) => void }) {
     ) : null;
 
   return (
-    <span className="relative inline-flex shrink-0">
+    <span data-mic-busy={caption ? "" : undefined} className="relative inline-flex shrink-0">
       {state.phase === "recording" ? (
         <button
           type="button"

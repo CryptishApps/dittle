@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-export type CaptureIconName = "file" | "update" | "note" | "add" | "arrow" | "close" | "enter";
+export type CaptureIconName = "file" | "update" | "note" | "add" | "arrow" | "close" | "enter" | "pen";
 
 const PATHS: Record<CaptureIconName, ReactNode> = {
   file: (
@@ -25,6 +25,7 @@ const PATHS: Record<CaptureIconName, ReactNode> = {
   arrow: <path d="M5 12h14M13 6l6 6-6 6" />,
   close: <path d="M6 6l12 12M18 6 6 18" />,
   enter: <path d="M19 5v7a2 2 0 0 1-2 2H6M10 10l-4 4 4 4" />,
+  pen: <path d="M4.5 19.5h4l10-10a2.83 2.83 0 0 0-4-4l-10 10v4ZM13 7l4 4" />,
 };
 
 export function CaptureIcon({ name, className = "size-4" }: { name: CaptureIconName; className?: string }) {
