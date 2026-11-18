@@ -139,6 +139,27 @@ describe("reading a tidied paste", () => {
     expect(draft.paragraphs[0]!.values[0]!.unit).toBeUndefined();
   });
 
+  test("a date given with no grain takes the grain its shape shows, and a pace reads as seconds per unit", () => {
+    const draft = readTidy(
+      JSON.stringify({
+        title: "Richmond 10K",
+        paragraphs: [
+          {
+            text: "Chip time 52:41 at 5:16/km.",
+            values: [
+              value({ quote: "52:41", kind: "duration", event: true, when: "2026-11-15", grain: "none", duration: "PT52M41S" }),
+              value({ quote: "5:16/km", kind: "duration", event: true, when: "2026-11-15T09:00", grain: "", duration: "PT5M16S", unit: "km" }),
+            ],
+          },
+        ],
+      }),
+    );
+    expect(draft.paragraphs[0]!.values.map((item) => [item.when, item.seconds, item.unit])).toEqual([
+      [{ on: "2026-11-15", grain: "day" }, 3161, undefined],
+      [{ on: "2026-11-15T09:00", grain: "time" }, 316, "km"],
+    ]);
+  });
+
   test("an empty answer is an error", () => {
     expect(() => readTidy(JSON.stringify({ title: " ", paragraphs: [] }))).toThrow();
   });

@@ -1,7 +1,7 @@
 import { parseIsoDuration } from "@/features/formulas/duration";
 import { isCurrency, isMeasure, MEASURE_UNITS } from "@/features/formulas/units";
 import { nameOf, records } from "./find-answer";
-import { plainAmount, validWhen, VALUE_KINDS, type Grain, type TagKind } from "./value-shapes";
+import { GRAINS, plainAmount, validWhen, VALUE_KINDS, type Grain, type TagKind } from "./value-shapes";
 
 export const MAX_COLLECTIONS = 8;
 export const MAX_FIELDS = 8;
@@ -110,7 +110,7 @@ export const TIDY_SCHEMA = {
 
 const text = (value: unknown) => (typeof value === "string" ? value.trim() : "");
 
-const whenOf = (on: unknown, grain: unknown): DraftValue["when"] => validWhen(on, grain);
+const whenOf = (on: unknown, grain: unknown): DraftValue["when"] => validWhen(on, grain) ?? GRAINS.map((shape) => validWhen(on, shape)).find(Boolean);
 
 
 const indexIn = (keyList: string[], key: unknown, limit: number) => {
@@ -229,7 +229,7 @@ const VALUE_RULES = `For each value in a paragraph give:
 - "amount": for money, counts, numbers and percentages, the number in digits only, such as "1680". Empty otherwise.
 - "before" and "after": the text before and after the number inside the quote, such as "£" and "" for "£45", or "" and " km" for "6 km".
 - "unit": for money the ISO 4217 code, such as GBP or EUR. For a measurement one of ${MEASURE_UNITS.join(", ")}. For a pace such as 5:10/km, the distance unit. Empty otherwise.
-- "duration": for durations only, an ISO 8601 duration such as PT31M or PT1H5M.
+- "duration": for durations only, an ISO 8601 duration such as PT31M or PT1H5M. A pace such as 5:16/km is a duration: give its time for one unit, PT5M16S.
 - "formula": only when the value is worked out from other values, the calculation with v1, v2 and so on standing for all the values in the answer counted in order across paragraphs, such as "v2 / v1". Otherwise empty.
 Prices, counts, measurements, dates, times, durations, percentages, people and places are values. Ordinary words never are.`;
 
