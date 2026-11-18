@@ -545,7 +545,7 @@ function ChangeStep({ uid, written, today, onFinish }: { uid: string; written: W
         advance();
       }}
     >
-      <Heading eyebrow={<><Icon name={written.recipe.icon} className="size-4" />{written.recipe.label}</>} title="Plans change. Try it." sub="Tell Dittle something changed, the way you'd say it out loud." />
+      <Heading eyebrow={<><Icon name={written.recipe.icon} className="size-4" />{written.recipe.label}</>} title="Things change. Try it." sub="Tell Dittle something changed, the way you'd say it out loud." />
       <button
         ref={boxRef}
         type="button"

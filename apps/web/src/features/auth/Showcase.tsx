@@ -32,7 +32,7 @@ const MOMENTS: Moment[] = [
     key: "home",
     icon: "table",
     label: "It adds itself up",
-    title: "The whole plan, totalled",
+    title: "Everything, totalled",
     body: "Collections add themselves up across your notes, and the dates in them count down on your home page.",
     shot: "home",
     focus: { x: 19, y: 6, zoom: 1.45 },

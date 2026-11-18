@@ -35,7 +35,7 @@ const COPY = {
   signin: {
     eyebrow: { tone: "sky", icon: "sync", text: "Your notes, on every device" },
     title: "Welcome back.",
-    accent: "Your plans are waiting.",
+    accent: "Your notes are where you left them.",
     sub: "Sign in to pick up where you left off. Anything you wrote offline syncs when you’re back online.",
     submit: "Sign in",
     busy: "Signing in",
@@ -43,9 +43,9 @@ const COPY = {
   },
   signup: {
     eyebrow: { tone: "sun", icon: "spark", text: "Free, set up in about a minute" },
-    title: "Start planning.",
-    accent: "Your notes keep up.",
-    sub: "Write plans as plain notes. Dittle spots the prices and dates, keeps every copy in step and adds them up.",
+    title: "Notes that",
+    accent: "keep track.",
+    sub: "Write plain notes. Dittle spots the numbers and dates, keeps every copy in step and does the maths.",
     submit: "Create account",
     busy: "Creating account",
     done: "Opening your notes",

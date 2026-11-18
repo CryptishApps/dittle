@@ -2,7 +2,7 @@
   "id": "/notes",
   "name": "Dittle",
   "short_name": "Dittle",
-  "description": "Plans change. Your notes keep up.",
+  "description": "Notes that keep track.",
   "start_url": "/notes",
   "scope": "/",
   "display": "standalone",

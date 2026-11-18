@@ -48,7 +48,7 @@ export function Layout({ preview, children, footer }: { preview: string; childre
                 {footer}
               </Text>
               <Text className="quiet" style={{ margin: "12px 0 0", fontSize: 13, fontWeight: 500, color: light.quiet }}>
-                Dittle · Plans in plain notes ·{" "}
+                Dittle · Notes that keep track ·{" "}
                 <Link className="quiet" href={SITE} style={{ color: light.quiet, textDecoration: "underline" }}>
                   dittle.app
                 </Link>
