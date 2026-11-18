@@ -60,12 +60,18 @@ const STEPS: Step[] = [
 
 const MODELS: { job: string; model: string; where: string; how: string }[] = [
   {
-    job: "Find and name values, link them across notes, file them into collections, spot formulas, write requests",
+    job: "Find and name values, file them into collections, spot formulas, write requests",
     model: "Gemini Nano",
     where: "On device",
     how: "Chrome's Prompt API, through Firebase AI Logic hybrid mode",
   },
   { job: "The same jobs when the device has no model", model: "Gemini Flash-Lite", where: "Cloud", how: "Firebase AI Logic falls back to the cloud" },
+  {
+    job: "Sort what you type or paste into the home box, link values across notes, read updates",
+    model: "Gemini Flash-Lite",
+    where: "Cloud, Nano offline",
+    how: "These weigh everything you track at once, so the cloud goes first and Nano takes over offline",
+  },
   { job: "Suggest collections across all your notes", model: "Gemini Flash-Lite", where: "Cloud", how: "Only the tracked values are sent, not the notes" },
 ];
 
@@ -207,7 +213,7 @@ export function Welcome({ onStart, onSignIn }: WelcomeProps) {
           <Section id="start">
             <Reveal className="max-w-[760px]">
               <Eyebrow tone="sky" icon="spark">
-                Onboarding
+                Getting started
               </Eyebrow>
               <h2 className={H2}>Starts in a minute.</h2>
               <p className={LEAD}>Pick what you keep track of. Dittle sets up the notes and collections to start from, and you write the rest your way.</p>
