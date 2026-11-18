@@ -1,22 +1,23 @@
-import { m } from "motion/react";
+import { MotionConfig } from "motion/react";
 import { useState, type ReactNode } from "react";
-import { btnClass, MIcon, TypeOn } from "../../ui/kit";
-import { LogoMark, Wordmark } from "../../ui/Wordmark";
-import { Demo } from "./Demo";
+import { Wordmark } from "../../ui/Wordmark";
 import { Shot } from "../../ui/Shot";
-import { DeskHero } from "./DeskHero";
-import { Scenes } from "./Scenes";
-import { Reveal, ScrollWords, StickySteps, useSmoothScroll, type Step } from "./motion";
+import { CaptureDemo } from "./CaptureDemo";
+import { CollectionDemo } from "./CollectionDemo";
+import { HeroDemo } from "./HeroDemo";
+import { Reveal, StickySteps, type Step } from "./motion";
+import { Icon, PRIMARY, SECONDARY, type IconName } from "./quiet";
+import { TidyDemo } from "./TidyDemo";
 
 type WelcomeProps = {
   onStart: () => void;
   onSignIn: () => void;
 };
 
-const PILL = "inline-flex h-9 items-center gap-2 rounded-full bg-card px-4 text-[14px] font-medium text-soft shadow-[0_0_0_1px_var(--line),0_6px_14px_-8px_rgb(18_20_24/0.25)]";
-const H2 = "text-[40px] leading-[1.04] font-semibold tracking-[-0.045em] sm:text-[60px]";
-
 const REPO_URL = "https://github.com/CryptishApps/dittle";
+const WRAP = "mx-auto w-full max-w-[1120px] px-4 sm:px-8";
+const H2 = "text-[32px] leading-[1.1] font-semibold tracking-[-0.035em] sm:text-[44px]";
+const LEAD = "mt-4 max-w-[52ch] text-[17px] leading-[1.65] text-soft";
 
 const STEPS: Step[] = [
   {
@@ -69,231 +70,268 @@ const MODELS: { job: string; model: string; where: string; how: string }[] = [
 
 const FIREBASE = ["AI Logic", "Firestore", "Authentication", "App Check", "Remote Config", "Hosting"];
 
+const TRACK: { icon: IconName; label: string }[] = [
+  { icon: "run", label: "Running log" },
+  { icon: "meal", label: "Weekly meal plan" },
+  { icon: "dumbbell", label: "Workouts" },
+  { icon: "plane", label: "Trip plans" },
+  { icon: "ring", label: "Wedding budget" },
+  { icon: "book", label: "Reading list" },
+  { icon: "receipt", label: "Invoices" },
+  { icon: "plant", label: "Plant care" },
+  { icon: "box", label: "Moving house" },
+];
+
 export function Welcome({ onStart, onSignIn }: WelcomeProps) {
-  useSmoothScroll();
-
   return (
-    <div className="min-h-dvh overflow-x-clip bg-page text-ink">
-      <nav className="fixed inset-x-0 top-0 z-50 bg-page/85 backdrop-blur-md">
-        <div className="mx-auto flex h-[76px] max-w-[1440px] items-center justify-between gap-6 px-5 sm:px-10">
-          <Wordmark className="text-[23px]" />
-          <div className="hidden items-center gap-9 text-[16px] font-medium text-ink/80 md:flex">
-            <a href="#features" className="hover:text-ink">
-              Features
-            </a>
-            <a href="#collections" className="hover:text-ink">
-              Collections
-            </a>
-            <a href="#how" className="hover:text-ink">
-              How it works
-            </a>
-            <a href="#models" className="hover:text-ink">
-              Privacy
-            </a>
-            <a href={REPO_URL} className="hover:text-ink">
-              GitHub
-            </a>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-4">
-            <a
-              href="/signin"
-              onClick={(event) => {
-                event.preventDefault();
-                onSignIn();
-              }}
-              className="hidden h-11 items-center px-2 text-[16px] font-medium text-ink/80 transition-colors hover:text-ink sm:inline-flex"
-            >
-              Sign in
-            </a>
-            <button type="button" onClick={onStart} className={`${btnClass({ variant: "secondary", size: "md" })} h-11 border-[1.5px] px-5 text-[15.5px]`}>
-              Start a plan
-            </button>
-          </div>
-        </div>
-      </nav>
-
-      <main>
-      <DeskHero onStart={onStart} />
-
-      <Section id="features" label="What it does">
-        <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr] lg:items-end">
-          <Reveal>
-            <h2 className={H2}>Plain notes that do the sums.</h2>
-          </Reveal>
-          <Reveal delay={0.08}>
-            <p className="max-w-[48ch] text-[17px] leading-[1.7] text-soft lg:justify-self-end">
-              Dittle reads the prices, dates and distances in what you write. It keeps every copy in step, files them into tables and counts down to the dates.
-            </p>
-          </Reveal>
-        </div>
-        <Reveal delay={0.1} className="mt-12">
-          <Scenes />
-        </Reveal>
-      </Section>
-
-      <section className="mx-auto max-w-[1200px] px-6 py-24 sm:px-8 sm:py-36">
-        <ScrollWords text="Plans and logs keep repeating the same few details: [what it costs], [when], [how far]. Dittle notices them on your device, keeps every copy in step and files them into tables that add themselves up." />
-      </section>
-
-      <Section id="collections" label="Collections">
-        <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr] lg:items-end">
-          <Reveal>
-            <h2 className={H2}>Tables that build themselves.</h2>
-          </Reveal>
-          <Reveal delay={0.08}>
-            <p className="max-w-[48ch] text-[17px] leading-[1.7] text-soft lg:justify-self-end">
-              Click a value and start a collection, like Runs or Things to do. After that, anything you write that fits files itself in. Try it: change the distance and watch the week add up.
-            </p>
-          </Reveal>
-        </div>
-        <Reveal delay={0.1} className="mt-12">
-          <Demo />
-        </Reveal>
-        <Reveal delay={0.1} className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Fact title="A row per day or per thing" body="A log like Runs gets a row for each day. A list like Things to do gets a row for each place or booking." />
-          <Fact title="Totals and averages" body="Each collection adds itself up on your home page: distance this week, cost each, average pace." />
-          <Fact title="Calculated columns" body="Add a column worked out from the others, like pace from time and distance. Code does the maths." />
-          <Fact title="Suggested for you" body="When the same details turn up across notes, Dittle offers a collection. Only the values are sent to the cloud." />
-        </Reveal>
-      </Section>
-
-      <div className="desk mx-2 rounded-[26px] sm:mx-4 sm:rounded-[34px]">
-        <Section id="how" label="How it works" dark>
-          <StickySteps steps={STEPS} />
-        </Section>
-      </div>
-
-      <Section id="models" label="Where the AI runs">
-        <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr] lg:items-end">
-          <Reveal>
-            <h2 className={H2}>On device first.</h2>
-          </Reveal>
-          <Reveal delay={0.08}>
-            <p className="max-w-[46ch] text-[16.5px] leading-[1.7] text-soft lg:justify-self-end">
-              Most of the work runs on Gemini Nano inside your browser or phone. The cloud steps in when your device can't, or when the job is too big.
-            </p>
-          </Reveal>
-        </div>
-        <Reveal delay={0.1} className="mt-12 overflow-x-auto rounded-[22px] bg-card shadow-sheet">
-          <table className="w-full min-w-[720px] text-left text-[15px]">
-            <thead className="bg-panel text-[13.5px] text-faint">
-              <tr>
-                <th className="px-6 py-3.5 font-semibold">Job</th>
-                <th className="px-6 py-3.5 font-semibold">Model</th>
-                <th className="px-6 py-3.5 font-semibold">Where</th>
-                <th className="px-6 py-3.5 font-semibold">How</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {MODELS.map((row) => (
-                <tr key={row.job} className="transition-colors hover:bg-panel">
-                  <td className="px-6 py-4 leading-[1.6]">{row.job}</td>
-                  <td className="px-6 py-4 font-semibold whitespace-nowrap">{row.model}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`rounded-full px-2.5 py-1 text-[12.5px] font-semibold ${row.where === "On device" ? "bg-accent-tint text-accent-ink" : "bg-chip text-soft"}`}>
-                      {row.where}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 leading-[1.6] text-soft">{row.how}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Reveal>
-        <Reveal delay={0.1} className="mt-4 grid gap-4 sm:grid-cols-3">
-          <Fact title="Private" body="On-device jobs keep your notes on your device. Cloud fallback sends one paragraph, or the note for a request. Collection suggestions send only values." />
-          <Fact title="Offline" body="Notes save to your device first and sync when you're back. The on-device model works without a connection." />
-          <Fact title="Open" body="The code is on GitHub under Apache 2.0. Read how every AI call is made, or run your own copy." />
-        </Reveal>
-        <Reveal delay={0.1} className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 text-[14px] font-medium text-faint">
-          <span>Built on Firebase</span>
-          {FIREBASE.map((product) => (
-            <span key={product} className="text-soft">
-              {product}
-            </span>
-          ))}
-        </Reveal>
-      </Section>
-
-      </main>
-
-      <div className="desk relative mx-2 mb-2 overflow-hidden rounded-[26px] sm:mx-4 sm:mb-4 sm:rounded-[34px]">
-        <FooterObjects />
-        <section className="relative mx-auto max-w-[1200px] px-6 py-28 sm:px-8 sm:py-36">
-          <Reveal>
-            <p className={PILL}>Start</p>
-            <h2 className="mt-7 max-w-[14ch] text-[50px] leading-[1] font-semibold tracking-[-0.05em] sm:text-[96px]">
-              <InViewTypeOn text="Plan it once." />
-            </h2>
-            <div className="mt-12 flex flex-wrap gap-2.5">
-              <button type="button" onClick={onStart} className={btnClass({ variant: "primary", size: "lg" })}>
-                Start planning
-                <MIcon name="right" className="size-4" />
-              </button>
-              <a href={REPO_URL} className={btnClass({ variant: "secondary", size: "lg" })}>
-                View on GitHub
+    <MotionConfig reducedMotion="user">
+      <div className="min-h-dvh overflow-x-clip bg-page text-ink">
+        <nav className="sticky top-0 z-50 border-b border-line bg-page/90 backdrop-blur-md">
+          <div className={`${WRAP} flex h-16 items-center justify-between gap-6`}>
+            <Wordmark className="text-[20px]" />
+            <div className="hidden items-center gap-7 text-[14.5px] text-soft md:flex">
+              <a href="#capture" className="hover:text-ink">
+                Features
+              </a>
+              <a href="#collections" className="hover:text-ink">
+                Collections
+              </a>
+              <a href="#how" className="hover:text-ink">
+                How it works
+              </a>
+              <a href="#privacy" className="hover:text-ink">
+                Privacy
               </a>
             </div>
-          </Reveal>
-        </section>
-        <footer className="relative mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 border-t border-line-strong px-6 py-7 text-[14px] text-soft sm:px-8">
-          <Wordmark className="text-[19px] [--mark-gap:var(--side)]" />
-          <span>Built for #BuildHybridAI 2026</span>
-          <span className="flex gap-5">
-            <a href={REPO_URL} className="hover:text-ink">
-              GitHub
-            </a>
-            <span>Apache 2.0</span>
-          </span>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <a
+                href="/signin"
+                onClick={(event) => {
+                  event.preventDefault();
+                  onSignIn();
+                }}
+                className="inline-flex h-10 items-center px-3 text-[14.5px] font-semibold text-soft transition-colors hover:text-ink"
+              >
+                Sign in
+              </a>
+              <button type="button" onClick={onStart} className={`${PRIMARY} h-10 px-4 text-[14.5px]`}>
+                Get started
+              </button>
+            </div>
+          </div>
+        </nav>
+
+        <main>
+          <section className={`${WRAP} grid grid-cols-[minmax(0,1fr)] items-center gap-12 pt-16 pb-20 sm:pt-24 sm:pb-28 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-16`}>
+            <div>
+              <h1 className="text-[42px] leading-[1.05] font-semibold tracking-[-0.045em] sm:text-[56px]">
+                Plans change.
+                <span className="block text-faint">Your notes keep up.</span>
+              </h1>
+              <p className="mt-6 max-w-[44ch] text-[18px] leading-[1.6] text-soft">
+                Write plans and logs as plain notes. Dittle spots the prices, dates and distances, keeps every copy in step and adds them up for you.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-2.5">
+                <button type="button" onClick={onStart} className={PRIMARY}>
+                  Get started
+                </button>
+                <a
+                  href="/signin"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    onSignIn();
+                  }}
+                  className={SECONDARY}
+                >
+                  Sign in
+                </a>
+              </div>
+            </div>
+            <HeroDemo />
+          </section>
+
+          <Section id="capture">
+            <div className="grid grid-cols-[minmax(0,1fr)] items-center gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-16">
+              <Reveal>
+                <h2 className={H2}>Throw anything at it.</h2>
+                <p className={LEAD}>One box takes typing, a pasted chat, a screenshot or your voice. Dittle files it where it belongs and tells you what it did in one line, with Undo next to it.</p>
+              </Reveal>
+              <Reveal delay={0.08}>
+                <CaptureDemo />
+              </Reveal>
+            </div>
+          </Section>
+
+          <Section id="tidy">
+            <Reveal>
+              <h2 className={H2}>Paste the mess, get a tidy note.</h2>
+              <p className={LEAD}>Drop in a group chat, an email or a booking. You get a short note with the values marked, and the dates on your home page.</p>
+            </Reveal>
+            <Reveal delay={0.08} className="mt-10">
+              <TidyDemo />
+            </Reveal>
+          </Section>
+
+          <Section id="collections">
+            <Reveal>
+              <h2 className={H2}>Collections that add themselves up.</h2>
+              <p className={LEAD}>A collection is a table, like Runs or Things to do. Anything you write that fits files itself in, and the totals keep up.</p>
+            </Reveal>
+            <Reveal delay={0.08} className="mt-10">
+              <CollectionDemo />
+            </Reveal>
+            <Reveal delay={0.1} className="mt-12 grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
+              <Fact title="A row per day or per thing" body="A log like Runs gets a row for each day. A list like Things to do gets a row for each place or booking." />
+              <Fact title="Totals and averages" body="Each collection adds itself up on your home page: distance this month, cost each, average pace." />
+              <Fact title="Calculated columns" body="Add a column worked out from the others, like pace from time and distance. Code does the maths." />
+              <Fact title="Suggested for you" body="When the same details turn up across notes, Dittle offers a collection. Only the values are sent to the cloud." />
+            </Reveal>
+          </Section>
+
+          <Section id="start">
+            <Reveal className="max-w-[760px]">
+              <h2 className={H2}>Starts in a minute.</h2>
+              <p className={LEAD}>Pick what you keep track of. Dittle sets up the notes and collections to start from, and you write the rest your way.</p>
+              <TrackPicker />
+              <button type="button" onClick={onStart} className={`${PRIMARY} mt-8`}>
+                Get started
+                <Icon name="arrow" className="size-4" />
+              </button>
+            </Reveal>
+          </Section>
+
+          <Section id="how">
+            <Reveal>
+              <h2 className={H2}>How it works.</h2>
+            </Reveal>
+            <div className="mt-6">
+              <StickySteps steps={STEPS} />
+            </div>
+          </Section>
+
+          <Section id="privacy">
+            <Reveal>
+              <h2 className={H2}>On device first.</h2>
+              <p className={LEAD}>Most of the work runs on Gemini Nano inside your browser or phone. The cloud steps in when your device can’t, or when the job is too big.</p>
+            </Reveal>
+            <Reveal delay={0.08} className="mt-10 overflow-x-auto">
+              <table className="w-full min-w-[680px] text-left text-[15px]">
+                <thead className="text-[13px] text-faint">
+                  <tr className="border-b border-line">
+                    <th className="py-2.5 pr-6 font-semibold">Job</th>
+                    <th className="py-2.5 pr-6 font-semibold">Model</th>
+                    <th className="py-2.5 pr-6 font-semibold">Where</th>
+                    <th className="py-2.5 font-semibold">How</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {MODELS.map((row) => (
+                    <tr key={row.job} className="border-b border-line align-top">
+                      <td className="py-4 pr-6 leading-[1.6]">{row.job}</td>
+                      <td className="py-4 pr-6 font-semibold whitespace-nowrap">{row.model}</td>
+                      <td className="py-4 pr-6 whitespace-nowrap">
+                        <span className={`rounded-md px-2 py-0.5 text-[13px] font-semibold ${row.where === "On device" ? "bg-accent-tint text-accent-ink" : "bg-panel text-soft"}`}>{row.where}</span>
+                      </td>
+                      <td className="py-4 leading-[1.6] text-soft">{row.how}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Reveal>
+            <Reveal delay={0.1} className="mt-12 grid gap-x-8 gap-y-6 sm:grid-cols-3">
+              <Fact icon="lock" title="Private" body="On-device jobs keep your notes on your device. Cloud fallback sends one paragraph, or the note for a request. Collection suggestions send only values." />
+              <Fact icon="offline" title="Offline" body="Notes save to your device first and sync when you’re back. The on-device model works without a connection." />
+              <Fact icon="code" title="Open" body="The code is on GitHub under Apache 2.0. Read how every AI call is made, or run your own copy." />
+            </Reveal>
+            <p className="mt-10 flex flex-wrap gap-x-5 gap-y-2 text-[14px] text-faint">
+              <span>Built on Firebase</span>
+              {FIREBASE.map((product) => (
+                <span key={product} className="text-soft">
+                  {product}
+                </span>
+              ))}
+            </p>
+          </Section>
+
+          <section className="border-t border-line">
+            <div className={`${WRAP} py-24 text-center sm:py-32`}>
+              <h2 className="text-[36px] leading-[1.08] font-semibold tracking-[-0.04em] sm:text-[52px]">
+                Plans change.
+                <span className="block text-faint">Your notes keep up.</span>
+              </h2>
+              <div className="mt-8 flex flex-wrap justify-center gap-2.5">
+                <button type="button" onClick={onStart} className={PRIMARY}>
+                  Get started
+                </button>
+                <a href={REPO_URL} className={SECONDARY}>
+                  View on GitHub
+                </a>
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <footer className="border-t border-line">
+          <div className={`${WRAP} flex flex-wrap items-center justify-between gap-4 py-8 text-[14px] text-faint`}>
+            <Wordmark className="text-[17px]" />
+            <span>Built for #BuildHybridAI 2026</span>
+            <span className="flex gap-5">
+              <a href={REPO_URL} className="hover:text-ink">
+                GitHub
+              </a>
+              <span>Apache 2.0</span>
+            </span>
+          </div>
         </footer>
       </div>
-    </div>
+    </MotionConfig>
   );
 }
 
-function FooterObjects() {
+function Section({ id, children }: { id: string; children: ReactNode }) {
   return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 hidden lg:block">
-      <span className="tile absolute top-[16%] right-[30%] grid h-[92px] rotate-[8deg] place-items-center px-5 text-[38px] font-semibold tracking-[-0.04em]">£42</span>
-      <span className="tile absolute top-[46%] right-[10%] w-[92px] -rotate-6 overflow-hidden text-center">
-        <span className="block bg-date py-1 text-[12px] font-bold tracking-[0.08em] text-date-ink">DEC</span>
-        <span className="block pt-0.5 text-[38px] leading-tight font-semibold">11</span>
-        <span className="block pb-2 text-[11px] font-semibold text-soft">Friday</span>
-      </span>
-      <span className="tile absolute top-[12%] right-[8%] grid size-[84px] -rotate-[10deg] place-items-center [--mark-gap:var(--card-top)]">
-        <LogoMark className="size-11" />
-      </span>
-      <span className="sticky-note absolute right-[24%] bottom-[22%] w-[190px] rotate-[4deg] px-5 py-5 font-hand text-[24px] leading-[1.15]">Write it once. Every note keeps up.</span>
-    </div>
-  );
-}
-
-function Section({ id, label, dark = false, children }: { id: string; label: string; dark?: boolean; children: ReactNode }) {
-  return (
-    <section id={id} className={`mx-auto max-w-[1200px] scroll-mt-24 px-6 sm:px-8 ${dark ? "py-24 sm:py-32" : "py-24 sm:py-32"}`}>
-      <div className="mb-10">
-        <span className={PILL}>{label}</span>
-      </div>
-      {children}
+    <section id={id} className="scroll-mt-16 border-t border-line">
+      <div className={`${WRAP} py-20 sm:py-28`}>{children}</div>
     </section>
   );
 }
 
-function Fact({ title, body }: { title: string; body: string }) {
+function Fact({ icon, title, body }: { icon?: IconName; title: string; body: string }) {
   return (
-    <div className="tile p-6">
-      <p className="text-[22px] font-semibold tracking-[-0.025em]">{title}</p>
-      <p className="mt-2 text-[15.5px] leading-[1.65] text-soft">{body}</p>
+    <div className="border-t border-line pt-4">
+      <p className="flex items-center gap-2 text-[16px] font-semibold tracking-[-0.01em]">
+        {icon ? <Icon name={icon} className="size-[18px] text-soft" /> : null}
+        {title}
+      </p>
+      <p className="mt-1.5 text-[15px] leading-[1.65] text-soft">{body}</p>
     </div>
   );
 }
 
-function InViewTypeOn({ text }: { text: string }) {
-  const [shown, setShown] = useState(false);
+function TrackPicker() {
+  const [picked, setPicked] = useState<string[]>(["Running log", "Weekly meal plan"]);
   return (
-    <m.span onViewportEnter={() => setShown(true)} viewport={{ once: true }}>
-      {shown ? <TypeOn text={text} duration={700} /> : <span className="opacity-0">{text}</span>}
-    </m.span>
+    <ul className="mt-8 flex flex-wrap gap-2" aria-label="Things you keep track of">
+      {TRACK.map((item) => {
+        const on = picked.includes(item.label);
+        return (
+          <li key={item.label}>
+            <button
+              type="button"
+              aria-pressed={on}
+              onClick={() => setPicked((list) => (on ? list.filter((label) => label !== item.label) : [...list, item.label]))}
+              className={`inline-flex h-10 items-center gap-2 rounded-full px-4 text-[15px] font-medium transition-colors ${on ? "bg-ink text-page" : "border border-line-strong text-ink hover:border-ink"}`}
+            >
+              <Icon name={item.icon} className={`size-[18px] ${on ? "" : "text-soft"}`} />
+              {item.label}
+            </button>
+          </li>
+        );
+      })}
+      <li className="inline-flex h-10 items-center gap-2 rounded-full border border-dashed border-line-strong px-4 text-[15px] text-faint">
+        <Icon name="plus" className="size-[18px]" />
+        Something else
+      </li>
+    </ul>
   );
 }
-
