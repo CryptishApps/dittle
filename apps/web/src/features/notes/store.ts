@@ -20,7 +20,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firestore";
 import type { Listen } from "@/lib/live-query";
-import type { CalculatedColumn, Collection, Row, StoredValue } from "./fact";
+import type { CalculatedColumn, Collection, CollectionField, Glance, Row, StoredValue } from "./fact";
 import { EMPTY_NOTE, relabel, summarise, valueIdsOf, type NoteDoc } from "./note-doc";
 import type { SamplePlan } from "./sample-trip";
 
@@ -277,6 +277,14 @@ export function saveColumns(uid: string, collectionId: string, columns: Calculat
   write(updateDoc(doc(collectionsOf(uid), collectionId), { columns, updatedAt: serverTimestamp() }));
 }
 
+export function renameFields(uid: string, collectionId: string, fields: CollectionField[]): void {
+  write(updateDoc(doc(collectionsOf(uid), collectionId), { fields, updatedAt: serverTimestamp() }));
+}
+
+export function setGlance(uid: string, collectionId: string, glance: Glance): void {
+  write(updateDoc(doc(collectionsOf(uid), collectionId), { glance, updatedAt: serverTimestamp() }));
+}
+
 export function createPlan(uid: string, plan: SamplePlan): void {
   const batch = writeBatch(db);
   const created = { createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
@@ -290,4 +298,25 @@ export function createPlan(uid: string, plan: SamplePlan): void {
 
 export function deleteCollection(uid: string, id: string): void {
   write(deleteDoc(doc(collectionsOf(uid), id)));
+}
+
+export type StarterSeed = { folder: { id: string; name: string }; note: { id: string; doc: NoteDoc }; values: StoredValue[]; collection: Omit<Collection, "createdAt">; rows: Omit<Row, "createdAt">[] };
+
+export function seedStarter(uid: string, { folder, note: start, values: seeded, collection: created, rows }: StarterSeed): void {
+  const batch = writeBatch(db);
+  batch.set(doc(folders(uid), folder.id), { name: folder.name, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  batch.set(doc(notes(uid), start.id), {
+    schemaVersion: 1,
+    doc: start.doc,
+    ...summarise(start.doc),
+    valueIds: valueIdsOf(start.doc),
+    folderId: folder.id,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  seeded.forEach(({ id, ...fields }) => batch.set(doc(values(uid), id), { ...fields, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }));
+  const { id, ...fields } = created;
+  batch.set(doc(collectionsOf(uid), id), { ...fields, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  rows.forEach(({ id: rowId, ...row }) => batch.set(doc(rowsOf(uid), rowId), { ...row, createdAt: serverTimestamp() }));
+  write(batch.commit());
 }

@@ -3,8 +3,8 @@ import { Plugin, PluginKey, type EditorState, type Transaction } from "@tiptap/p
 import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
 import type { Written } from "@/features/ai/write";
 
-export type RequestItem = { id: string; text: string; status: "writing" | "ready" | "failed"; written?: Written; asked?: boolean };
-export type RequestPlacement = { from: number; to: number; text: string };
+export type RequestItem = { id: string; text: string; status: "writing" | "ready" | "failed" | "filing" | "filed"; written?: Written; asked?: boolean; list?: string };
+export type RequestPlacement = { from: number; to: number; text: string; list?: string };
 type PlacedRequest = RequestPlacement & { id: string };
 
 type RequestsState = { decorations: DecorationSet; items: Map<string, RequestItem> };
@@ -16,6 +16,7 @@ export const requestsKey = new PluginKey<RequestsState>("requests");
 
 export type RequestsOptions = {
   write: (input: { request: string; noteTitle: string; noteText: string }) => Promise<Written>;
+  file: (input: { at: number; list: string }) => Promise<boolean>;
   ignored: () => string[];
   onIgnore: (text: string) => void;
 };
@@ -28,7 +29,14 @@ function button(view: EditorView, id: string): HTMLElement {
   element.dataset.request = id;
   element.dataset.status = item?.status ?? "writing";
   element.contentEditable = "false";
-  if (item?.status === "ready" && item.written?.items.length) {
+  if (item?.list) {
+    element.dataset.list = item.list;
+    if (item.status === "filed") element.textContent = `✓ In ${item.list}`;
+    else if (item.status === "filing") element.innerHTML = `<span class="t-shimmer-text" data-text="Adding">Adding</span>`;
+    else element.textContent = `＋ Add to ${item.list}`;
+    element.disabled = item.status === "filing" || item.status === "filed";
+    if (item.status === "filing" || item.status === "filed") element.dataset.status = "busy";
+  } else if (item?.status === "ready" && item.written?.items.length) {
     element.textContent = `＋ ${item.written.label}`;
   } else if (item?.status === "failed") {
     element.textContent = "Couldn't write this";
@@ -104,7 +112,7 @@ function requestsPlugin(editor: Editor) {
         decorations = decorations.remove(decorations.find(meta.block.from, meta.block.to, (spec) => !isAsked(spec)));
         const fresh = meta.placements.filter((placement) => !keptTexts.some((kept) => kept.spec.id === placement.id || (placement.from < kept.to && placement.to > kept.from)));
         const added = fresh.flatMap((placement) => {
-          if (!items.has(placement.id)) items.set(placement.id, { id: placement.id, text: placement.text, status: "writing" });
+          if (!items.has(placement.id)) items.set(placement.id, { id: placement.id, text: placement.text, status: placement.list ? "ready" : "writing", list: placement.list });
           return decorationsFor(placement, items.get(placement.id)!.status);
         });
         return { decorations: decorations.add(tr.doc, added), items };
@@ -122,7 +130,8 @@ function requestsPlugin(editor: Editor) {
         click: (_view, event) => {
           const target = (event.target as HTMLElement).closest<HTMLElement>(".request-button");
           if (!target?.dataset.request || target.dataset.status !== "ready") return false;
-          insertRequest(editor, target.dataset.request, false);
+          if (target.dataset.list) editor.storage.requests.file(target.dataset.request);
+          else insertRequest(editor, target.dataset.request, false);
           return true;
         },
       },
@@ -172,6 +181,7 @@ type RequestsStorage = {
   found: (block: { from: number; to: number }, placements: RequestPlacement[]) => void;
   ask: (placement: RequestPlacement) => void;
   ignore: (id: string) => void;
+  file: (id: string) => void;
 };
 
 declare module "@tiptap/core" {
@@ -184,11 +194,16 @@ export const Requests = Extension.create<RequestsOptions, RequestsStorage>({
   name: "requests",
 
   addOptions() {
-    return { write: () => Promise.reject(new Error("Requests need a writer")), ignored: () => [], onIgnore: () => undefined };
+    return {
+      write: () => Promise.reject(new Error("Requests need a writer")),
+      file: () => Promise.reject(new Error("Requests need a filer")),
+      ignored: () => [],
+      onIgnore: () => undefined,
+    };
   },
 
   addStorage() {
-    return { cache: new Map(), ignored: new Set(), found: () => undefined, ask: () => undefined, ignore: () => undefined };
+    return { cache: new Map(), ignored: new Set(), found: () => undefined, ask: () => undefined, ignore: () => undefined, file: () => undefined };
   },
 
   addProseMirrorPlugins() {
@@ -229,7 +244,23 @@ export const Requests = Extension.create<RequestsOptions, RequestsStorage>({
       const skip = new Set([...ignored, ...this.options.ignored()]);
       const withIds = placements.filter((placement) => !skip.has(placement.text)).map((placement) => ({ ...placement, id: requestId(placement.text) }));
       editor.view.dispatch(editor.state.tr.setMeta(requestsKey, { block, placements: withIds }).setMeta("addToHistory", false));
-      withIds.forEach(write);
+      withIds.filter((placement) => !placement.list).forEach(write);
+    };
+    this.storage.file = (id) => {
+      const item = requestsKey.getState(editor.state)?.items.get(id);
+      const range = requestRange(editor.state, id);
+      if (!item?.list || !range) return;
+      update({ ...item, status: "filing" });
+      this.options
+        .file({ at: range.from, list: item.list })
+        .then((filed) => {
+          const latest = requestsKey.getState(editor.state)?.items.get(id) ?? item;
+          update({ ...latest, status: filed ? "filed" : "ready" });
+        })
+        .catch((error: unknown) => {
+          console.warn("Dittle could not file this paragraph", error);
+          update({ ...item, status: "ready" });
+        });
     };
     this.storage.ask = (placement) => {
       const asked = { ...placement, id: requestId(placement.text) };

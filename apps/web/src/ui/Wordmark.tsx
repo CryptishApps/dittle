@@ -1,19 +1,18 @@
 export function Wordmark({ className = "" }: { className?: string }) {
   return (
-    <span className={`inline-flex items-center gap-[0.55em] font-medium tracking-[0.08em] text-ink ${className}`}>
-      <LogoMark className="size-[1.6em]" />
-      DITTLE
+    <span className={`inline-flex items-center gap-[0.36em] font-semibold tracking-[-0.025em] text-ink ${className}`}>
+      <LogoMark className="size-[1.15em]" />
+      Dittle
     </span>
   );
 }
 
 export function LogoMark({ className = "" }: { className?: string }) {
   return (
-    <svg aria-hidden viewBox="0 0 32 32" className={className}>
-      <rect width="32" height="32" rx="3" fill="var(--ink)" />
-      <path d="M12.4 9.5c-1.7 2.3-2.5 4.6-2.5 6.9M20.4 9.5c-1.7 2.3-2.5 4.6-2.5 6.9" stroke="var(--page)" strokeWidth="2.8" strokeLinecap="square" fill="none" />
-      <rect x="9" y="20.5" width="3.4" height="3.4" fill="var(--accent)" />
-      <rect x="17" y="20.5" width="3.4" height="3.4" fill="var(--page)" />
+    <svg aria-hidden viewBox="4 4 24 24" className={className}>
+      <path d="M10.5 9.5 8 21.5" stroke="var(--mark-ink)" strokeWidth="4.6" strokeLinecap="round" />
+      <path d="M19.5 9.5 17 21.5" stroke="var(--mark-blue)" strokeWidth="4.6" strokeLinecap="round" />
+      <circle cx="24.5" cy="21.5" r="2.8" fill="var(--mark-dot)" />
     </svg>
   );
 }

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import type { PasswordCheck } from "@/lib/auth";
 import { authMessage } from "@/lib/auth-errors";
-import { ease, MIcon, Scramble } from "@/ui/kit";
+import { ease, MIcon, TypeOn } from "@/ui/kit";
 import { AuthShell, BUTTON, BusyLabel, LABEL, PasswordInput, PasswordRules, usePasswordCheck, type Nav } from "./parts";
 
 export type ActionMode = "verifyEmail" | "verifyAndChangeEmail" | "resetPassword" | "recoverEmail";
@@ -59,7 +59,7 @@ export function ActionPage({ mode, code, actions, links }: ActionPageProps) {
       >
         {state.step === "checking" && (
           <Heading title="Checking your link" sub="This takes a moment.">
-            <p className="t-shimmer-text mt-8 text-[11px] tracking-[0.06em] uppercase" data-text="Talking to Firebase">
+            <p className="t-shimmer-text mt-8 text-[14px] font-medium" data-text="Talking to Firebase">
               Talking to Firebase
             </p>
           </Heading>
@@ -107,10 +107,10 @@ function attempt(mode: ActionMode, code: string, actions: EmailActions): Promise
 function Heading({ title, sub, children }: { title: string; sub: string; children?: ReactNode }) {
   return (
     <>
-      <h1 className="text-[34px] leading-[1.05] font-medium tracking-[-0.05em]">
-        <Scramble key={title} text={title} duration={520} />
+      <h1 className="text-[34px] leading-[1.1] font-semibold tracking-[-0.03em]">
+        <TypeOn key={title} text={title} duration={520} />
       </h1>
-      <p className="mt-3 text-[13px] leading-[1.7] text-soft">{sub}</p>
+      <p className="mt-3 text-[16px] leading-[1.6] text-soft">{sub}</p>
       {children}
     </>
   );
@@ -215,7 +215,7 @@ function Alert({ tone, children }: { tone: "error" | "info"; children: ReactNode
   return (
     <p
       role={tone === "error" ? "alert" : "status"}
-      className={`mt-4 border-l-2 bg-panel px-3 py-2.5 text-[12.5px] leading-[1.6] ${tone === "error" ? "border-accent text-accent-ink" : "border-ink text-soft"}`}
+      className={`mt-4 rounded-xl px-4 py-3 text-[14px] leading-[1.55] ${tone === "error" ? "bg-danger-tint text-danger" : "bg-panel text-ink"}`}
     >
       {children}
     </p>

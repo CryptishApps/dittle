@@ -6,10 +6,11 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState, useSyncExtern
 import { useDeviceModel, type DeviceModelStatus } from "@/features/ai/device-model";
 import { usePasteAnywhere, type PasteInput } from "@/features/paste/files";
 import { loadAuth, type Account } from "@/lib/session";
-import { Btn, ease, MIcon } from "@/ui/kit";
+import { ease, Kbd, MIcon } from "@/ui/kit";
 import { Wordmark } from "@/ui/Wordmark";
 import { startNote } from "./api";
-import { MENU_CONTENT, MenuItem } from "./NoteTree";
+import { MENU_CONTENT, MENU_ROW, MenuItem } from "./NoteTree";
+import { OpenTabs } from "./OpenTabs";
 import { SearchDialog, useSearchShortcut } from "./Search";
 import { dismissToast, holdToast, useToast } from "./toast";
 
@@ -61,14 +62,15 @@ export function NotesShell({ account }: { account: Account }) {
 
   return (
     <div className="flex h-dvh flex-col bg-page">
-      <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line px-4 sm:px-6">
-        <Link to="/notes" aria-label="Dittle home">
-          <Wordmark className="text-[14px]" />
+      <header className="flex h-14 shrink-0 items-stretch gap-2 border-b border-line pr-3 pl-4 sm:gap-3 sm:pr-5 sm:pl-5">
+        <Link to="/notes" aria-label="Dittle home" className="flex shrink-0 items-center rounded-lg">
+          <Wordmark className="text-[18px] max-sm:[&>svg]:size-[22px] max-sm:text-[0px]" />
         </Link>
-        <div className="ml-auto flex items-center gap-2">
+        <OpenTabs uid={account.uid} onNewNote={newNote} />
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           {!online && (
-            <span className="hidden items-center gap-2 text-[11.5px] text-soft sm:flex">
-              <span aria-hidden className="size-1.5 bg-accent" />
+            <span className="hidden h-8 items-center gap-2 rounded-lg border border-line px-3 text-[13px] text-soft lg:flex">
+              <span aria-hidden className="size-1.5 rounded-full bg-faint" />
               Offline · saved on this device
             </span>
           )}
@@ -77,25 +79,24 @@ export function NotesShell({ account }: { account: Account }) {
             onClick={openSearch}
             aria-label="Search"
             title="Search (Ctrl K or ⌘K)"
-            className="inline-flex h-7 items-center gap-2 border border-line-strong bg-card px-2.5 text-[11px] font-medium tracking-[0.02em] text-soft uppercase hover:border-ink hover:text-ink"
+            className="flex h-9 items-center gap-2 rounded-[9px] px-2.5 text-[14px] text-soft transition-colors hover:bg-chip hover:text-ink max-sm:w-9 max-sm:justify-center sm:w-[200px] sm:border sm:border-line sm:px-3"
           >
-            <MIcon name="search" className="size-3.5" />
+            <MIcon name="search" className="size-4 shrink-0" />
             <span className="hidden sm:inline">Search</span>
+            <span className="ml-auto hidden sm:inline-flex">
+              <Kbd>⌘K</Kbd>
+            </span>
           </button>
           <button
             type="button"
             onClick={() => setPasted({})}
             aria-label="Paste or upload an update"
             title="Paste an email or upload a quote to update your plan"
-            className="inline-flex h-7 items-center gap-2 border border-line-strong bg-card px-2.5 text-[11px] font-medium tracking-[0.02em] text-soft uppercase hover:border-ink hover:text-ink"
+            className="flex h-9 items-center gap-2 rounded-[9px] px-2.5 text-[14px] text-soft transition-colors hover:bg-chip hover:text-ink max-sm:w-9 max-sm:justify-center"
           >
-            <MIcon name="file" className="size-3.5" />
-            <span className="hidden sm:inline">Paste or upload</span>
+            <MIcon name="file" className="size-4 shrink-0" />
+            <span className="hidden lg:inline">Paste or upload</span>
           </button>
-          <Btn primary onClick={newNote}>
-            <MIcon name="plus" className="size-3.5" />
-            New note
-          </Btn>
           <AccountMenu
             account={account}
             online={online}
@@ -107,7 +108,7 @@ export function NotesShell({ account }: { account: Account }) {
         </div>
       </header>
 
-      <main className="flex min-h-0 flex-1 flex-col">
+      <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-page">
         <Outlet />
       </main>
 
@@ -142,9 +143,12 @@ export function NotesShell({ account }: { account: Account }) {
             onPointerLeave={() => holdToast(false)}
             onFocus={() => holdToast(true)}
             onBlur={(event) => !event.currentTarget.contains(event.relatedTarget) && holdToast(false)}
-            className="fixed bottom-4 left-4 z-50 flex max-w-[calc(100vw-2rem)] flex-wrap items-center justify-end gap-x-4 gap-y-1.5 bg-ink py-2.5 pr-2.5 pl-4 text-[12.5px] text-page shadow-pop"
+            className="fixed bottom-5 left-5 z-50 flex max-w-[calc(100vw-2.5rem)] flex-wrap items-center justify-end gap-x-2 gap-y-1 rounded-xl bg-card py-1.5 pr-1.5 pl-4 text-[14px] text-ink shadow-pop"
           >
-            <span className="line-clamp-3 min-w-0">{toast.text}</span>
+            <span className="flex min-w-0 items-center gap-2.5">
+              {!toast.actions.some((action) => action.primary) && <MIcon name="check" className="size-4 shrink-0 text-soft" />}
+              <span className="line-clamp-3 min-w-0 py-1.5 pr-1">{toast.text}</span>
+            </span>
             {toast.actions.map((action) => (
               <button
                 key={action.label}
@@ -153,7 +157,7 @@ export function NotesShell({ account }: { account: Account }) {
                   dismissToast();
                   action.run?.();
                 }}
-                className={`shrink-0 px-2 py-1 text-[11px] tracking-[0.06em] uppercase ${action.primary ? "bg-page text-ink hover:opacity-90" : "hover:bg-page/15"}`}
+                className={`h-8 shrink-0 rounded-lg px-3 text-[13px] font-semibold transition-colors ${action.primary ? "bg-ink text-page hover:opacity-85" : "text-ink hover:bg-chip"}`}
               >
                 {action.label}
               </button>
@@ -181,25 +185,25 @@ function AccountMenu({ account, online, leaving, trigger, onSignOut, onDeleteAcc
       <DropdownMenu.Trigger
         ref={trigger}
         aria-label="Account and status"
-        className="relative grid size-7 place-items-center border border-line-strong bg-card text-[11px] font-medium text-ink uppercase hover:border-ink data-[state=open]:border-ink"
+        className="relative grid size-8 place-items-center rounded-full border border-line-strong bg-panel text-[13px] font-semibold text-soft uppercase transition-colors hover:bg-chip-hover hover:text-ink data-[state=open]:bg-chip-hover data-[state=open]:text-ink"
       >
         {name.charAt(0)}
-        {!online && <span aria-hidden className="absolute -top-0.5 -right-0.5 size-1.5 bg-accent" />}
+        {!online && <span aria-hidden className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full border-2 border-page bg-faint" />}
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
-        <DropdownMenu.Content align="end" sideOffset={6} className={`${MENU_CONTENT} w-[260px] text-[12px]`}>
-          <DropdownMenu.Label className="truncate px-2.5 pt-1.5 pb-2 text-faint">{name}</DropdownMenu.Label>
-          <DropdownMenu.Separator className="my-1 h-px bg-line" />
+        <DropdownMenu.Content align="end" sideOffset={6} className={`${MENU_CONTENT} w-[280px]`}>
+          <DropdownMenu.Label className="truncate px-3 pt-2 pb-2 text-label text-soft">{name}</DropdownMenu.Label>
+          <DropdownMenu.Separator className="mx-1 my-1 h-px bg-line" />
           <DropdownMenu.Item asChild>
-            <Link to="/ai" className="flex items-center gap-2 px-2.5 py-1.5 text-soft outline-none data-[highlighted]:bg-panel data-[highlighted]:text-ink">
+            <Link to="/ai" className={MENU_ROW}>
               <DeviceModelStatus />
             </Link>
           </DropdownMenu.Item>
-          <DropdownMenu.Label className="flex items-center gap-2 px-2.5 py-1.5 text-soft">
-            <span aria-hidden className={`size-1.5 ${online ? "bg-ink" : "bg-accent"}`} />
+          <DropdownMenu.Label className="flex items-center gap-2.5 px-3 py-2 text-soft">
+            <span aria-hidden className={`size-1.5 rounded-full ${online ? "bg-ink" : "bg-faint"}`} />
             {online ? "Online · synced" : "Offline · saved on this device"}
           </DropdownMenu.Label>
-          <DropdownMenu.Separator className="my-1 h-px bg-line" />
+          <DropdownMenu.Separator className="mx-1 my-1 h-px bg-line" />
           <MenuItem onSelect={onSignOut}>{leaving ? "Signing out" : "Sign out"}</MenuItem>
           <MenuItem onSelect={onDeleteAccount} danger>
             Delete account
@@ -221,16 +225,16 @@ const MODEL_LABEL: Record<DeviceModelStatus, string> = {
 
 function DeviceModelStatus() {
   const model = useDeviceModel();
-  const dot = model.status === "available" ? "bg-ink" : model.status === "downloadable" ? "bg-accent" : "bg-faint";
+  const dot = model.status === "available" ? "bg-ink" : "bg-faint";
   const percent = model.status === "downloading" && model.progress !== undefined ? ` ${Math.round(model.progress * 100)}%` : "";
   return (
     <>
-      <span aria-hidden className={`size-1.5 ${dot}`} />
+      <span aria-hidden className={`size-1.5 rounded-full ${dot}`} />
       <span>
         Gemini Nano · {MODEL_LABEL[model.status]}
         {percent}
       </span>
-      <MIcon name="right" className="ml-auto size-3" />
+      <MIcon name="right" className="ml-auto size-3.5" />
     </>
   );
 }

@@ -5,15 +5,15 @@ const runs: PlaceCollection = { name: "Runs", per: "day", fields: [{ name: "date
 const vendors: PlaceCollection = { name: "Vendors", per: "name", fields: [{ name: "price per head", kind: "money" }], rows: ["Rosa's Kitchen", "Hops & Co"] };
 const shown = [runs, vendors];
 const sentence = "Green Fork wants £42 per head, a bit more than Hops & Co.";
-const answer = (data: Record<string, string>) => JSON.stringify({ row: "none", label: "", ...data });
+const answer = (data: Record<string, string | boolean>) => JSON.stringify({ row: "none", label: "", ...data });
 
 describe("readPlaceAnswer", () => {
   test("reads a day collection and ignores any row", () => {
-    expect(readPlaceAnswer(answer({ collection: "k1", field: "f2", row: "r1" }), shown, sentence)).toEqual({ collection: 0, field: 1, row: null });
+    expect(readPlaceAnswer(answer({ collection: "k1", field: "f2", row: "r1" }), shown, sentence)).toEqual({ collection: 0, field: 1, row: null, sure: true });
   });
 
   test("reads an existing row by its number", () => {
-    expect(readPlaceAnswer(answer({ collection: "k2", field: "f1", row: "r2" }), shown, sentence)).toEqual({ collection: 1, field: 0, row: { row: 1 } });
+    expect(readPlaceAnswer(answer({ collection: "k2", field: "f1", row: "r2" }), shown, sentence)).toEqual({ collection: 1, field: 0, row: { row: 1 }, sure: true });
   });
 
   test("accepts a new row only when its label is quoted from the sentence", () => {
@@ -28,9 +28,13 @@ describe("readPlaceAnswer", () => {
     expect(readPlaceAnswer(answer({ collection: "k2", field: "f1", row: "new", label: "jerónimos monastery and pastéis" }), shown, accented).row).toEqual({ label: "Jerónimos Monastery and pastéis" });
   });
 
+  test("keeps a pick the model is unsure about so the person can be asked", () => {
+    expect(readPlaceAnswer(answer({ collection: "k2", field: "f1", row: "new", label: "Green Fork", sure: false }), shown, sentence)).toEqual({ collection: 1, field: 0, row: { label: "Green Fork" }, sure: false });
+  });
+
   test("rejects numbers outside the options shown", () => {
-    expect(readPlaceAnswer(answer({ collection: "k2", field: "f2", row: "r3" }), shown, sentence)).toEqual({ collection: 1, field: null, row: null });
-    expect(readPlaceAnswer(answer({ collection: "k3", field: "f1" }), shown, sentence)).toEqual({ collection: null, field: null, row: null });
+    expect(readPlaceAnswer(answer({ collection: "k2", field: "f2", row: "r3" }), shown, sentence)).toEqual({ collection: 1, field: null, row: null, sure: true });
+    expect(readPlaceAnswer(answer({ collection: "k3", field: "f1" }), shown, sentence)).toEqual({ collection: null, field: null, row: null, sure: false });
     expect(readPlaceAnswer(answer({ collection: "none", field: "none" }), shown, sentence).collection).toBeNull();
   });
 });

@@ -17,7 +17,7 @@ import { planUpdates, trackedOptions, type ChosenUpdate } from "./plan";
 type Read = UpdateResult & { ids: string[]; from: { text: string } | { fileName: string } };
 type Step = { at: "input" } | { at: "reading" } | { at: "review"; read: Read } | { at: "error"; message: string };
 
-const LABEL = "text-[10.5px] tracking-[0.06em] text-faint uppercase";
+const LABEL = "text-[13px] text-faint";
 const megabytes = (bytes: number) => `${Math.round(bytes / (1024 * 1024))} MB`;
 
 export function PasteDialog({ uid, input, onClose }: { uid: string; input: PasteInput | undefined; onClose: () => void }) {
@@ -27,7 +27,7 @@ export function PasteDialog({ uid, input, onClose }: { uid: string; input: Paste
         <Dialog.Overlay className="fixed inset-0 z-50 bg-page/70 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=open]:fade-in-0" />
         <Dialog.Content
           aria-describedby={undefined}
-          className="fixed top-[8vh] left-1/2 z-50 flex max-h-[84vh] w-[min(640px,calc(100vw-2rem))] -translate-x-1/2 flex-col border border-line-strong bg-card shadow-pop data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
+          className="fixed top-[8vh] left-1/2 z-50 flex max-h-[84vh] w-[min(640px,calc(100vw-2rem))] -translate-x-1/2 flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-pop data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
         >
           {input && <PasteBody uid={uid} initial={input} onClose={onClose} />}
         </Dialog.Content>
@@ -72,14 +72,14 @@ function PasteBody({ uid, initial, onClose }: { uid: string; initial: PasteInput
   return (
     <>
       <Head title="Update your plan" />
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-2 text-[12.5px]">
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-2 text-[14px]">
         <p className="text-soft">Paste an email or message from a supplier, or upload a photo or PDF of a quote. Dittle checks it against the values you track and shows what would change.</p>
         {file ? (
-          <div className="mt-4 flex items-center gap-3 border border-line bg-panel px-3 py-2.5">
+          <div className="mt-4 flex items-center gap-3 rounded-xl border border-line px-3 py-2.5">
             <MIcon name="file" className="size-4 shrink-0 text-soft" />
             <span className="min-w-0 flex-1 truncate">{file.name}</span>
             <span className="text-faint tabular-nums">{Math.max(1, Math.round(file.size / 1024))} KB</span>
-            <button type="button" onClick={() => setFile(undefined)} aria-label={`Remove ${file.name}`} className="grid size-6 place-items-center text-soft hover:bg-chip hover:text-ink">
+            <button type="button" onClick={() => setFile(undefined)} aria-label={`Remove ${file.name}`} className="grid size-6 place-items-center rounded-md text-soft hover:bg-chip hover:text-ink">
               <MIcon name="close" className="size-3.5" />
             </button>
           </div>
@@ -100,18 +100,18 @@ function PasteBody({ uid, initial, onClose }: { uid: string; initial: PasteInput
             rows={9}
             aria-label="Message to read"
             placeholder="Hi, we can now do £42 a head, and we'd need the deposit by 30 May."
-            className="mt-4 block w-full resize-y border border-line-strong bg-card px-3 py-2.5 leading-[1.6] outline-none placeholder:text-faint focus:border-ink"
+            className="mt-4 block w-full resize-y rounded-xl border border-line bg-card px-3.5 py-3 leading-[1.6] outline-none placeholder:text-faint focus:border-ink"
           />
         )}
         {fileProblem && <p className="mt-2 text-accent-ink">{fileProblem}</p>}
         <input ref={picker} type="file" accept={FILE_TYPES.join(",")} className="hidden" onChange={(event) => pick(event.target.files?.[0])} />
         {!file && (
-          <button type="button" onClick={() => picker.current?.click()} className="mt-3 inline-flex items-center gap-1.5 text-[11px] tracking-[0.04em] text-soft uppercase hover:text-ink">
+          <button type="button" onClick={() => picker.current?.click()} className="mt-3 inline-flex items-center gap-1.5 text-[14px] text-soft hover:text-ink">
             <MIcon name="plus" className="size-3.5" />
             Upload a photo or PDF
           </button>
         )}
-        <p className="mt-4 border-l-2 border-line-strong pl-3 leading-[1.6] text-soft">
+        <p className="mt-4 rounded-xl bg-panel px-3.5 py-3 leading-[1.6] text-soft">
           {file
             ? "The file goes to Gemini in the cloud through Firebase, with the list of values you track (their text, names and note titles). Nothing changes until you choose."
             : "The text goes to Gemini in the cloud through Firebase, with the list of values you track (their text, names and note titles). Offline, Gemini Nano reads it on this computer instead. Nothing changes until you choose."}
@@ -192,7 +192,7 @@ function Review({ uid, read, values, notes, onBack, onClose }: ReviewProps) {
   return (
     <>
       <Head title={read.title || "Changes in this message"} />
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-3 text-[12.5px]">
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-3 text-[14px]">
         <p className="text-faint">
           {fileName ? `Read from ${fileName}` : "Read from the pasted text"} {read.where === "on_device" ? "on this device" : "in the cloud"} in {(read.ms / 1000).toFixed(1)} s.
           {fromFile && " Check each value against the file before you apply it."}
@@ -229,7 +229,7 @@ function Review({ uid, read, values, notes, onBack, onClose }: ReviewProps) {
                     {update.text}
                   </p>
                   <p className="mt-1 text-soft">
-                    {update.source === "file" && <span className="mr-1.5 bg-chip px-1 py-0.5 text-[10.5px] tracking-[0.04em] uppercase">Read from the file</span>}
+                    {update.source === "file" && <span className="mr-1.5 rounded-md bg-chip px-1.5 py-0.5 text-[14px]">Read from the file</span>}
                     <q className="italic">{update.quote}</q>
                   </p>
                   {update.blocked && (
@@ -306,7 +306,7 @@ function Head({ title }: { title: string }) {
   return (
     <div className="flex items-center justify-between gap-3 px-5 pt-4 pb-3">
       <Dialog.Title className="truncate text-[17px] font-medium tracking-[-0.02em]">{title}</Dialog.Title>
-      <Dialog.Close aria-label="Close" className="grid size-7 shrink-0 place-items-center text-soft hover:bg-chip hover:text-ink">
+      <Dialog.Close aria-label="Close" className="grid size-7 shrink-0 place-items-center rounded-lg text-soft hover:bg-chip hover:text-ink">
         <MIcon name="close" className="size-3.5" />
       </Dialog.Close>
     </div>

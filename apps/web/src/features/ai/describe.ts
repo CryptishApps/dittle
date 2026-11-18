@@ -1,8 +1,9 @@
 import { InferenceMode } from "firebase/ai";
 import { parseIsoDuration } from "@/features/formulas/duration";
 import { isCurrency, isMeasure, MEASURE_UNITS } from "@/features/formulas/units";
+import { nameOf, readFound, records, strings, type Filing } from "./find-answer";
 import { createHybrid, type InferenceWhere } from "./hybrid";
-import { GRAINS, plainAmount, TAG_KINDS, validWhen, VALUE_KINDS, type Grain, type TagKind, type ValueKind } from "./value-shapes";
+import { GRAINS, plainAmount, TAG_KINDS, validWhen, VALUE_KINDS, type Grain, type TagKind } from "./value-shapes";
 
 export { DESCRIBE_PROMPT_VERSION } from "./prompt-versions";
 
@@ -23,7 +24,8 @@ export type SpottedValue = { quote: string; kind: TagKind; name: string };
 export type DescribedValue = SpottedValue & ValueContext;
 
 type Timed = { where: InferenceWhere; ms: number; fallbackReason?: string };
-export type FindResult = { values: SpottedValue[]; requests: string[] } & Timed;
+export type FindResult = { values: SpottedValue[]; requests: string[]; filings: Filing[] } & Timed;
+export type { Filing };
 export type DescribeResult = { values: DescribedValue[] } & Timed;
 
 const FIND_INSTRUCTIONS = `You read one paragraph from someone's notes and list the concrete values in it: amounts of money, counts, other numbers and measurements, dates and times, durations, percentages, and the names of people and places.
@@ -35,13 +37,17 @@ For each value give:
 
 "requests": sentences that ask you to write or add content into the note at that spot, such as "add a list of meals here", copied exactly. Reminders and to-dos for the person, such as "book the plumber" or "check the opening times", are not requests. A request is never also a value.
 
+"filings": sentences that ask for details in this paragraph to be kept in a list, log or table, such as "add this to my runs", "put that in the budget" or "start a list of swims with this", copied exactly as "sentence". "list" is a short plural name for that list in sentence case, such as Runs, Swims or Budget. A filing is never also a request.
+
 Ordinary words are never values. If there are no values, return an empty list.
 
 Examples
 Paragraph: Dinner for 12 people on 3 May with Ana at Casa Lola, about £30 each. Add a shopping list here.
-Answer: {"values":[{"quote":"12","kind":"count","name":"dinner_guests"},{"quote":"3 May","kind":"date","name":"dinner_date"},{"quote":"Ana","kind":"person","name":"host"},{"quote":"Casa Lola","kind":"place","name":"restaurant"},{"quote":"£30","kind":"money","name":"price_per_person"}],"requests":["Add a shopping list here."]}
+Answer: {"values":[{"quote":"12","kind":"count","name":"dinner_guests"},{"quote":"3 May","kind":"date","name":"dinner_date"},{"quote":"Ana","kind":"person","name":"host"},{"quote":"Casa Lola","kind":"place","name":"restaurant"},{"quote":"£30","kind":"money","name":"price_per_person"}],"requests":["Add a shopping list here."],"filings":[]}
 Paragraph: Still 80 guests, so 10 tables. Remember to ask Sam about the cake.
-Answer: {"values":[{"quote":"80","kind":"count","name":"guest_count"},{"quote":"10","kind":"count","name":"table_count"},{"quote":"Sam","kind":"person","name":"cake_contact"}],"requests":[]}`;
+Answer: {"values":[{"quote":"80","kind":"count","name":"guest_count"},{"quote":"10","kind":"count","name":"table_count"},{"quote":"Sam","kind":"person","name":"cake_contact"}],"requests":[],"filings":[]}
+Paragraph: Ran 8 km along the river this morning in 46 minutes. Add this to my runs.
+Answer: {"values":[{"quote":"8 km","kind":"number","name":"run_distance"},{"quote":"46 minutes","kind":"duration","name":"run_time"}],"requests":[],"filings":[{"sentence":"Add this to my runs.","list":"Runs"}]}`;
 
 const DESCRIBE_INSTRUCTIONS = `You get one paragraph from someone's notes and a list of values that appear in it. Describe each listed value, in the same order. Never add values that are not listed.
 
@@ -98,8 +104,13 @@ const FIND_SCHEMA = {
       },
     },
     requests: PHRASES,
+    filings: {
+      type: "array",
+      maxItems: 2,
+      items: { type: "object", properties: { sentence: { type: "string" }, list: { type: "string" } }, required: ["sentence", "list"] },
+    },
   },
-  required: ["values", "requests"],
+  required: ["values", "requests", "filings"],
 };
 
 const DESCRIBE_SCHEMA = {
@@ -141,7 +152,7 @@ export function createDescriber(mode: InferenceMode) {
 
   const find = async ({ paragraph }: ParagraphInput): Promise<FindResult> => {
     const { text, ...timed } = await finder.ask(`Paragraph: ${paragraph}`);
-    return { ...parseFound(text, paragraph), ...timed };
+    return { ...readFound(text, paragraph), ...timed };
   };
 
   const describe = async ({ paragraph, noteTitle, today = new Date(), quotes }: ParagraphInput & { quotes: string[] }): Promise<DescribeResult> => {
@@ -176,24 +187,6 @@ export function datesLine(today: Date, span = 7): string {
     .filter((offset) => offset !== 0)
     .map(at);
   return `Dates: today ${at(0)}. ${around.join(", ")}.`;
-}
-
-const strings = (value: unknown): string[] =>
-  Array.isArray(value) ? value.filter((item): item is string => typeof item === "string").map((item) => item.trim()).filter(Boolean) : [];
-
-const records = (value: unknown): Record<string, unknown>[] =>
-  Array.isArray(value) ? value.filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null) : [];
-
-const nameOf = (raw: Record<string, unknown>) => (typeof raw.name === "string" && raw.name.trim() ? raw.name.trim() : "value");
-
-function parseFound(text: string, paragraph: string): { values: SpottedValue[]; requests: string[] } {
-  const data = JSON.parse(text) as { values?: unknown; requests?: unknown };
-  const values = records(data.values).flatMap((raw): SpottedValue[] => {
-    const quote = typeof raw.quote === "string" ? raw.quote.trim() : "";
-    const kind = VALUE_KINDS.find((candidate): candidate is ValueKind => candidate === raw.kind);
-    return quote && kind && paragraph.includes(quote) ? [{ quote, kind, name: nameOf(raw) }] : [];
-  });
-  return { values, requests: strings(data.requests).filter((request) => paragraph.includes(request)) };
 }
 
 function parseDescribed(text: string, quotes: string[]): DescribedValue[] {

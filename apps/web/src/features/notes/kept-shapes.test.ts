@@ -43,7 +43,7 @@ const value = {
   updatedAt: 0,
 } satisfies Required<StoredValue>;
 
-const collection = { id: "c1", name: "Runs", rowLabel: "run", fields: [{ id: "distance", name: "Distance", kind: "number" }], key: { by: "when", grain: "day" }, columns: [{ id: "pace", name: "Pace", expr: "$1 / $2", inputs: ["time", "distance"] }], createdAt: 0 } satisfies Required<Collection>;
+const collection = { id: "c1", name: "Runs", rowLabel: "run", fields: [{ id: "distance", name: "Distance", kind: "number" }], key: { by: "when", grain: "day" }, columns: [{ id: "pace", name: "Pace", expr: "$1 / $2", inputs: ["time", "distance"] }], glance: "total", createdAt: 0 } satisfies Required<Collection>;
 
 const row = { id: "r1", collectionId: "c1", label: "Sunday", period: "2026-06-12", createdAt: 0 } satisfies Required<Row>;
 

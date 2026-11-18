@@ -2,7 +2,7 @@ import { autoUpdate, computePosition, flip, offset, shift } from "@floating-ui/d
 import type { Editor } from "@tiptap/react";
 import { AnimatePresence, m } from "motion/react";
 import { useEffect, useRef, useState } from "react";
-import { ease } from "@/ui/kit";
+import { Btn, ease, POPOVER } from "@/ui/kit";
 import { insertRequest, requestsKey } from "./requests";
 
 type Target = { id: string; element: HTMLElement };
@@ -75,29 +75,27 @@ export function RequestPreview({ editor }: { editor: Editor }) {
           onMouseLeave={hide}
           role="dialog"
           aria-label="Preview"
-          className="fixed top-0 left-0 z-50 w-[340px] max-w-[calc(100vw-1rem)] border border-dashed border-line-strong bg-card px-4 py-3 text-[12.5px] shadow-pop"
+          className={`${POPOVER} fixed top-0 left-0 z-50 w-[360px] max-w-[calc(100vw-1rem)] px-5 py-4 text-[14px]`}
         >
-          <p className="text-[10.5px] tracking-[0.06em] text-faint uppercase">
+          <p className="text-[12.5px] text-faint">
             Written {written.where === "on_device" ? "on this device" : "in the cloud"} from your note
           </p>
-          <ul className="mt-2 max-h-[240px] space-y-0.5 overflow-y-auto leading-[1.7] text-ink">
+          <ul className="mt-2.5 max-h-[260px] space-y-1 overflow-y-auto leading-[1.6] text-ink">
             {written.items.map((line, index) => (
               <li key={index} className="flex gap-2">
-                <span className="text-faint">{written.format === "checklist" ? "☐" : written.format === "list" ? "–" : ""}</span>
+                <span className="text-faint">{written.format === "checklist" ? "☐" : written.format === "list" ? "•" : ""}</span>
                 <span>{line}</span>
               </li>
             ))}
           </ul>
-          <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-2">
-            <button type="button" onClick={ignore} className="mr-auto px-1 py-1 text-[10.5px] tracking-[0.06em] text-faint uppercase hover:text-ink">
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-3">
+            <Btn variant="quiet" onClick={ignore} className="mr-auto -ml-2">
               Ignore
-            </button>
-            <button type="button" onClick={() => insert(true)} className="border border-line-strong px-2 py-1 text-[10.5px] tracking-[0.06em] uppercase hover:border-ink">
-              Replace my text
-            </button>
-            <button type="button" onClick={() => insert(false)} className="bg-ink px-2 py-1 text-[10.5px] tracking-[0.06em] text-page uppercase hover:opacity-90">
+            </Btn>
+            <Btn onClick={() => insert(true)}>Replace my text</Btn>
+            <Btn primary onClick={() => insert(false)}>
               Add below
-            </button>
+            </Btn>
           </div>
         </m.div>
       )}

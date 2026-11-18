@@ -1,10 +1,13 @@
-import { m } from "motion/react";
-import { useEffect, useState, type ReactNode } from "react";
-import { Code, MIcon, Scramble } from "../../ui/kit";
+import { MotionConfig } from "motion/react";
+import { useState, type ReactNode } from "react";
 import { Wordmark } from "../../ui/Wordmark";
-import { Demo } from "./Demo";
 import { Shot } from "../../ui/Shot";
-import { Floating, Reveal, Rise, ScrollWords, StickySteps, TiltedShot, useSmoothScroll, type Step } from "./motion";
+import { CaptureDemo } from "./CaptureDemo";
+import { CollectionDemo } from "./CollectionDemo";
+import { HeroDemo } from "./HeroDemo";
+import { Reveal, StickySteps, type Step } from "./motion";
+import { Icon, PRIMARY, SECONDARY, type IconName } from "./quiet";
+import { TidyDemo } from "./TidyDemo";
 
 type WelcomeProps = {
   onStart: () => void;
@@ -12,42 +15,45 @@ type WelcomeProps = {
 };
 
 const REPO_URL = "https://github.com/CryptishApps/dittle";
+const WRAP = "mx-auto w-full max-w-[1120px] px-4 sm:px-8";
+const H2 = "text-[32px] leading-[1.1] font-semibold tracking-[-0.035em] sm:text-[44px]";
+const LEAD = "mt-4 max-w-[52ch] text-[17px] leading-[1.65] text-soft";
 
 const STEPS: Step[] = [
   {
     key: "hover",
     label: "On device",
     title: "It knows what each value is",
-    body: "Type @ before a value to tag it. Gemini Nano names it, like guest count or villa cost, and notices when one is worked out from others. Hover a value to see what it is and how many notes use it.",
-    visual: <Shot name="hover" theme="dark" alt="A villa note with a card on €280 saying it is the villa cost ÷ the guest count." focus={{ x: 23, y: 14, zoom: 1.9 }} />,
+    body: "Type @ before a value to tag it, or let Dittle spot it for you. Gemini Nano names it, like price per head or run distance, and notices when one is worked out from others. Hover a value to see what it is and how many notes use it.",
+    visual: <Shot name="hover" alt="The catering note with a card on £3,040 showing it is worked out from the catering price and the guest count." focus={{ x: 19, y: 9, zoom: 1.55 }} />,
   },
   {
     key: "panel",
     label: "On device",
     title: "Click a value to see where it lives",
-    body: "A side panel shows the value, a field to change it, the notes that use it and its row in a collection. Three plans written in three notes line up in one Things to do table, with the cost each and the date.",
-    visual: <Shot name="panel" theme="dark" alt="A side panel for €45 with a field to change it and a Things to do table listing a fado night, Jerónimos Monastery and Pena Palace with their prices and dates." focus={{ x: 53.5, y: 9, zoom: 2.15 }} />,
+    body: "A side panel shows the value, a field to change it, the notes that use it and its row in a collection. Three plans written in three different notes line up in one Things to do table, with the cost each and the date.",
+    visual: <Shot name="panel" alt="A side panel for €45 with a field to change it and a Things to do table listing a fado night, Jerónimos Monastery and Pena Palace with their prices and dates." focus={{ x: 21, y: 7, zoom: 1.27 }} />,
   },
   {
     key: "change",
     label: "On device",
     title: "Change it once",
-    body: "Two more friends are coming. Change 6 to 8 and Dittle asks whether to update every note that uses it or only this one. The sums follow: flights go from £708 to £944 and the villa from €280 each to €210, worked out by code, not by the model.",
-    visual: <Shot name="change" theme="dark" alt="The guest count changed from 6 to 8, with a note that 6 is used in 2 notes and a button to update both." focus={{ x: 56.5, y: 9, zoom: 2.3 }} />,
+    body: "Change a value and Dittle asks whether to update every note that uses it or only this one. Anything worked out from it, like a cost each or a total, follows. The sums are done by code, not by the model.",
+    visual: <Shot name="change" alt="The price per head changed from £38 to £42, with a note that £38 is used in 2 notes and a button to update both." focus={{ x: 21, y: 7, zoom: 1.27 }} />,
   },
   {
     key: "home",
     label: "On device, cloud for suggestions",
     title: "The whole plan on your home page",
     body: "Each collection adds itself up, like what the things to do cost each of you. The dates in your notes count down, and Dittle suggests a new collection when it sees a pattern.",
-    visual: <Shot name="home" theme="dark" alt="The home page with a Things to do tile showing €95 in total, a Coming up tile counting down 24 days to the flight, and a list of notes." focus={{ x: 19.5, y: 10, zoom: 1.65 }} />,
+    visual: <Shot name="home" alt="The home page with a Things to do tile showing €95 in total, a Next up tile counting down 23 days to the barn deposit, and a list of notes." focus={{ x: 19, y: 6, zoom: 1.45 }} />,
   },
   {
     key: "request",
     label: "On device, cloud as fallback",
     title: "Ask in the note itself",
-    body: "Write “Write a packing list for a long weekend in Lisbon” and a button appears with the list already written. Hover to preview it, then add it below or replace your request. Type / for the same thing from a menu.",
-    visual: <Shot name="request" theme="dark" alt="The flights note with an Add a packing list button and a preview of the checklist." focus={{ x: 24, y: 12.5, zoom: 1.6 }} />,
+    body: "Write “Write a packing list for a day trip to Sintra” and a button appears with the list already written. Hover to preview it, then add it below or replace your request. Type / for the same thing from a menu.",
+    visual: <Shot name="request" alt="The Sintra day trip note with an Add a packing list button and a preview of the checklist." focus={{ x: 20, y: 8, zoom: 1.45 }} />,
   },
 ];
 
@@ -64,310 +70,268 @@ const MODELS: { job: string; model: string; where: string; how: string }[] = [
 
 const FIREBASE = ["AI Logic", "Firestore", "Authentication", "App Check", "Remote Config", "Hosting"];
 
+const TRACK: { icon: IconName; label: string }[] = [
+  { icon: "run", label: "Running log" },
+  { icon: "meal", label: "Weekly meal plan" },
+  { icon: "dumbbell", label: "Workouts" },
+  { icon: "plane", label: "Trip plans" },
+  { icon: "ring", label: "Wedding budget" },
+  { icon: "book", label: "Reading list" },
+  { icon: "receipt", label: "Invoices" },
+  { icon: "plant", label: "Plant care" },
+  { icon: "box", label: "Moving house" },
+];
+
 export function Welcome({ onStart, onSignIn }: WelcomeProps) {
-  useSmoothScroll();
-  const navDark = useNavOverDark();
-  const [found, setFound] = useState(false);
-  useEffect(() => {
-    const timer = window.setTimeout(() => setFound(true), 1100);
-    return () => window.clearTimeout(timer);
-  }, []);
-
   return (
-    <div className="guides min-h-dvh overflow-x-clip bg-page text-ink">
-      <nav className={`fixed inset-x-0 top-3 z-50 px-3 ${navDark ? "theme-dark" : ""}`}>
-        <div className="mx-auto flex h-12 max-w-[1200px] items-center justify-between border border-line-strong bg-page/85 pr-1.5 pl-4 text-ink backdrop-blur-md transition-colors duration-300">
-          <Wordmark className="text-[14px]" />
-          <div className="hidden items-center gap-7 text-[11px] tracking-[0.06em] text-soft uppercase md:flex">
-            <a href="#try" className="hover:text-ink">
-              Try it
-            </a>
-            <a href="#how" className="hover:text-ink">
-              How it works
-            </a>
-            <a href="#models" className="hover:text-ink">
-              Models
-            </a>
-            <a href={REPO_URL} className="hover:text-ink">
-              GitHub
-            </a>
-          </div>
-          <div className="flex items-center gap-1">
-          <a
-            href="/signin"
-            onClick={(event) => {
-              event.preventDefault();
-              onSignIn();
-            }}
-            className="inline-flex h-9 items-center px-3 text-[11px] tracking-[0.06em] text-soft uppercase hover:text-ink"
-          >
-            Sign in
-          </a>
-          <button
-            type="button"
-            onClick={onStart}
-            className="inline-flex h-9 items-center gap-2 bg-ink px-4 text-[11px] tracking-[0.06em] text-page uppercase transition-opacity hover:opacity-90"
-          >
-            Start planning
-            <MIcon name="right" className="size-3.5" />
-          </button>
-          </div>
-        </div>
-      </nav>
-
-      <main>
-      <header className="relative mx-auto max-w-[1200px] px-6 pt-36 sm:px-8 sm:pt-44">
-        <Rise>
-          <span className="inline-flex items-center gap-2.5 border border-line-strong bg-card px-2.5 py-1.5 text-[11px] tracking-[0.06em] text-soft uppercase">
-            <span aria-hidden className="size-1.5 animate-pulse bg-accent" />
-            Gemini Nano · runs on your device
-          </span>
-        </Rise>
-        <h1 className="mt-8 text-[40px] leading-[1.06] font-medium tracking-[-0.06em] [--caret-w:0.32em] sm:text-[60px] lg:text-[76px]">
-          Plans that keep <br className="hidden sm:block" />
-          themselves{" "}
-          <span className="whitespace-nowrap">
-            <span className="token" data-found={found}>
-              up to date
-            </span>
-            <span className="caret" aria-hidden />
-          </span>
-        </h1>
-        <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
-          <Rise delay={0.16}>
-            <p className="max-w-[50ch] text-[16px] leading-[1.75] text-soft sm:text-[17px]">
-              Plan a trip, a wedding or a team offsite in plain notes. Change a date, price or headcount in one, and Dittle updates every other note that mentions it.{" "}
-              <span className="text-ink">Private, instant, works offline.</span>
-            </p>
-          </Rise>
-          <Rise delay={0.24}>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={onStart}
-                className="inline-flex h-11 items-center gap-2 bg-ink px-5 text-[12px] tracking-[0.06em] text-page uppercase transition-opacity hover:opacity-90"
-              >
-                Start planning
-                <MIcon name="right" className="size-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={onSignIn}
-                className="inline-flex h-11 items-center border border-line-strong bg-card px-5 text-[12px] tracking-[0.06em] uppercase transition-colors hover:border-ink"
-              >
-                Sign in
-              </button>
-            </div>
-            <p className="mt-3 text-[11px] tracking-[0.06em] text-faint uppercase">Free · Works offline · Apache 2.0</p>
-          </Rise>
-        </div>
-
-        <Rise delay={0.3} className="mt-20 sm:mt-28">
-          <div className="mb-3 flex items-center justify-between text-[11px] tracking-[0.06em] text-faint uppercase">
-            <span>Fig. 00 — Two more friends are coming to Lisbon</span>
-            <span className="hidden sm:inline">1280 × 800</span>
-          </div>
-          <TiltedShot
-            floating={(progress) => (
-              <>
-                <Floating progress={progress} distance={60} className="top-[30%] -left-3 hidden md:block lg:-left-10">
-                  <Note code="FX" title="€210 each follows the change" detail="Villa cost ÷ guest count" />
-                </Floating>
-                <Floating progress={progress} distance={110} className="top-[48%] -right-3 hidden md:block lg:-right-10">
-                  <Note code="UP" title="8 people in 2 notes" detail="Villa, Flights" accent />
-                </Floating>
-                <Floating progress={progress} distance={80} className="-bottom-6 left-[38%] hidden md:block">
-                  <Note code="ND" title="Read on this device" detail="Gemini Nano · Prompt API" />
-                </Floating>
-              </>
-            )}
-          >
-            <div className="brackets border border-line-strong bg-card p-1.5 shadow-pop [--bracket-inset:-9px] [--bracket-size:16px]">
-              <Shot name="hero" priority alt="A villa note after the group grew from 6 to 8: the cost each now reads €210, and a side panel lists the two notes that use the group size." />
-            </div>
-          </TiltedShot>
-        </Rise>
-      </header>
-
-      <Section id="try" index="01" label="Try it">
-        <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr] lg:items-end">
-          <Reveal>
-            <h2 className="text-[34px] leading-[1.05] font-medium tracking-[-0.05em] sm:text-[52px]">Change it once.</h2>
-          </Reveal>
-          <Reveal delay={0.08}>
-            <p className="max-w-[46ch] text-[15px] leading-[1.75] text-soft lg:justify-self-end">
-              Two more friends are coming. Change the group size in the villa note. Three other notes mention the same number, so Dittle offers to bring them along.
-            </p>
-          </Reveal>
-        </div>
-        <Reveal delay={0.1} className="mt-12">
-          <Demo />
-        </Reveal>
-      </Section>
-
-      <section className="mx-auto max-w-[1200px] px-6 py-32 sm:px-8 sm:py-44">
-        <ScrollWords text="Every plan repeats the same details: [how many are coming], [when], [what it costs]. Dittle notices them on your device and keeps every copy in step, so a change in one place is never forgotten in another." />
-      </section>
-
-      <div data-dark className="theme-dark bg-page text-ink">
-        <Section id="how" index="02" label="How it works" dark>
-          <StickySteps steps={STEPS} />
-        </Section>
-      </div>
-
-      <Section id="models" index="03" label="Where the AI runs">
-        <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr] lg:items-end">
-          <Reveal>
-            <h2 className="text-[34px] leading-[1.05] font-medium tracking-[-0.05em] sm:text-[52px]">On device first.</h2>
-          </Reveal>
-          <Reveal delay={0.08}>
-            <p className="max-w-[46ch] text-[15px] leading-[1.75] text-soft lg:justify-self-end">
-              Most of the work runs on Gemini Nano inside your browser or phone. The cloud steps in when your device can't, or when the job is too big.
-            </p>
-          </Reveal>
-        </div>
-        <Reveal delay={0.1} className="mt-12 overflow-x-auto border border-line-strong">
-          <table className="w-full min-w-[720px] text-left text-[13px]">
-            <thead className="bg-side text-[11px] tracking-[0.06em] text-faint uppercase">
-              <tr>
-                <th className="px-5 py-3 font-normal">Job</th>
-                <th className="px-5 py-3 font-normal">Model</th>
-                <th className="px-5 py-3 font-normal">Where</th>
-                <th className="px-5 py-3 font-normal">How</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {MODELS.map((row) => (
-                <tr key={row.job} className="bg-card transition-colors hover:bg-panel">
-                  <td className="px-5 py-4 leading-[1.6]">{row.job}</td>
-                  <td className="px-5 py-4 whitespace-nowrap">{row.model}</td>
-                  <td className="px-5 py-4 whitespace-nowrap">
-                    <span className={`px-1.5 py-0.5 text-[11px] tracking-[0.05em] uppercase ${row.where === "On device" ? "bg-accent-tint text-accent-ink" : "bg-chip text-soft"}`}>
-                      {row.where}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 leading-[1.6] text-soft">{row.how}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Reveal>
-        <Reveal delay={0.1} className="mt-px grid border border-t-0 border-line-strong sm:grid-cols-3">
-          <Fact title="Private" body="On-device jobs keep your notes on your device. Cloud fallback sends one paragraph, or the note for a request. Collection suggestions send only values." />
-          <Fact title="Offline" body="Notes save to your device first and sync when you're back. The on-device model works without a connection." />
-          <Fact title="Open" body="The code is on GitHub under Apache 2.0. Read how every AI call is made, or run your own copy." />
-        </Reveal>
-        <Reveal delay={0.1} className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 text-[11px] tracking-[0.06em] text-faint uppercase">
-          <span>Built on Firebase</span>
-          {FIREBASE.map((product) => (
-            <span key={product} className="text-soft">
-              {product}
-            </span>
-          ))}
-        </Reveal>
-      </Section>
-
-      </main>
-
-      <div data-dark className="theme-dark bg-page text-ink">
-        <section className="mx-auto max-w-[1200px] px-6 py-32 sm:px-8 sm:py-40">
-          <Reveal>
-            <p className="text-[11px] tracking-[0.06em] text-faint uppercase">04 — Start</p>
-            <h2 className="mt-6 max-w-[14ch] text-[44px] leading-[1.02] font-medium tracking-[-0.06em] sm:text-[88px]">
-              <InViewScramble text="Plan it once." />
-            </h2>
-            <div className="mt-12 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={onStart}
-                className="inline-flex h-11 items-center gap-2 bg-ink px-5 text-[12px] tracking-[0.06em] text-page uppercase transition-opacity hover:opacity-90"
-              >
-                Start planning
-                <MIcon name="right" className="size-3.5" />
-              </button>
-              <a
-                href={REPO_URL}
-                className="inline-flex h-11 items-center border border-line-strong px-5 text-[12px] tracking-[0.06em] uppercase transition-colors hover:border-ink"
-              >
-                View on GitHub
+    <MotionConfig reducedMotion="user">
+      <div className="min-h-dvh overflow-x-clip bg-page text-ink">
+        <nav className="sticky top-0 z-50 border-b border-line bg-page/90 backdrop-blur-md">
+          <div className={`${WRAP} flex h-16 items-center justify-between gap-6`}>
+            <Wordmark className="text-[20px]" />
+            <div className="hidden items-center gap-7 text-[14.5px] text-soft md:flex">
+              <a href="#capture" className="hover:text-ink">
+                Features
+              </a>
+              <a href="#collections" className="hover:text-ink">
+                Collections
+              </a>
+              <a href="#how" className="hover:text-ink">
+                How it works
+              </a>
+              <a href="#privacy" className="hover:text-ink">
+                Privacy
               </a>
             </div>
-          </Reveal>
-        </section>
-        <footer className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 border-t border-line px-6 py-6 text-[11px] tracking-[0.06em] text-faint uppercase sm:px-8">
-          <Wordmark className="text-[12px]" />
-          <span>Built for #BuildHybridAI 2026</span>
-          <span className="flex gap-5">
-            <a href={REPO_URL} className="hover:text-ink">
-              GitHub
-            </a>
-            <span>Apache 2.0</span>
-          </span>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <a
+                href="/signin"
+                onClick={(event) => {
+                  event.preventDefault();
+                  onSignIn();
+                }}
+                className="inline-flex h-10 items-center px-3 text-[14.5px] font-semibold text-soft transition-colors hover:text-ink"
+              >
+                Sign in
+              </a>
+              <button type="button" onClick={onStart} className={`${PRIMARY} h-10 px-4 text-[14.5px]`}>
+                Get started
+              </button>
+            </div>
+          </div>
+        </nav>
+
+        <main>
+          <section className={`${WRAP} grid grid-cols-[minmax(0,1fr)] items-center gap-12 pt-16 pb-20 sm:pt-24 sm:pb-28 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-16`}>
+            <div>
+              <h1 className="text-[42px] leading-[1.05] font-semibold tracking-[-0.045em] sm:text-[56px]">
+                Plans change.
+                <span className="block text-faint">Your notes keep up.</span>
+              </h1>
+              <p className="mt-6 max-w-[44ch] text-[18px] leading-[1.6] text-soft">
+                Write plans and logs as plain notes. Dittle spots the prices, dates and distances, keeps every copy in step and adds them up for you.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-2.5">
+                <button type="button" onClick={onStart} className={PRIMARY}>
+                  Get started
+                </button>
+                <a
+                  href="/signin"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    onSignIn();
+                  }}
+                  className={SECONDARY}
+                >
+                  Sign in
+                </a>
+              </div>
+            </div>
+            <HeroDemo />
+          </section>
+
+          <Section id="capture">
+            <div className="grid grid-cols-[minmax(0,1fr)] items-center gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-16">
+              <Reveal>
+                <h2 className={H2}>Throw anything at it.</h2>
+                <p className={LEAD}>One box takes typing, a pasted chat, a screenshot or your voice. Dittle files it where it belongs and tells you what it did in one line, with Undo next to it.</p>
+              </Reveal>
+              <Reveal delay={0.08}>
+                <CaptureDemo />
+              </Reveal>
+            </div>
+          </Section>
+
+          <Section id="tidy">
+            <Reveal>
+              <h2 className={H2}>Paste the mess, get a tidy note.</h2>
+              <p className={LEAD}>Drop in a group chat, an email or a booking. You get a short note with the values marked, and the dates on your home page.</p>
+            </Reveal>
+            <Reveal delay={0.08} className="mt-10">
+              <TidyDemo />
+            </Reveal>
+          </Section>
+
+          <Section id="collections">
+            <Reveal>
+              <h2 className={H2}>Collections that add themselves up.</h2>
+              <p className={LEAD}>A collection is a table, like Runs or Things to do. Anything you write that fits files itself in, and the totals keep up.</p>
+            </Reveal>
+            <Reveal delay={0.08} className="mt-10">
+              <CollectionDemo />
+            </Reveal>
+            <Reveal delay={0.1} className="mt-12 grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
+              <Fact title="A row per day or per thing" body="A log like Runs gets a row for each day. A list like Things to do gets a row for each place or booking." />
+              <Fact title="Totals and averages" body="Each collection adds itself up on your home page: distance this month, cost each, average pace." />
+              <Fact title="Calculated columns" body="Add a column worked out from the others, like pace from time and distance. Code does the maths." />
+              <Fact title="Suggested for you" body="When the same details turn up across notes, Dittle offers a collection. Only the values are sent to the cloud." />
+            </Reveal>
+          </Section>
+
+          <Section id="start">
+            <Reveal className="max-w-[760px]">
+              <h2 className={H2}>Starts in a minute.</h2>
+              <p className={LEAD}>Pick what you keep track of. Dittle sets up the notes and collections to start from, and you write the rest your way.</p>
+              <TrackPicker />
+              <button type="button" onClick={onStart} className={`${PRIMARY} mt-8`}>
+                Get started
+                <Icon name="arrow" className="size-4" />
+              </button>
+            </Reveal>
+          </Section>
+
+          <Section id="how">
+            <Reveal>
+              <h2 className={H2}>How it works.</h2>
+            </Reveal>
+            <div className="mt-6">
+              <StickySteps steps={STEPS} />
+            </div>
+          </Section>
+
+          <Section id="privacy">
+            <Reveal>
+              <h2 className={H2}>On device first.</h2>
+              <p className={LEAD}>Most of the work runs on Gemini Nano inside your browser or phone. The cloud steps in when your device can’t, or when the job is too big.</p>
+            </Reveal>
+            <Reveal delay={0.08} className="mt-10 overflow-x-auto">
+              <table className="w-full min-w-[680px] text-left text-[15px]">
+                <thead className="text-[13px] text-faint">
+                  <tr className="border-b border-line">
+                    <th className="py-2.5 pr-6 font-semibold">Job</th>
+                    <th className="py-2.5 pr-6 font-semibold">Model</th>
+                    <th className="py-2.5 pr-6 font-semibold">Where</th>
+                    <th className="py-2.5 font-semibold">How</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {MODELS.map((row) => (
+                    <tr key={row.job} className="border-b border-line align-top">
+                      <td className="py-4 pr-6 leading-[1.6]">{row.job}</td>
+                      <td className="py-4 pr-6 font-semibold whitespace-nowrap">{row.model}</td>
+                      <td className="py-4 pr-6 whitespace-nowrap">
+                        <span className={`rounded-md px-2 py-0.5 text-[13px] font-semibold ${row.where === "On device" ? "bg-accent-tint text-accent-ink" : "bg-panel text-soft"}`}>{row.where}</span>
+                      </td>
+                      <td className="py-4 leading-[1.6] text-soft">{row.how}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Reveal>
+            <Reveal delay={0.1} className="mt-12 grid gap-x-8 gap-y-6 sm:grid-cols-3">
+              <Fact icon="lock" title="Private" body="On-device jobs keep your notes on your device. Cloud fallback sends one paragraph, or the note for a request. Collection suggestions send only values." />
+              <Fact icon="offline" title="Offline" body="Notes save to your device first and sync when you’re back. The on-device model works without a connection." />
+              <Fact icon="code" title="Open" body="The code is on GitHub under Apache 2.0. Read how every AI call is made, or run your own copy." />
+            </Reveal>
+            <p className="mt-10 flex flex-wrap gap-x-5 gap-y-2 text-[14px] text-faint">
+              <span>Built on Firebase</span>
+              {FIREBASE.map((product) => (
+                <span key={product} className="text-soft">
+                  {product}
+                </span>
+              ))}
+            </p>
+          </Section>
+
+          <section className="border-t border-line">
+            <div className={`${WRAP} py-24 text-center sm:py-32`}>
+              <h2 className="text-[36px] leading-[1.08] font-semibold tracking-[-0.04em] sm:text-[52px]">
+                Plans change.
+                <span className="block text-faint">Your notes keep up.</span>
+              </h2>
+              <div className="mt-8 flex flex-wrap justify-center gap-2.5">
+                <button type="button" onClick={onStart} className={PRIMARY}>
+                  Get started
+                </button>
+                <a href={REPO_URL} className={SECONDARY}>
+                  View on GitHub
+                </a>
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <footer className="border-t border-line">
+          <div className={`${WRAP} flex flex-wrap items-center justify-between gap-4 py-8 text-[14px] text-faint`}>
+            <Wordmark className="text-[17px]" />
+            <span>Built for #BuildHybridAI 2026</span>
+            <span className="flex gap-5">
+              <a href={REPO_URL} className="hover:text-ink">
+                GitHub
+              </a>
+              <span>Apache 2.0</span>
+            </span>
+          </div>
         </footer>
       </div>
-    </div>
+    </MotionConfig>
   );
 }
 
-function useNavOverDark(): boolean {
-  const [dark, setDark] = useState(false);
-  useEffect(() => {
-    const check = () => {
-      const probe = 36;
-      setDark(
-        [...document.querySelectorAll<HTMLElement>("[data-dark]")].some((el) => {
-          const rect = el.getBoundingClientRect();
-          return rect.top <= probe && rect.bottom >= probe;
-        }),
-      );
-    };
-    check();
-    window.addEventListener("scroll", check, { passive: true });
-    return () => window.removeEventListener("scroll", check);
-  }, []);
-  return dark;
-}
-
-function Section({ id, index, label, dark = false, children }: { id: string; index: string; label: string; dark?: boolean; children: ReactNode }) {
+function Section({ id, children }: { id: string; children: ReactNode }) {
   return (
-    <section id={id} className={`mx-auto max-w-[1200px] scroll-mt-20 px-6 sm:px-8 ${dark ? "py-28 sm:py-36" : "py-24 sm:py-32"}`}>
-      <div className="mb-10 flex items-center gap-4 text-[11px] tracking-[0.06em] text-faint uppercase">
-        <span className="text-accent-ink">{index}</span>
-        {label}
-        <span className="h-px flex-1 bg-line" />
-      </div>
-      {children}
+    <section id={id} className="scroll-mt-16 border-t border-line">
+      <div className={`${WRAP} py-20 sm:py-28`}>{children}</div>
     </section>
   );
 }
 
-function Note({ code, title, detail, accent = false }: { code: string; title: string; detail: string; accent?: boolean }) {
+function Fact({ icon, title, body }: { icon?: IconName; title: string; body: string }) {
   return (
-    <div className={`flex items-center gap-3 border bg-card py-2.5 pr-4 pl-3 shadow-pop ${accent ? "border-accent-line" : "border-line-strong"}`}>
-      <Code className="size-8 text-[11px]">{code}</Code>
-      <span className="text-[12px] leading-[1.4]">
-        <span className={`block font-medium ${accent ? "text-accent-ink" : ""}`}>{title}</span>
-        <span className="block text-[10.5px] tracking-[0.05em] text-faint uppercase">{detail}</span>
-      </span>
+    <div className="border-t border-line pt-4">
+      <p className="flex items-center gap-2 text-[16px] font-semibold tracking-[-0.01em]">
+        {icon ? <Icon name={icon} className="size-[18px] text-soft" /> : null}
+        {title}
+      </p>
+      <p className="mt-1.5 text-[15px] leading-[1.65] text-soft">{body}</p>
     </div>
   );
 }
 
-function Fact({ title, body }: { title: string; body: string }) {
+function TrackPicker() {
+  const [picked, setPicked] = useState<string[]>(["Running log", "Weekly meal plan"]);
   return (
-    <div className="border-t border-line-strong bg-card p-6 sm:border-t-0 sm:border-l sm:first:border-l-0">
-      <p className="text-[11px] tracking-[0.06em] text-accent-ink uppercase">{title}</p>
-      <p className="mt-3 text-[13px] leading-[1.7] text-soft">{body}</p>
-    </div>
+    <ul className="mt-8 flex flex-wrap gap-2" aria-label="Things you keep track of">
+      {TRACK.map((item) => {
+        const on = picked.includes(item.label);
+        return (
+          <li key={item.label}>
+            <button
+              type="button"
+              aria-pressed={on}
+              onClick={() => setPicked((list) => (on ? list.filter((label) => label !== item.label) : [...list, item.label]))}
+              className={`inline-flex h-10 items-center gap-2 rounded-full px-4 text-[15px] font-medium transition-colors ${on ? "bg-ink text-page" : "border border-line-strong text-ink hover:border-ink"}`}
+            >
+              <Icon name={item.icon} className={`size-[18px] ${on ? "" : "text-soft"}`} />
+              {item.label}
+            </button>
+          </li>
+        );
+      })}
+      <li className="inline-flex h-10 items-center gap-2 rounded-full border border-dashed border-line-strong px-4 text-[15px] text-faint">
+        <Icon name="plus" className="size-[18px]" />
+        Something else
+      </li>
+    </ul>
   );
 }
-
-function InViewScramble({ text }: { text: string }) {
-  const [shown, setShown] = useState(false);
-  return (
-    <m.span onViewportEnter={() => setShown(true)} viewport={{ once: true }}>
-      {shown ? <Scramble text={text} duration={900} /> : <span className="opacity-0">{text}</span>}
-    </m.span>
-  );
-}
-

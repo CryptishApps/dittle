@@ -36,6 +36,21 @@ export function ValuePanel({ uid, noteId, valueId, focusOnOpen, editor, store, s
   const value = values.find((item) => item.id === valueId);
 
   useEffect(() => {
+    const dom = editor.view.dom;
+    const mark = () =>
+      dom.querySelectorAll<HTMLElement>(".value-tag").forEach((element) => {
+        if (element.dataset.id === valueId) element.dataset.open = "true";
+        else delete element.dataset.open;
+      });
+    mark();
+    editor.on("transaction", mark);
+    return () => {
+      editor.off("transaction", mark);
+      dom.querySelectorAll<HTMLElement>(".value-tag[data-open]").forEach((element) => delete element.dataset.open);
+    };
+  }, [editor, valueId]);
+
+  useEffect(() => {
     const onKey = (event: KeyboardEvent) => event.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -52,38 +67,40 @@ export function ValuePanel({ uid, noteId, valueId, focusOnOpen, editor, store, s
   return (
     <m.aside
       aria-label={`About ${value.text}`}
-      initial={{ opacity: 0, x: 12 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.22, ease }}
-      className="fixed inset-x-0 top-14 bottom-0 z-40 overflow-y-auto border-l border-line bg-side px-5 pt-4 pb-10 text-[12.5px] shadow-pop sm:left-auto sm:w-[400px] lg:static lg:z-auto lg:w-[380px] lg:shrink-0 lg:shadow-none"
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.18, ease }}
+      className="fixed inset-x-2 bottom-2 z-40 max-h-[70dvh] overflow-y-auto rounded-xl bg-card px-4 pt-3.5 pb-4 text-[14px] shadow-pop sm:inset-x-auto sm:top-[76px] sm:right-5 sm:bottom-auto sm:max-h-[calc(100dvh-96px)] sm:w-[320px]"
     >
-      <div className="flex items-center justify-between gap-3">
-        <p className="truncate text-[10.5px] tracking-[0.06em] text-faint uppercase">{[nameOf(value), value.kind].filter(Boolean).join(" · ")}</p>
-        <button type="button" onClick={onClose} aria-label="Close" className="grid size-7 place-items-center text-soft hover:bg-chip hover:text-ink">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-[12.5px] text-faint first-letter:uppercase">{nameOf(value) ?? value.kind ?? "Value"}</p>
+          <p className="mt-0.5 text-[20px] leading-tight font-semibold tracking-[-0.02em] break-words tabular-nums">{value.text}</p>
+        </div>
+        <button type="button" onClick={onClose} aria-label="Close" className="-mt-0.5 -mr-1.5 grid size-7 shrink-0 place-items-center rounded-md text-faint hover:bg-chip hover:text-ink">
           <MIcon name="close" className="size-3.5" />
         </button>
       </div>
-      <p className="mt-3 text-[28px] leading-tight font-medium tracking-[-0.03em] break-words">{value.text}</p>
       {value.naming ? (
-        <p className="mt-1.5">
+        <p className="mt-1.5 text-[13.5px]">
           <span className="t-shimmer-text" data-text="Describing">
             Describing
           </span>
         </p>
       ) : (
-        context && <p className="mt-1.5 text-soft">{context}</p>
+        context && <p className="mt-1.5 text-[13.5px] text-soft">{context}</p>
       )}
 
       {formula ? (
-        <div className="mt-5 border border-line bg-card px-3 py-2.5">
-          <p className="text-[10.5px] tracking-[0.06em] text-faint uppercase">Calculated</p>
-          <p className="mt-1 text-ink">= {formula}</p>
-          <p className="mt-1 text-faint">Change an input and this follows.</p>
+        <div className="mt-3 border-t border-line pt-3">
+          <p className="text-[12.5px] text-faint">Worked out</p>
+          <p className="mt-0.5 font-medium text-ink">= {formula}</p>
+          <p className="mt-0.5 text-[13px] text-faint">Change an input and this follows.</p>
         </div>
       ) : (
         !value.proposal && (
-          <div className="mt-5">
-            <p className="text-[10.5px] tracking-[0.06em] text-faint uppercase">Change</p>
+          <div className="mt-3 border-t border-line pt-3">
+            <p className="text-[12.5px] text-faint">Change</p>
             <EditValue
               key={`${value.id}:${value.text}`}
               value={value}
@@ -102,35 +119,35 @@ export function ValuePanel({ uid, noteId, valueId, focusOnOpen, editor, store, s
         !value.field &&
         !value.proposal &&
         services.startCollection && (
-          <div className="mt-6">
+          <div className="mt-3">
             <StartCollection value={value} onStart={(name, per) => services.startCollection?.(value, name, per)} />
           </div>
         )
       )}
 
-      <p className="mt-6 text-[10.5px] tracking-[0.06em] text-faint uppercase">Used in</p>
-      <ul className="mt-1.5">
+      <p className="mt-4 text-[12.5px] text-faint">Used in</p>
+      <ul>
         {usedIn.map((note) => (
-          <li key={note.id} className="flex items-baseline justify-between gap-3 border-b border-dashed border-line py-1.5">
+          <li key={note.id} className="flex items-baseline justify-between gap-3 border-b border-line py-1.5 last:border-b-0">
             {note.id === noteId ? (
               <span className="truncate text-ink">{note.title || "Untitled"}</span>
             ) : (
-              <Link to="/notes/$noteId" params={{ noteId: note.id }} className="truncate text-accent-ink hover:underline">
+              <Link to="/notes/$noteId" params={{ noteId: note.id }} className="truncate font-medium text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink">
                 {note.title || "Untitled"}
               </Link>
             )}
-            {note.id === noteId && <span className="shrink-0 text-faint">this note</span>}
+            {note.id === noteId && <span className="shrink-0 text-[12.5px] text-faint">this note</span>}
           </li>
         ))}
       </ul>
 
       {value.history?.length ? (
         <>
-          <p className="mt-6 text-[10.5px] tracking-[0.06em] text-faint uppercase">Before</p>
-          <ul className="mt-1.5 space-y-1 text-soft">
+          <p className="mt-4 text-[12.5px] text-faint">Before</p>
+          <ul className="mt-1 space-y-0.5 text-soft">
             {[...value.history].reverse().map((entry, index) => (
               <li key={index}>
-                {entry.text} <span className="text-faint">· until {WHEN.format(entry.at)}</span>
+                <span className="text-faint line-through">{entry.text}</span> <span className="text-faint">· until {WHEN.format(entry.at)}</span>
               </li>
             ))}
           </ul>
@@ -155,19 +172,20 @@ function CollectionPart({ uid, collectionId, rowId }: { uid: string; collectionI
   const cell = (id: string, fieldId: string) => stored.find((value) => value.subject?.entityId === id && value.field === fieldId);
 
   return (
-    <div className="mt-6">
+    <div className="mt-4 border-t border-line pt-3">
       <div className="flex items-baseline justify-between gap-3">
-        <span className="text-[14px] font-medium">{collection.name}</span>
-        <Link to="/notes/collections/$collectionId" params={{ collectionId }} className="text-[11px] text-faint hover:text-ink">
-          {summary.totals[0]?.text ?? summary.count} {summary.scope} · open ↗
+        <span className="text-[14px] font-semibold">{collection.name}</span>
+        <Link to="/notes/collections/$collectionId" params={{ collectionId }} className="inline-flex items-center gap-1 text-[13px] text-soft tabular-nums hover:text-ink">
+          {summary.totals[0]?.text ?? summary.count} {summary.scope}
+          <MIcon name="right" className="size-3.5" />
         </Link>
       </div>
-      <table className="mt-2 w-full border-collapse text-left text-[12px]">
+      <table className="mt-1.5 w-full border-collapse text-left text-[13px]">
         <thead>
-          <tr className="text-[10px] tracking-[0.06em] text-faint uppercase">
-            <th className="border-b border-line py-1.5 pr-3 font-normal">{byDay ? "Day" : collection.rowLabel}</th>
+          <tr className="text-[12px] text-faint">
+            <th className="border-b border-line py-1.5 pr-3 font-medium first-letter:uppercase">{byDay ? "Day" : collection.rowLabel}</th>
             {columns.map((field) => (
-              <th key={field.id} className="border-b border-line py-1.5 pr-3 font-normal">
+              <th key={field.id} className="border-b border-line py-1.5 pr-3 font-medium first-letter:uppercase">
                 {field.name}
               </th>
             ))}
@@ -175,13 +193,13 @@ function CollectionPart({ uid, collectionId, rowId }: { uid: string; collectionI
         </thead>
         <tbody>
           {shown.map((row) => (
-            <tr key={row.id} className={row.id === rowId ? "text-ink" : "text-soft"}>
-              <td className="border-b border-dashed border-line py-1.5 pr-3 whitespace-nowrap">{rowLabel(row)}</td>
+            <tr key={row.id} className={`group ${row.id === rowId ? "text-ink" : "text-soft"}`}>
+              <td className="border-b border-line py-2 pr-3 group-last:border-b-0">{rowLabel(row)}</td>
               {columns.map((field) => {
                 const value = cell(row.id, field.id);
                 return (
-                  <td key={field.id} className="border-b border-dashed border-line py-1.5 pr-3">
-                    {value ? <span className={row.id === rowId ? "bg-accent-tint px-1 text-accent-ink" : ""}>{value.text}</span> : <span className="text-faint">–</span>}
+                  <td key={field.id} className="border-b border-line py-2 pr-3 whitespace-nowrap tabular-nums group-last:border-b-0">
+                    {value ? <span className={row.id === rowId ? "tag font-medium" : ""}>{value.text}</span> : <span className="text-faint">–</span>}
                   </td>
                 );
               })}

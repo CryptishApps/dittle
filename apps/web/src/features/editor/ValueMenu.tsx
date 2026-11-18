@@ -1,3 +1,4 @@
+import { POPOVER } from "@/ui/kit";
 import { useMenuCursor, type MenuProps } from "./suggestion-menu";
 import type { TrackedValue } from "./values";
 
@@ -24,7 +25,7 @@ export function ValueMenu(props: MenuProps<MenuItem>) {
   const { index, point } = useMenuCursor(props);
 
   return (
-    <div className="w-[264px] border border-line-strong bg-card text-[12.5px] shadow-pop" role="listbox" aria-label="Tag a value">
+    <div className={`${POPOVER} w-[300px] p-1 text-[14px]`} role="listbox" aria-label="Tag a value">
       {items.length === 0 ? (
         <p className="px-3 py-2.5 text-soft">Type a value, like 80 or 14 June.</p>
       ) : (
@@ -37,26 +38,28 @@ export function ValueMenu(props: MenuProps<MenuItem>) {
             onMouseDown={(event) => event.preventDefault()}
             onMouseEnter={() => point(position)}
             onClick={() => command(item)}
-            className="flex w-full items-baseline justify-between gap-3 px-3 py-2 text-left aria-selected:bg-panel"
+            className="flex w-full items-baseline justify-between gap-3 rounded-lg px-2.5 py-1.5 text-left aria-selected:bg-chip"
           >
             {item.kind === "new" ? (
               <>
-                <span className="truncate text-ink">{item.text}</span>
-                <span className="shrink-0 text-[10.5px] tracking-[0.04em] text-accent-ink uppercase">New value</span>
+                <span className="truncate">
+                  <span className="tag font-medium">{item.text}</span>
+                </span>
+                <span className="shrink-0 text-[12.5px] text-faint">New value</span>
               </>
             ) : (
               <>
                 <span className="min-w-0">
-                  <span className="block truncate text-ink">{item.value.text}</span>
-                  {menuContext(item.value) && <span className="block truncate text-[11px] text-faint">{menuContext(item.value)}</span>}
+                  <span className="block truncate font-medium text-ink tabular-nums">{item.value.text}</span>
+                  {menuContext(item.value) && <span className="block truncate text-[12.5px] text-soft">{menuContext(item.value)}</span>}
                 </span>
-                <span className="shrink-0 truncate text-[11px] text-faint">{item.value.name?.replaceAll("_", " ") ?? "unnamed"}</span>
+                <span className="shrink-0 truncate text-[12.5px] text-faint">{item.value.name?.replaceAll("_", " ") ?? "unnamed"}</span>
               </>
             )}
           </button>
         ))
       )}
-      <p className="border-t border-line px-3 py-1.5 text-[10.5px] tracking-[0.04em] text-faint uppercase">Enter to tag · Esc to cancel</p>
+      <p className="mt-1 border-t border-line px-3 pt-2 pb-1 text-[12.5px] text-faint">Enter to tag · Esc to cancel</p>
     </div>
   );
 }

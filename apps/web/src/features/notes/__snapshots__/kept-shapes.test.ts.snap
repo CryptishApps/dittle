@@ -23,6 +23,7 @@ exports[`shapes kept on the device change KEPT_SHAPES_VERSION whenever this snap
           "name": "string",
         },
       ],
+      "glance": "string",
       "id": "string",
       "key": {
         "by": "string",
@@ -150,6 +151,6 @@ exports[`shapes kept on the device change KEPT_SHAPES_VERSION whenever this snap
       },
     },
   },
-  "version": "3",
+  "version": "4",
 }
 `;

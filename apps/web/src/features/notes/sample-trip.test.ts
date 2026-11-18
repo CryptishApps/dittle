@@ -56,7 +56,7 @@ describe("sampleTrip", () => {
   });
 
   test("counts down to the landing date", () => {
-    const [first] = upcomingDates(plan.values, today);
+    const [first] = upcomingDates(plan.values, [], today);
     expect(first?.value.name).toBe("landing_date");
     expect(daysUntil(first!.on, today)).toBe(24);
   });

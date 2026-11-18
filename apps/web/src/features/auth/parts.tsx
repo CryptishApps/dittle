@@ -14,7 +14,7 @@ export function AuthShell({ home, children }: { home: Nav; children: ReactNode }
       <div className="flex min-h-dvh flex-col px-6 py-6 sm:px-10">
         <header>
           <NavLink nav={home} label="Dittle home" className="-m-1 inline-flex p-1">
-            <Wordmark className="text-[14px]" />
+            <Wordmark className="text-[21px]" />
           </NavLink>
         </header>
         <main className="flex flex-1 items-center justify-center py-14">{children}</main>
@@ -25,9 +25,9 @@ export function AuthShell({ home, children }: { home: Nav; children: ReactNode }
   );
 }
 
-export const LABEL = "text-[11px] tracking-[0.06em] text-soft uppercase";
-export const INPUT = "h-10 bg-card px-3 text-[13px] md:text-[13px] placeholder:text-faint focus-visible:border-accent focus-visible:ring-0 focus-visible:outline-none";
-export const BUTTON = "h-10 gap-2 text-[11.5px] tracking-[0.06em] uppercase";
+export const LABEL = "text-[13px] leading-snug font-semibold text-soft";
+export const INPUT = "h-12 px-4 text-[15px] focus-visible:outline-none";
+export const BUTTON = "h-12 gap-2 text-[15px]";
 
 type PasswordInputProps = { id: string; value: string; onChange: (value: string) => void; autoComplete: "current-password" | "new-password" };
 
@@ -49,7 +49,7 @@ export function PasswordInput({ id, value, onChange, autoComplete }: PasswordInp
         onClick={() => setShown((current) => !current)}
         aria-pressed={shown}
         aria-label={shown ? "Hide password" : "Show password"}
-        className="absolute inset-y-0 right-0 px-3 text-[10.5px] tracking-[0.06em] text-faint uppercase hover:text-ink"
+        className="absolute inset-y-1.5 right-1.5 rounded-lg px-3 text-[13px] font-medium text-soft hover:bg-chip hover:text-ink"
       >
         {shown ? "Hide" : "Show"}
       </button>
@@ -76,13 +76,13 @@ export function usePasswordCheck(password: string, checkPassword: (password: str
 }
 
 export function PasswordRules({ check }: { check?: PasswordCheck }) {
-  if (!check) return <FieldDescription className="text-[11px] text-faint">Checked against your project's password rules as you type.</FieldDescription>;
+  if (!check) return <FieldDescription className="text-[13px] text-faint">Checked against your project's password rules as you type.</FieldDescription>;
   return (
     <ul aria-live="polite" className="flex flex-wrap gap-1.5 pt-0.5">
       {check.rules.map((rule) => (
         <li
           key={rule.label}
-          className={`flex items-center gap-1 px-1.5 py-0.5 text-[10.5px] tracking-[0.04em] uppercase transition-colors ${rule.met ? "bg-chip text-soft" : "bg-accent-tint text-accent-ink"}`}
+          className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[12.5px] font-medium transition-colors ${rule.met ? "bg-ink text-page" : "bg-chip text-soft"}`}
         >
           {rule.met && <MIcon name="check" className="size-3" />}
           {rule.label}
@@ -133,12 +133,13 @@ const PEEK_SHOWN = "(min-width: 1024px)";
 function AppPeek() {
   const [shown] = useState(() => window.matchMedia(PEEK_SHOWN).matches);
   return (
-    <aside aria-hidden className="relative hidden overflow-hidden border-l border-line bg-side lg:block">
-      <div className="hatch absolute inset-0 opacity-50" />
-      <div className="absolute top-[16%] left-[14%] w-[150%] border border-line-strong bg-card p-1.5 shadow-pop">
-        <Shot name="hero" alt="" priority={shown} sizes={`${PEEK_SHOWN} 80vw, 1px`} />
+    <aside aria-hidden className="relative m-3 hidden overflow-hidden rounded-2xl border border-line bg-panel lg:block">
+      <div className="absolute top-[14%] left-[10%] w-[110%] overflow-hidden rounded-xl border border-line bg-card p-1">
+        <div className="overflow-hidden rounded-xl">
+          <Shot name="hero" alt="" focus={{ x: 21, y: 0, zoom: 1.27 }} priority={shown} sizes={`${PEEK_SHOWN} 80vw, 1px`} />
+        </div>
       </div>
-      <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-b from-transparent to-side" />
+      <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-b from-transparent to-panel" />
     </aside>
   );
 }
