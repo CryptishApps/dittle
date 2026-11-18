@@ -5,7 +5,7 @@ import { CaptureBox } from "@/features/capture/CaptureBox";
 import { useCollectionSuggestions, type Suggestion } from "@/features/collections/suggestions";
 import { daysUntil, summariseCollection, upcomingDates, type CollectionSummary, type Upcoming } from "@/features/collections/summary";
 import { dayLabel } from "@/features/collections/format";
-import { Onboarding } from "@/features/onboarding/Onboarding";
+import { Onboarding, useOnboardingView } from "@/features/onboarding/Onboarding";
 import { Btn, MIcon } from "@/ui/kit";
 import { collectionsQuery, foldersQuery, notesQuery, rowsQuery, startNote, valuesQuery, writes } from "./api";
 import { noteWith, type NoteDoc } from "./note-doc";
@@ -25,6 +25,7 @@ export function HomePage({ uid }: { uid: string }) {
   const online = useOnline();
   const suggestions = useCollectionSuggestions(values, online);
   const [creatingFolder, setCreatingFolder] = useState(false);
+  const onboardingView = useOnboardingView(uid, notes.length === 0 && folders.length === 0);
 
   const open = (noteId: string) => void navigate({ to: "/notes/$noteId", params: { noteId } });
   const start = (title = "", body = "", folderId: string | null = null) => open(startNote(queryClient, uid, folderId, noteWith(title, body)));
@@ -49,7 +50,7 @@ export function HomePage({ uid }: { uid: string }) {
     showToast(`Created ${collection.name} with ${newRows.length} rows`);
   };
 
-  if (notes.length === 0 && folders.length === 0) return <Onboarding uid={uid} onStart={(title) => start(title)} onStartFrom={startFrom} />;
+  if (onboardingView !== "home") return <Onboarding uid={uid} view={onboardingView} onStart={(title) => start(title)} onStartFrom={startFrom} />;
 
   const summaries = collections.map((collection) => summariseCollection(collection, rows, values));
   const upcoming = upcomingDates(values);

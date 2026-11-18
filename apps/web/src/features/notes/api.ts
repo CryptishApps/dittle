@@ -3,7 +3,7 @@ import { afterFirstPaint } from "@/lib/first-paint";
 import { ensureLive, live } from "@/lib/live-query";
 import { EMPTY_NOTE, summarise, type NoteDoc } from "./note-doc";
 import type { CalculatedColumn, Collection, Row } from "./fact";
-import type { CellPlacement, CellWrite, Folder, Note, NoteSummary, StoredValue } from "./store";
+import type { CellPlacement, CellWrite, Folder, Note, NoteSummary, StarterSeed, StoredValue } from "./store";
 
 export const loadStore = () => import("./store");
 
@@ -84,6 +84,7 @@ export const writes = {
   deleteCollection: (uid: string, id: string) => later((store) => store.deleteCollection(uid, id)),
   saveColumns: (uid: string, collectionId: string, columns: CalculatedColumn[]) => later((store) => store.saveColumns(uid, collectionId, columns)),
   relabelNotes: (uid: string, valueId: string, label: string, noteIds: string[]) => later((store) => void store.relabelNotes(uid, valueId, label, noteIds)),
+  seedStarter: async (uid: string, seed: StarterSeed) => (await loadStore()).seedStarter(uid, seed),
 };
 
 export function startNote(queryClient: QueryClient, uid: string, folderId: string | null = null, start: NoteDoc = EMPTY_NOTE): string {
