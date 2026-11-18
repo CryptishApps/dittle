@@ -78,15 +78,15 @@ export function WhatIf({ uid, values, notes }: { uid: string; values: StoredValu
   };
 
   return (
-    <section aria-label="What if" className="mb-8">
+    <section aria-label="What if" className="mt-6">
       <form
         onSubmit={(event) => {
           event.preventDefault();
           if (question.trim()) void ask(question.trim());
         }}
-        className="flex items-center gap-3 border-b border-line-strong focus-within:border-accent"
+        className="flex h-12 items-center gap-3 rounded-xl border border-line px-4 focus-within:border-ink"
       >
-        <span aria-hidden className="text-[10.5px] tracking-[0.06em] text-faint uppercase">
+        <span aria-hidden className="text-[13px] text-faint">
           Ask
         </span>
         <input
@@ -94,15 +94,15 @@ export function WhatIf({ uid, values, notes }: { uid: string; values: StoredValu
           onChange={(event) => setQuestion(event.target.value)}
           placeholder="What if 2 more people come?"
           aria-label="Ask what would change if"
-          className="h-11 min-w-0 flex-1 bg-transparent text-[15px] text-ink outline-none placeholder:text-faint"
+          className="h-full min-w-0 flex-1 bg-transparent text-[16px] text-ink outline-none placeholder:text-faint"
           style={{ outline: "none" }}
         />
-        <span className="hidden text-[10.5px] tracking-[0.06em] text-faint uppercase sm:block">Enter</span>
+        <span className="hidden text-[13px] text-faint sm:block">Enter</span>
       </form>
 
       <div aria-live="polite">
         {state.status === "asking" && (
-          <p className="mt-3 text-[12.5px]">
+          <p className="mt-3 text-[14px]">
             <span className="t-shimmer-text" data-text="Working out what changes…">
               Working out what changes…
             </span>
@@ -116,9 +116,9 @@ export function WhatIf({ uid, values, notes }: { uid: string; values: StoredValu
         )}
         {state.status === "failed" && <Note onDismiss={dismiss}>Dittle couldn't work that out just now. Try again in a moment.</Note>}
         {state.status === "understood" && understood && value && preview && (
-          <div className="mt-3 border-l-2 border-accent bg-panel px-4 py-3.5">
+          <div className="mt-3 rounded-xl border border-line px-4 py-3.5">
             <div className="flex items-start justify-between gap-3">
-              <p className="text-[12px] text-soft">{state.question}</p>
+              <p className="text-[14px] text-soft">{state.question}</p>
               <button type="button" onClick={dismiss} aria-label="Dismiss" className="-m-1 p-1 text-faint hover:text-ink">
                 <MIcon name="close" className="size-3.5" />
               </button>
@@ -134,14 +134,14 @@ export function WhatIf({ uid, values, notes }: { uid: string; values: StoredValu
                 <NumberRoll key={`${preview.changed.from}→${preview.changed.to}`} from={preview.changed.from} to={preview.changed.to} />
               </span>
             </p>
-            <p className="mt-1.5 text-[11.5px] text-soft">
+            <p className="mt-1.5 text-[13px] text-soft">
               {[howChanged(value, understood), preview.changed.notes.length > 0 && `in ${preview.changed.notes.join(", ")}`, understood.where === "on_device" ? "read on this device" : "read in the cloud"]
                 .filter(Boolean)
                 .join(" · ")}
             </p>
             {preview.follows.length > 0 ? (
-              <table className="mt-3 w-full text-left text-[12.5px]">
-                <caption className="pb-1 text-left text-[10.5px] tracking-[0.06em] text-faint uppercase">Follows</caption>
+              <table className="mt-3 w-full text-left text-[14px]">
+                <caption className="pb-1 text-left text-[13px] text-faint">Follows</caption>
                 <tbody>
                   {preview.follows.map((effect) => (
                     <Follow key={effect.value.id} effect={effect} />
@@ -149,16 +149,16 @@ export function WhatIf({ uid, values, notes }: { uid: string; values: StoredValu
                 </tbody>
               </table>
             ) : (
-              <p className="mt-3 text-[12px] text-soft">Nothing else you track is calculated from it.</p>
+              <p className="mt-3 text-[14px] text-soft">Nothing else you track is calculated from it.</p>
             )}
             <div className="mt-4 flex gap-2">
-              <button type="button" onClick={makeItSo} className="bg-ink px-2.5 py-1.5 text-[10.5px] tracking-[0.06em] text-page uppercase hover:opacity-90">
+              <button type="button" onClick={makeItSo} className="inline-flex h-9 items-center rounded-[9px] bg-ink px-3.5 text-[14px] font-semibold text-page hover:opacity-90">
                 Make it so
               </button>
               <button
                 type="button"
                 onClick={dismiss}
-                className="border border-line-strong px-2.5 py-1.5 text-[10.5px] tracking-[0.06em] text-soft uppercase hover:border-ink hover:text-ink"
+                className="inline-flex h-9 items-center rounded-[9px] border border-line px-3.5 text-[14px] font-medium text-soft hover:border-line-strong hover:text-ink"
               >
                 Dismiss
               </button>
@@ -189,7 +189,7 @@ function Follow({ effect }: { effect: Effect }) {
 
 function Note({ children, onDismiss }: { children: ReactNode; onDismiss: () => void }) {
   return (
-    <div className="mt-3 flex items-start justify-between gap-3 border border-dashed border-line-strong px-3.5 py-3 text-[12.5px] leading-[1.7] text-soft">
+    <div className="mt-3 flex items-start justify-between gap-3 rounded-xl border border-line px-4 py-3 text-[14px] leading-[1.7] text-soft">
       <p>{children}</p>
       <button type="button" onClick={onDismiss} aria-label="Dismiss" className="-m-1 p-1 text-faint hover:text-ink">
         <MIcon name="close" className="size-3.5" />
