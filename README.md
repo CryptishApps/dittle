@@ -18,16 +18,18 @@ Built for [#BuildHybridAI 2026](https://firebasehybridaihackathon.devpost.com). 
 
 Use desktop Chrome. If your computer can run Gemini Nano, Dittle offers to download it from the account menu (Gemini Nano, then Download). Without it, everything still works through the cloud.
 
-In a hurry? Click "Try a sample trip" on the first page for a ready-made long weekend in Lisbon, then go to step 5.
+In a hurry? On the first screen, choose "Or look around a sample trip first" for a ready-made long weekend in Lisbon, then go to step 7.
 
-1. Sign up, then click "The villa in Alfama is €1,680 for the 6 of us." on the first page. Dittle opens it as a note and underlines the values it found. Hover one to see what it thinks it is.
-2. Start a note called "Villa". Type `The villa is @€1,680` and press Tab, then `for @6` and Tab, then `of us, so @€280` and Tab, then `each.` Tab tags the value and adds the space after it. A few seconds later a message says €280 now follows a formula, something like villa cost ÷ guest count. The names are the ones the model gave the values.
-3. Start a note called "Flights" and type `@6`. The menu's first line makes a new value; press ↓ to pick the 6 you already have, then Tab. Carry on with `seats at @£118` and Tab, then `each, so @£708` and Tab, then `in total.`
-4. Click the 6, change it to 8 and choose Update all. Both notes change: €280 becomes €210 and £708 becomes £944.
-5. On the home page, type `What if 2 more people come?` in Ask and press Enter. Dittle shows how it read the question, such as Group size 6 → 8, and rolls every value that follows to its new number. Nothing changes until you choose Make it so.
-6. Click "Paste or upload" in the header and paste `Hi, we can now do £42 a head, and we'd need the deposit by 30 May.` into a plan that tracks a price per head and a deposit date. Dittle lists each change as old → new with the words it came from. Tick the ones you want and choose Apply; every note and total that uses them follows.
-7. Type `/` on a new line, pick "Ask Dittle to write…", type `a packing list for a long weekend in Lisbon` and press Enter. Hover the button that appears to preview the list.
-8. Open `/ai` to see every AI call and whether it ran on your device or in the cloud.
+1. Sign up. Dittle asks what you keep track of. Pick Running log and Weekly meal plan and press Enter.
+2. Each pick shows a sample entry with its values highlighted. Press Enter to file it: the run lands in a Runs table with its pace worked out. Tap "Add Sunday's 8 km too" for a second row, and choose what your home shows.
+3. On "Plans change. Try it." press Enter. Dittle lists every place that updated: the sentence in the note, the row, the pace and the home total. Then See my notes: each pick has a folder, a note and a collection.
+4. In the box at the top of home, type `ran 6k by the canal, 31 mins` and press Enter. A receipt says where it went (Filed in Runs, with the day, distance and pace) with Undo. Try `dinner on saturday is fish tacos` too, or hold M and say it, or drop a screenshot of a booking on the box.
+5. Click "a group chat" under the box. Dittle turns a messy chat into a tidy note with the values tracked. Choose Save note.
+6. Click + in the tabs to start a note called "Villa". Type `The villa is @€1,680` and press Tab, then `for @6` and Tab, then `of us, so @€280` and Tab, then `each.` Tab tags the value and adds the space after it. A few seconds later a message says €280 now follows a formula, something like villa cost ÷ guest count. Start a note called "Flights" and type `@6`, press ↓ to pick the 6 you already have, then Tab, and carry on with `seats at @£118` and Tab, then `each, so @£708` and Tab, then `in total.` Click the 6, change it to 8 and choose Update all. Both notes change: €280 becomes €210 and £708 becomes £944.
+7. On the home page, type `What if 2 more people come?` in Ask and press Enter. Dittle shows how it read the question, such as Group size 6 → 8, and rolls every value that follows to its new number. Nothing changes until you choose Make it so.
+8. Click "Paste or upload" in the header and paste `Hi, we can now do £42 a head, and we'd need the deposit by 30 May.` into a plan that tracks a price per head and a deposit date. Dittle lists each change as old → new with the words it came from. Tick the ones you want and choose Apply; every note and total that uses them follows.
+9. Type `/` on a new line, pick "Ask Dittle to write…", type `a packing list for a long weekend in Lisbon` and press Enter. Hover the button that appears to preview the list.
+10. Open `/ai` to see every AI call and whether it ran on your device or in the cloud.
 
 ## Where each job runs, and why
 
@@ -37,7 +39,8 @@ Every call goes through [Firebase AI Logic](https://firebase.google.com/docs/ai-
 |---|---|---|
 | Find values in a paragraph as you type | Nano first | It runs on every paragraph you finish, so it has to be free, fast and private. Nano finds 97% of values. |
 | Describe a value (what it measures, which day, what it belongs to, its number, unit and duration) | Nano first | Same reason. It only sees the one paragraph. |
-| Place a value in a collection | Nano first | Picks a collection, column and row from numbered options. |
+| Place a value in a collection | Nano first | Picks a collection, column and row from numbered options, and says whether it is sure. When it isn't, Dittle asks before filing. |
+| Name a new collection's columns | Nano first | Turns names taken from the first entry ("palace ticket price") into ones that fit every row ("Price"). |
 | Spot a formula (£708 = 6 seats × £118) | Nano first | Suggests a formula; code checks it reproduces the number. |
 | Suggest a calculated column (price per person = total ÷ people, pace = time ÷ distance) | Nano first | Picks two columns of a collection; code checks the units fit and works out every row. |
 | Write a request ("add a packing list here") | Nano first | Short text, written from the note itself. |
@@ -46,6 +49,10 @@ Every call goes through [Firebase AI Logic](https://firebase.google.com/docs/ai-
 | Read an update from pasted text (a supplier's email) | Cloud first, Nano offline | It compares the message with every value you track, and a wrong match changes a value in every note. |
 | Read an update from a photo or PDF of a quote | Cloud only | Files always go to the cloud, and only when you upload one. |
 | Suggest collections ("you've written 3 things to do, make a table of them?") | Cloud only | Needs every value at once. It gets the extracted values and note titles, never note text. |
+| Decide where an entry in the home box goes (file it, update a value, add to a note, start a note) | Cloud only | It weighs the entry against every collection and tracked value at once. Offline, the entry is saved as a note and the receipt says so. |
+| Tidy a pasted chat or list into a note | Cloud only | Same reason, and it writes the whole note in one go. |
+| Read a typed onboarding entry, or propose a table for "Something else" | Cloud only | The sample entries come already read, so the model runs only for text you type. |
+| Turn a voice recording or a screenshot into text for the home box | Cloud only | Audio and images go to the cloud only when you record or drop one. |
 
 "Nano first" is `PREFER_ON_DEVICE`. If the on-device call fails or takes more than 30 seconds, Dittle retries in the cloud. "Cloud first" is `PREFER_IN_CLOUD`, which uses Nano when the cloud can't be reached. The cloud model is Gemini Flash-Lite, named in [Remote Config](https://firebase.google.com/docs/remote-config) so it can change without a deploy ([ai.ts](apps/web/src/lib/ai.ts)).
 
@@ -60,7 +67,8 @@ The models never write into your notes directly. Every answer goes through a che
 - **Durations come back as ISO 8601.** "27:40" for a run is `PT27M40S`; "2:40" for a flight is `PT2H40M`. The model reads the context and code parses the strict format into seconds ([duration.ts](apps/web/src/features/formulas/duration.ts)).
 - **Updates are quoted.** A change read from pasted text is offered only if its quote is in the text and the new value is in the quote. The model gives the number on its own, and code writes it in the tracked value's format (£, %, km). It never converts currencies. Changes read from a photo or PDF have no text to check against, so they're marked as read from the file and start unticked. Nothing changes until you choose Apply.
 - **A what-if shows its reading.** Code works out the effects of a what-if with the same recalculation as an edit, writes nothing, and shows the reading plainly (Group size 6 → 8) so you can see what it understood before you apply it.
-- **Nothing changes silently.** If a new value looks like one you already track but the text differs, Dittle asks before touching anything.
+- **Nothing changes silently.** If a new value looks like one you already track but the text differs, Dittle asks before touching anything. If the model isn't sure a value belongs in a collection, Dittle asks before filing it, and a date only joins a row with the thing it belongs to.
+- **Every home-box action has Undo.** Each entry leaves a receipt saying what happened, and Undo reverses it.
 - **No keyword guessing.** No regex or word list decides what your text means. The few places that split text use `Intl.Segmenter` for sentence ends or the exact position of a quote.
 
 ## How well it works
