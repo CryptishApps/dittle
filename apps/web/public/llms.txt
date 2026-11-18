@@ -2,12 +2,12 @@
 
 > Notes that keep themselves up to date. Change a date, price or headcount in one note, and Dittle updates every other note that mentions it. Private, instant, works offline.
 
-Dittle reads notes with Gemini Nano on the user's device (Chrome's Prompt API on the web, ML Kit on Android) and falls back to Gemini Flash through Firebase AI Logic when the device has no model. It was built for #BuildHybridAI 2026.
+Dittle uses Firebase AI Logic in hybrid mode. Gemini Nano on the user's device (Chrome's Prompt API) spots values as you type, names columns, spots formulas and writes requests, with Gemini Flash-Lite in the cloud when the device has no model. Describing values, filing them into collections, linking them across notes and sorting the home box go to the cloud first, with Nano taking over offline. It was built for #BuildHybridAI 2026.
 
 ## Pages
 
 - [Home](https://dittle.app/): what Dittle does, with a live demo
-- [Sign in](https://dittle.app/signin): email, Google, or continue without an account
+- [Sign in](https://dittle.app/signin): email or Google
 - [Create an account](https://dittle.app/signup)
 
 ## Source

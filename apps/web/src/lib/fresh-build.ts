@@ -18,12 +18,12 @@ export function reloadOnStaleBuild(): void {
   window.addEventListener("vite:preloadError", (event) => {
     const now = Date.now();
     if (!shouldReload(lastReload(), now)) return;
-    event.preventDefault();
     try {
       sessionStorage.setItem(KEY, String(now));
     } catch {
       return;
     }
+    event.preventDefault();
     window.location.reload();
   });
 }

@@ -3,15 +3,14 @@ import { cachedThenLive, collectionsQuery, foldersQuery, notesQuery, rowsQuery, 
 import { NotesShell } from "@/features/notes/NotesShell";
 
 export const Route = createFileRoute("/_app/notes")({
-  loader: async ({ context: { queryClient, account } }) => {
+  loader: ({ context: { queryClient, account } }) => {
     const { uid } = account;
-    await Promise.all([
-      cachedThenLive(queryClient, notesQuery(uid)),
-      cachedThenLive(queryClient, valuesQuery(uid)),
-      cachedThenLive(queryClient, foldersQuery(uid)),
-      cachedThenLive(queryClient, collectionsQuery(uid)),
-      cachedThenLive(queryClient, rowsQuery(uid)),
-    ]);
+    const quietly = (loading: Promise<unknown>) => void loading.catch(() => undefined);
+    quietly(cachedThenLive(queryClient, notesQuery(uid)));
+    quietly(cachedThenLive(queryClient, valuesQuery(uid)));
+    quietly(cachedThenLive(queryClient, foldersQuery(uid)));
+    quietly(cachedThenLive(queryClient, collectionsQuery(uid)));
+    quietly(cachedThenLive(queryClient, rowsQuery(uid)));
   },
   component: NotesRoute,
 });

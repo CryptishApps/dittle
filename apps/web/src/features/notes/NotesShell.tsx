@@ -109,7 +109,9 @@ export function NotesShell({ account }: { account: Account }) {
       </header>
 
       <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-page">
-        <Outlet />
+        <Suspense fallback={<Opening />}>
+          <Outlet />
+        </Suspense>
       </main>
 
       <SearchDialog uid={account.uid} open={searching} onOpenChange={setSearching} />
@@ -236,5 +238,15 @@ function DeviceModelStatus() {
       </span>
       <MIcon name="right" className="ml-auto size-3.5" />
     </>
+  );
+}
+
+function Opening() {
+  return (
+    <div role="status" className="mx-auto w-full max-w-[760px] px-4 pt-12 sm:px-8 sm:pt-16">
+      <p className="t-shimmer-text text-[15px] text-faint" data-text="Opening your notes">
+        Opening your notes
+      </p>
+    </div>
   );
 }
