@@ -1,3 +1,4 @@
+import { tmpdir } from "node:os";
 import { chromium, type Page } from "playwright-core";
 
 const base = process.env.BASE_URL ?? "http://localhost:5180";
@@ -7,6 +8,7 @@ if (!executablePath) throw new Error("Set CHROME_PATH to a Chrome or Chromium bi
 
 const THEMES = ["light", "dark"] as const;
 const AI_TIMEOUT = 60_000;
+const CAPTURE = "New note, or jot something down";
 
 const browser = await chromium.launch({ executablePath });
 const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2.25 });
@@ -64,6 +66,8 @@ try {
   await openNote(page, "Fado night");
   await page.locator(".note-editor .value-tag", { hasText: "€45" }).click();
   await page.locator("aside table").waitFor();
+  const rows = await page.locator("aside table tbody tr").count();
+  if (rows !== 3) throw new Error(`Things to do has ${rows} rows instead of 3.`);
   await settle(page);
   await shoot(page, "panel");
   await page.keyboard.press("Escape");
@@ -91,11 +95,8 @@ try {
   await page.keyboard.press("Escape");
 
   await openNote(page, "Sintra day trip");
-  const last = page.locator(".note-editor > p").last();
-  const box = await last.boundingBox();
-  if (!box) throw new Error("The note has no paragraph to write after.");
-  await last.click({ position: { x: box.width - 2, y: box.height - 6 } });
-  await page.keyboard.press("End");
+  await page.locator(".note-editor > p").last().click();
+  await page.keyboard.press("Control+End");
   await page.keyboard.press("Enter");
   await page.keyboard.type("Write a packing list for a day trip to Sintra in December. ", { delay: 15 });
   const request = page.locator('.request-button[data-status="ready"]').first();
@@ -104,6 +105,12 @@ try {
   await page.getByRole("dialog", { name: "Preview" }).waitFor();
   await page.waitForTimeout(600);
   await shoot(page, "request");
+  console.log(`Saved screenshots to ${out}`);
+} catch (error) {
+  process.exitCode = 1;
+  console.error(error);
+  const failed = `${tmpdir()}/dittle-shots-failed.png`;
+  await page.screenshot({ path: failed }).then(() => console.error(`Saved the failing page to ${failed}`), () => undefined);
 } finally {
   await deleteAccount(page).catch((error) => {
     process.exitCode = 1;
@@ -112,10 +119,9 @@ try {
   await browser.close();
 }
 
-console.log(`Saved screenshots to ${out}`);
-
 async function shoot(page: Page, name: string) {
   console.log(`Shooting ${name}`);
+  await page.evaluate(() => document.querySelectorAll<HTMLElement>("[contenteditable]").forEach((element) => (element.spellcheck = false)));
   for (const theme of THEMES) {
     await page.emulateMedia({ colorScheme: theme });
     await page.waitForTimeout(250);
@@ -132,7 +138,8 @@ async function signUp(page: Page) {
   await page.getByLabel("Password", { exact: true }).fill(`Shots-${crypto.randomUUID()}`);
   await page.getByRole("button", { name: "Create account" }).click();
   await page.waitForURL("**/notes", { timeout: 30_000 });
-  await page.getByLabel("Start a note with this title").waitFor();
+  await page.getByRole("button", { name: "Skip", exact: true }).click();
+  await page.getByLabel(CAPTURE).waitFor();
 }
 
 async function deleteAccount(page: Page) {
@@ -147,11 +154,13 @@ async function deleteAccount(page: Page) {
 async function note(page: Page, title: string, write: () => Promise<void>) {
   console.log(`Writing ${title}`);
   await home(page);
-  await page.getByLabel("Start a note with this title").fill(title);
-  await page.keyboard.press("Enter");
+  await page.getByLabel(CAPTURE).fill("");
+  await page.getByLabel(CAPTURE).press("Enter");
   await page.waitForURL("**/notes/*");
   await page.locator(".note-editor").waitFor();
   await page.waitForTimeout(400);
+  await page.keyboard.type(title, { delay: 20 });
+  await page.keyboard.press("Enter");
   await write();
   await described(page);
 }

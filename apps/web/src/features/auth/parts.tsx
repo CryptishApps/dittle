@@ -134,9 +134,9 @@ function AppPeek() {
   const [shown] = useState(() => window.matchMedia(PEEK_SHOWN).matches);
   return (
     <aside aria-hidden className="relative m-3 hidden overflow-hidden rounded-2xl border border-line bg-panel lg:block">
-      <div className="absolute top-[14%] left-[12%] w-[150%] overflow-hidden rounded-xl border border-line bg-card p-1">
+      <div className="absolute top-[14%] left-[10%] w-[110%] overflow-hidden rounded-xl border border-line bg-card p-1">
         <div className="overflow-hidden rounded-xl">
-          <Shot name="hero" alt="" priority={shown} sizes={`${PEEK_SHOWN} 80vw, 1px`} />
+          <Shot name="hero" alt="" focus={{ x: 21, y: 0, zoom: 1.27 }} priority={shown} sizes={`${PEEK_SHOWN} 80vw, 1px`} />
         </div>
       </div>
       <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-b from-transparent to-panel" />
