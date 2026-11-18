@@ -9,10 +9,11 @@ import { changeOutsideEditor } from "@/features/notes/editor-services";
 import type { Quantity } from "@/features/editor/linking";
 import type { NoteSummary } from "@/features/notes/store";
 import { showToast } from "@/features/notes/toast";
-import type { CalculatedColumn } from "@/features/notes/fact";
+import type { CalculatedColumn, Glance } from "@/features/notes/fact";
 import { btnClass, ease, MIcon } from "@/ui/kit";
 import { AddColumn } from "./AddColumn";
 import { columnValue, describeColumn, type RowCells } from "./columns";
+import { GLANCES } from "./glance";
 import { rowLabel } from "./format";
 import { scalesOf, withUnits } from "./scale";
 import { summariseRows, type FieldTotal } from "./summary";
@@ -79,41 +80,43 @@ export function CollectionPage({ uid, collectionId }: { uid: string; collectionI
 
   return (
     <>
-      <nav aria-label="Breadcrumb" className="flex h-16 shrink-0 items-center gap-2 px-3 text-[14.5px] font-medium text-soft sm:px-7">
-        <Link to="/notes" className="inline-flex h-9 items-center gap-1.5 rounded-[11px] bg-card pr-3.5 pl-2.5 shadow-[0_0_0_1px_var(--line)] transition-colors hover:text-ink">
-          <MIcon name="left" className="size-4" />
-          Home
-        </Link>
-        <span className="truncate px-1 font-semibold text-ink">{collection.name}</span>
-      </nav>
       <div className="min-h-0 flex-1 overflow-auto">
-        <div className="mx-auto max-w-[960px] px-4 pt-6 pb-24 sm:px-10">
-          <p className="inline-flex items-center gap-2 text-label text-faint">
-            <MIcon name="table" className="size-4" />
-            Collection · one row per {collection.key.by === "when" ? "day" : "name"}
-          </p>
-          <div className="mt-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-            <h1 className="text-[40px] leading-[1.05] font-semibold tracking-[-0.04em] sm:text-[50px]">{collection.name}</h1>
-            <button type="button" onClick={remove} className="mb-1 inline-flex h-8 shrink-0 items-center rounded-lg px-3 text-[13.5px] font-semibold whitespace-nowrap text-soft transition-colors hover:bg-danger-tint hover:text-danger">
+        <div className="mx-auto max-w-[920px] px-5 pb-24 sm:px-8">
+          <nav aria-label="Breadcrumb" className="flex h-14 items-center gap-1.5 pt-4 text-[14px] text-faint sm:pt-6">
+            <Link to="/notes" className="shrink-0 transition-colors hover:text-ink">
+              Home
+            </Link>
+            <MIcon name="chevron" className="size-3.5 shrink-0" />
+            <span aria-current="page" className="min-w-0 truncate text-soft">
+              {collection.name}
+            </span>
+          </nav>
+          <div className="mt-3 flex flex-wrap items-end justify-between gap-x-4 gap-y-2 sm:mt-5">
+            <div className="min-w-0">
+              <h1 className="text-[34px] leading-[1.1] font-semibold tracking-[-0.03em] sm:text-[40px]">{collection.name}</h1>
+              <p className="mt-1.5 text-[14px] text-faint">Collection · one row per {collection.key.by === "when" ? "day" : "name"}</p>
+            </div>
+            <button type="button" onClick={remove} className="mb-0.5 inline-flex h-8 shrink-0 items-center rounded-lg px-3 text-[13.5px] font-medium whitespace-nowrap text-soft transition-colors hover:bg-danger-tint hover:text-danger">
               Delete collection
             </button>
           </div>
+          <GlanceChoice glance={collection.glance ?? "total"} onChange={(glance) => writes.setGlance(uid, collection.id, glance)} />
 
           {mine.length === 0 ? (
-            <p className="mt-8 rounded-2xl border border-dashed border-line-strong px-5 py-6 text-[15px] text-soft">No rows yet. Values you write about in any note land here.</p>
+            <p className="mt-8 border-t border-line py-5 text-[15px] text-faint">No rows yet. Values you write about in any note land here.</p>
           ) : (
-            <div className="mt-8 overflow-x-auto rounded-[22px] bg-card shadow-sheet">
+            <div className="mt-8 overflow-x-auto">
               <table className="w-full border-collapse text-left text-[14.5px] whitespace-nowrap">
                 <thead>
-                  <tr className="border-b border-line bg-panel text-label text-faint">
-                    <th className={`${CELL} py-3 font-semibold`}>{collection.key.by === "when" ? "Date" : "Name"}</th>
+                  <tr className="border-b border-line text-[13px] text-faint">
+                    <th className={`${CELL} py-2.5 font-medium`}>{collection.key.by === "when" ? "Date" : "Name"}</th>
                     {columns.map((field) => (
-                      <th key={field.id} className={`${CELL} py-3 font-semibold first-letter:uppercase`}>
+                      <th key={field.id} className={`${CELL} py-2.5 font-medium first-letter:uppercase`}>
                         {field.name}
                       </th>
                     ))}
                     {calculated.map((column) => (
-                      <th key={column.id} className={`group ${CELL} py-3 font-semibold first-letter:uppercase`} title={`= ${describeColumn(column, collection.fields) ?? ""}`}>
+                      <th key={column.id} className={`group ${CELL} py-2.5 font-medium first-letter:uppercase`} title={`= ${describeColumn(column, collection.fields) ?? ""}`}>
                         <span className="inline-flex items-center gap-1.5">
                           {column.name}
                           <button
@@ -165,7 +168,7 @@ export function CollectionPage({ uid, collectionId }: { uid: string; collectionI
                 </tbody>
                 {mine.length > 1 && (
                   <tfoot>
-                    <tr className="border-t border-line bg-page align-top text-[13.5px]">
+                    <tr className="border-t border-line-strong align-top text-[13.5px]">
                       <td className={`${CELL} py-3 text-soft`}>{mine.length} rows</td>
                       {columns.map((field) => (
                         <td key={field.id} className={`${CELL} py-3`}>
@@ -200,7 +203,7 @@ function FooterTotal({ total, rows }: { total?: FieldTotal; rows: number }) {
   const from = total.counted < rows ? `from ${total.counted} of ${rows}` : "";
   return (
     <>
-      <span className="font-heading text-[18px] font-semibold text-ink tabular-nums">{total.text}</span>
+      <span className="text-[15px] font-semibold text-ink tabular-nums">{total.text}</span>
       {(total.average || from) && (
         <span className="block text-soft">
           {total.average && `avg ${total.average} `}
@@ -212,7 +215,7 @@ function FooterTotal({ total, rows }: { total?: FieldTotal; rows: number }) {
   );
 }
 
-const CELL = "px-4 first:pl-5 last:pr-5";
+const CELL = "px-3 first:pl-0 last:pr-0";
 
 type CellProps = {
   value: TrackedValue;
@@ -260,11 +263,32 @@ function Cell({ value, notes, editing, onEdit, onClose, onChange }: CellProps) {
       <p className="mt-1.5 text-[12.5px] text-faint">
         {usedIn > 1 ? `Changes it in ${usedIn} notes · ` : ""}
         {noteId ? (
-          <Link to="/notes/$noteId" params={{ noteId }} className="text-accent-ink hover:underline">
+          <Link to="/notes/$noteId" params={{ noteId }} className="text-soft underline decoration-line-strong underline-offset-4 hover:text-ink">
             From {source?.title || "Untitled"}
           </Link>
         ) : null}
       </p>
     </div>
+  );
+}
+
+function GlanceChoice({ glance, onChange }: { glance: Glance; onChange: (glance: Glance) => void }) {
+  return (
+    <fieldset className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-2">
+      <legend className="float-left mr-1 text-[13.5px] text-faint">Show on home</legend>
+      <div className="flex flex-wrap gap-1 rounded-[10px] border border-line p-0.5">
+        {GLANCES.map((option) => (
+          <label
+            key={option.glance}
+            title={option.hint}
+            className={`cursor-pointer rounded-lg px-2.5 py-1 text-[13.5px] transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ink ${glance === option.glance ? "bg-ink font-medium text-page" : "text-soft hover:bg-chip hover:text-ink"}`}
+          >
+            <input type="radio" name="glance" value={option.glance} checked={glance === option.glance} onChange={() => onChange(option.glance)} className="sr-only" />
+            {option.label}
+          </label>
+        ))}
+      </div>
+      <span className="text-[13px] text-faint">{GLANCES.find((option) => option.glance === glance)?.hint}</span>
+    </fieldset>
   );
 }

@@ -21,7 +21,7 @@ export function DeleteAccountDialog({ uid, online, open, onOpenChange, returnFoc
   return (
     <Dialog.Root open={open} onOpenChange={(next) => !busy && onOpenChange(next)}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-scrim backdrop-blur-[3px] data-[state=open]:animate-in data-[state=open]:fade-in-0" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-scrim data-[state=open]:animate-in data-[state=open]:fade-in-0" />
         <Dialog.Content
           onEscapeKeyDown={holdWhileBusy}
           onPointerDownOutside={holdWhileBusy}
@@ -29,7 +29,7 @@ export function DeleteAccountDialog({ uid, online, open, onOpenChange, returnFoc
             event.preventDefault();
             returnFocus();
           }}
-          className={`${POPOVER} fixed top-1/2 left-1/2 z-50 w-[min(460px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-[20px] p-6 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:p-7`}
+          className={`${POPOVER} fixed top-1/2 left-1/2 z-50 w-[min(460px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-xl p-6 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:p-7`}
         >
           {open && (user ? <DeleteAccountBody user={user} online={online} busy={busy} setBusy={setBusy} /> : <CheckingSignIn />)}
         </Dialog.Content>
@@ -82,7 +82,7 @@ function DeleteAccountBody({ user, online, busy, setBusy }: BodyProps) {
 
   return (
     <form ref={form} onSubmit={(event) => void run(event)}>
-      <Dialog.Title className="font-heading text-[24px] leading-tight font-semibold tracking-[-0.025em] text-ink">{confirming && dataGone ? "Confirm it's you" : "Delete your account?"}</Dialog.Title>
+      <Dialog.Title className="text-[20px] leading-tight font-semibold tracking-[-0.02em] text-ink">{confirming && dataGone ? "Confirm it's you" : "Delete your account?"}</Dialog.Title>
       <Dialog.Description className="mt-2.5 text-[14.5px] leading-relaxed text-soft">
         {confirming && dataGone
           ? method === "password"
@@ -130,7 +130,7 @@ function CheckingSignIn() {
   useEffect(() => void loadAuth().catch(() => undefined), []);
   return (
     <>
-      <Dialog.Title className="font-heading text-[24px] leading-tight font-semibold tracking-[-0.025em] text-ink">Delete your account?</Dialog.Title>
+      <Dialog.Title className="text-[20px] leading-tight font-semibold tracking-[-0.02em] text-ink">Delete your account?</Dialog.Title>
       <Dialog.Description role="status" className="mt-2.5 text-[14.5px] leading-relaxed text-soft">
         Checking your sign-in.
       </Dialog.Description>

@@ -103,7 +103,7 @@ export function AuthPage({ mode, actions, links }: AuthPageProps) {
             transition={{ duration: 0.5, ease }}
             className="w-full max-w-[360px]"
           >
-            <h1 className="font-heading text-[44px] leading-[1.02] font-semibold tracking-[-0.045em]">
+            <h1 className="text-[34px] leading-[1.1] font-semibold tracking-[-0.03em]">
               <TypeOn key={mode} text={copy.title} duration={520} />
             </h1>
             <p className="mt-3 text-[16px] leading-[1.6] text-soft">{sub}</p>
@@ -156,7 +156,7 @@ export function AuthPage({ mode, actions, links }: AuthPageProps) {
                       <button
                         type="button"
                         onClick={forgot}
-                        className="ml-auto text-[13px] font-medium text-accent-ink underline-offset-4 hover:underline"
+                        className="ml-auto text-[13px] font-medium text-soft underline-offset-4 hover:text-ink hover:underline"
                       >
                         <BusyLabel state={stateOf("reset")} text="Forgot?" busyText="Sending" />
                       </button>
@@ -179,7 +179,7 @@ export function AuthPage({ mode, actions, links }: AuthPageProps) {
                     initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.25, ease }}
-                    className={`rounded-xl px-4 py-3 text-[14px] leading-[1.55] ${error ? "bg-danger-tint text-danger" : "bg-accent-tint text-accent-ink"}`}
+                    className={`rounded-xl px-4 py-3 text-[14px] leading-[1.55] ${error ? "bg-danger-tint text-danger" : "bg-panel text-ink"}`}
                   >
                     {error ?? notice}
                   </m.p>
@@ -187,7 +187,7 @@ export function AuthPage({ mode, actions, links }: AuthPageProps) {
 
                 <p className="text-center text-[14px] text-soft">
                   {mode === "signin" ? "New to Dittle? " : "Already have an account? "}
-                  <NavLink nav={mode === "signin" ? links.signup : links.signin} className="font-semibold text-accent-ink underline-offset-4 hover:underline">
+                  <NavLink nav={mode === "signin" ? links.signup : links.signin} className="font-semibold text-ink underline underline-offset-4">
                     {mode === "signin" ? "Create an account" : "Sign in"}
                   </NavLink>
                 </p>

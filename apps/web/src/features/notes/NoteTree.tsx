@@ -74,18 +74,18 @@ export function NoteTree({ uid, notes, folders, creatingFolder, onFolderCreated,
     },
   });
 
-  const card = (note: NoteSummary) => (
-    <NoteCard key={note.id} note={note} folders={folders} onMove={(folderId) => writes.moveNote(uid, note.id, folderId)} onDelete={() => onDeleteNote(note)} />
+  const row = (note: NoteSummary) => (
+    <NoteRow key={note.id} note={note} folders={folders} onMove={(folderId) => writes.moveNote(uid, note.id, folderId)} onDelete={() => onDeleteNote(note)} />
   );
 
   if (notes.length === 0 && folders.length === 0 && !creatingFolder) {
-    return <p className="tile px-6 py-5 text-[15px] leading-[1.7] text-soft">No notes yet. Start one and it saves as you type, even offline.</p>;
+    return <p className="py-3 text-[15px] text-faint">No notes yet. Start one and it saves as you type, even offline.</p>;
   }
 
   return (
-    <ul className="space-y-8">
+    <ul className="space-y-1">
       {creatingFolder && (
-        <li className="folder p-4">
+        <li className="py-1">
           <FolderNameInput
             initial=""
             onDone={(name) => {
@@ -105,13 +105,12 @@ export function NoteTree({ uid, notes, folders, creatingFolder, onFolderCreated,
               layout="position"
               transition={{ duration: 0.25, ease }}
               {...dropProps(folder.id)}
-              className={`folder px-3 pt-2 pb-3 transition-shadow sm:px-4 sm:pb-4 ${dropTarget === folder.id ? "shadow-[0_0_0_2px_var(--accent)]" : ""}`}
+              className={`rounded-[10px] transition-shadow ${dropTarget === folder.id ? "shadow-[0_0_0_1.5px_var(--ink)]" : ""}`}
             >
               <FolderRow
                 folder={folder}
                 count={inside.length}
                 open={open}
-                dropping={dropTarget === folder.id}
                 onToggle={() => toggle(folder.id)}
                 onNewNote={() => onNewNote(folder.id)}
                 onRename={(name) => writes.renameFolder(uid, folder.id, name)}
@@ -123,33 +122,30 @@ export function NoteTree({ uid, notes, folders, creatingFolder, onFolderCreated,
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.22, ease }}
-                    className="grid gap-3 overflow-hidden p-0.5 pt-1 sm:grid-cols-2 lg:grid-cols-3"
+                    transition={{ duration: 0.2, ease }}
+                    className="overflow-hidden pb-1 pl-6"
                   >
-                    <AnimatePresence initial={false}>{inside.map(card)}</AnimatePresence>
-                    {inside.length === 0 && <li className="rounded-[18px] border border-dashed border-line-strong px-4 py-5 text-[14px] text-faint">Empty. Drag a note here.</li>}
+                    <AnimatePresence initial={false}>{inside.map(row)}</AnimatePresence>
+                    {inside.length === 0 && <li className="px-3 py-2 text-[14px] text-faint">Empty. Drag a note here.</li>}
                   </m.ul>
                 )}
               </AnimatePresence>
-              {!open && inside[0] && (
-                <div aria-hidden className="relative mx-1 mt-1 h-14">
-                  <span className="absolute inset-x-6 top-0 h-11 rotate-[-1.5deg] rounded-xl bg-card/70 shadow-[0_0_0_1px_var(--line)]" />
-                  <span className="absolute inset-x-2 top-2 flex h-11 items-center truncate rounded-xl bg-card px-4 text-[14px] text-soft shadow-[0_0_0_1px_var(--line)]">{inside[0].title || "Untitled"}</span>
-                </div>
-              )}
             </m.li>
           );
         })}
       </AnimatePresence>
-      {(folders.length > 0 || creatingFolder) && (
-        <li {...dropProps(null)} className={`-mb-3 rounded-xl px-1 py-1 text-[15px] font-semibold text-soft transition-colors ${dropTarget === null ? "bg-accent-tint text-accent-ink" : ""}`}>
+      {(folders.length > 0 || creatingFolder) && loose.length > 0 && (
+        <li
+          {...dropProps(null)}
+          className={`mt-3 rounded-lg px-3 pt-2 pb-1 text-[13px] font-semibold text-faint transition-colors ${dropTarget === null ? "bg-chip text-ink" : ""}`}
+        >
           Not in a folder
         </li>
       )}
       {loose.length > 0 && (
         <li>
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <AnimatePresence initial={false}>{loose.map(card)}</AnimatePresence>
+          <ul>
+            <AnimatePresence initial={false}>{loose.map(row)}</AnimatePresence>
           </ul>
         </li>
       )}
@@ -177,7 +173,7 @@ function FolderNameInput({ initial, onDone }: { initial: string; onDone: (name: 
         if (event.key === "Enter") finish(name);
         if (event.key === "Escape") finish(initial);
       }}
-      className="h-10 w-full rounded-xl border border-accent bg-card px-3 text-[14.5px] ring-[3px] ring-accent-tint outline-none placeholder:text-faint"
+      className="h-9 w-full rounded-lg border border-ink bg-card px-3 text-[14.5px] outline-none placeholder:text-faint"
     />
   );
 }
@@ -186,7 +182,6 @@ function FolderRow({
   folder,
   count,
   open,
-  dropping,
   onToggle,
   onNewNote,
   onRename,
@@ -195,7 +190,6 @@ function FolderRow({
   folder: Folder;
   count: number;
   open: boolean;
-  dropping: boolean;
   onToggle: () => void;
   onNewNote: () => void;
   onRename: (name: string) => void;
@@ -205,7 +199,7 @@ function FolderRow({
 
   if (renaming) {
     return (
-      <div className="py-1.5">
+      <div className="py-1">
         <FolderNameInput
           initial={folder.name}
           onDone={(name) => {
@@ -218,16 +212,17 @@ function FolderRow({
   }
 
   return (
-    <div className={`group relative flex items-center rounded-xl transition-colors ${dropping ? "text-accent-ink" : ""}`}>
-      <button type="button" onClick={onToggle} aria-expanded={open} className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl py-2.5 pr-20 pl-1.5 text-left">
+    <div className="group relative flex items-center">
+      <button type="button" onClick={onToggle} aria-expanded={open} className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-lg pr-20 pl-1 text-left">
         <MIcon name="chevron" className={`size-4 shrink-0 text-faint transition-transform duration-200 ${open ? "rotate-90" : ""}`} />
-        <span className="truncate text-[19px] font-semibold tracking-[-0.02em] text-ink">{folder.name}</span>
-        <span className="shrink-0 text-[14px] text-soft tabular-nums">
-          {count} {count === 1 ? "note" : "notes"}
+        <span className="truncate text-[15px] font-semibold text-ink">{folder.name}</span>
+        <span className="shrink-0 text-[13.5px] text-faint tabular-nums">
+          {count}
+          <span className="sr-only"> {count === 1 ? "note" : "notes"}</span>
         </span>
       </button>
-      <div className="absolute top-1/2 right-2 flex -translate-y-1/2 items-center transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100">
-        <button type="button" onClick={onNewNote} aria-label={`New note in ${folder.name}`} className="grid size-8 place-items-center rounded-lg text-soft hover:bg-chip-hover hover:text-ink">
+      <div className={`${HOVER_ONLY} absolute top-1/2 right-1 flex -translate-y-1/2 items-center`}>
+        <button type="button" onClick={onNewNote} aria-label={`New note in ${folder.name}`} className={ICON_BTN}>
           <MIcon name="plus" className="size-4" />
         </button>
         <RowMenu label={`More actions for ${folder.name}`}>
@@ -242,14 +237,17 @@ function FolderRow({
   );
 }
 
-function NoteCard({ note, folders, onMove, onDelete }: { note: NoteSummary; folders: Folder[]; onMove: (folderId: string | null) => void; onDelete: () => void }) {
+const HOVER_ONLY = "transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100";
+const ICON_BTN = "grid size-8 place-items-center rounded-lg text-soft hover:bg-chip-hover hover:text-ink";
+
+function NoteRow({ note, folders, onMove, onDelete }: { note: NoteSummary; folders: Folder[]; onMove: (folderId: string | null) => void; onDelete: () => void }) {
   return (
     <m.li
       layout="position"
-      initial={{ opacity: 0, scale: 0.97 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.97 }}
-      transition={{ duration: 0.24, ease }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2, ease }}
       className="group relative list-none"
     >
       <Link
@@ -260,19 +258,19 @@ function NoteCard({ note, folders, onMove, onDelete }: { note: NoteSummary; fold
           event.dataTransfer.setData(NOTE_DRAG_TYPE, note.id);
           event.dataTransfer.effectAllowed = "move";
         }}
-        className="flex h-full min-h-[132px] flex-col rounded-[18px] bg-card px-5 pt-4 pb-4.5 shadow-[0_0_0_1px_var(--line),0_1px_2px_rgb(18_20_24/0.04)] transition-shadow hover:shadow-tile [&.active]:shadow-[0_0_0_2px_var(--accent)]"
+        className="flex items-baseline gap-3.5 rounded-lg px-3 py-2.5 transition-colors hover:bg-panel"
       >
-        <span className="flex items-baseline justify-between gap-3 pr-7">
-          <span className={`truncate text-[16.5px] font-semibold tracking-[-0.01em] ${note.title ? "text-ink" : "text-faint"}`}>{note.title || "Untitled"}</span>
-          <span className="shrink-0 text-[13px] text-faint">{edited(note.updatedAt)}</span>
+        <span className={`max-w-[60%] shrink-0 truncate text-[15.5px] font-medium ${note.title ? "text-ink" : "text-faint"}`}>{note.title || "Untitled"}</span>
+        <span className="min-w-0 flex-1 truncate text-[14.5px] text-faint max-sm:hidden">{note.preview}</span>
+        <span className="ml-auto shrink-0 pr-0 text-[13px] text-faint tabular-nums [@media(hover:none)]:pr-8 [@media(hover:hover)]:group-focus-within:invisible [@media(hover:hover)]:group-hover:invisible">
+          {edited(note.updatedAt)}
         </span>
-        {note.preview && <span className="mt-1.5 line-clamp-3 text-[14.5px] leading-[1.65] text-soft">{note.preview}</span>}
       </Link>
-      <div className="absolute top-2.5 right-2.5 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100">
+      <div className={`${HOVER_ONLY} absolute top-1/2 right-1.5 -translate-y-1/2`}>
         <RowMenu label={`More actions for ${note.title || "Untitled"}`}>
           {folders.length > 0 && (
             <DropdownMenu.Sub>
-              <DropdownMenu.SubTrigger className={`${MENU_ROW} justify-between data-[state=open]:bg-panel`}>
+              <DropdownMenu.SubTrigger className={`${MENU_ROW} justify-between data-[state=open]:bg-chip`}>
                 Move to
                 <MIcon name="right" className="size-3.5" />
               </DropdownMenu.SubTrigger>
@@ -301,14 +299,14 @@ function NoteCard({ note, folders, onMove, onDelete }: { note: NoteSummary; fold
 }
 
 export const MENU_CONTENT =
-  "z-50 min-w-[200px] rounded-2xl bg-card p-1.5 text-[14px] shadow-pop data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95";
+  "z-50 min-w-[200px] rounded-xl bg-card p-1 text-[14px] shadow-pop data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95";
 
-export const MENU_ROW = "flex cursor-pointer items-center gap-2.5 rounded-[10px] px-3 py-2 font-medium outline-none data-[highlighted]:bg-panel";
+export const MENU_ROW = "flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-1.5 outline-none data-[highlighted]:bg-chip";
 
 export function RowMenu({ label, children }: { label: string; children: ReactNode }) {
   return (
     <DropdownMenu.Root modal={false}>
-      <DropdownMenu.Trigger aria-label={label} className="grid size-8 place-items-center rounded-lg text-soft hover:bg-chip-hover hover:text-ink data-[state=open]:bg-chip-hover data-[state=open]:text-ink">
+      <DropdownMenu.Trigger aria-label={label} className="grid size-8 place-items-center rounded-lg text-soft hover:bg-chip-hover hover:text-ink data-[state=open]:bg-chip-hover data-[state=open]:text-ink data-[state=open]:opacity-100">
         <svg viewBox="0 0 16 16" aria-hidden className="size-4 fill-current">
           <circle cx="3" cy="8" r="1.3" />
           <circle cx="8" cy="8" r="1.3" />
@@ -332,7 +330,7 @@ export function MenuItem({ onSelect, danger, current, children }: { onSelect: ()
       className={`${MENU_ROW} justify-between data-[disabled]:cursor-default data-[disabled]:text-faint ${danger ? "text-danger data-[highlighted]:bg-danger-tint" : ""}`}
     >
       {children}
-      {current && <MIcon name="check" className="size-4 text-accent-ink" />}
+      {current && <MIcon name="check" className="size-4 text-ink" />}
     </DropdownMenu.Item>
   );
 }

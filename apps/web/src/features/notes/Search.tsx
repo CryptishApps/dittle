@@ -29,10 +29,10 @@ export function SearchDialog({ uid, open, onOpenChange }: { uid: string; open: b
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-scrim backdrop-blur-[3px] data-[state=open]:animate-in data-[state=open]:fade-in-0" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-scrim data-[state=open]:animate-in data-[state=open]:fade-in-0" />
         <Dialog.Content
           aria-describedby={undefined}
-          className={`${POPOVER} fixed top-[12vh] left-1/2 z-50 w-[min(600px,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-[20px] data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95`}
+          className={`${POPOVER} fixed top-[12vh] left-1/2 z-50 w-[min(600px,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-xl data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95`}
         >
           <Dialog.Title className="sr-only">Search notes</Dialog.Title>
           {open && <SearchBody uid={uid} onDone={() => onOpenChange(false)} />}
@@ -76,7 +76,7 @@ function SearchBody({ uid, onDone }: { uid: string; onDone: () => void }) {
   return (
     <>
       <div className="flex items-center gap-3 border-b border-line px-5">
-        <MIcon name="search" className="size-5 shrink-0 text-accent" />
+        <MIcon name="search" className="size-[18px] shrink-0 text-faint" />
         <input
           autoFocus
           value={query}
@@ -102,12 +102,12 @@ function SearchBody({ uid, onDone }: { uid: string; onDone: () => void }) {
           aria-expanded
           aria-controls="search-results"
           aria-activedescendant={results[active] ? `search-${results[active].kind}-${results[active].id}` : undefined}
-          className="h-14 min-w-0 flex-1 bg-transparent text-[17px] text-ink placeholder:text-faint"
+          className="h-13 min-w-0 flex-1 bg-transparent text-[16px] text-ink outline-none placeholder:text-faint"
           style={{ outline: "none" }}
         />
         <Kbd>Esc</Kbd>
       </div>
-      <p className="px-5 pt-3.5 pb-1.5 text-label text-soft">{wanted ? `${results.length} found` : "Recent"}</p>
+      <p className="px-5 pt-3 pb-1 text-[13px] font-semibold text-faint">{wanted ? `${results.length} found` : "Recent"}</p>
       <ul id="search-results" role="listbox" className="max-h-[50vh] overflow-y-auto px-2 pb-2">
         {results.map((result, index) => (
           <li
@@ -117,13 +117,13 @@ function SearchBody({ uid, onDone }: { uid: string; onDone: () => void }) {
             aria-selected={index === active}
             onMouseMove={() => setActive(index)}
             onClick={() => go(result)}
-            className={`cursor-pointer rounded-xl px-3 py-2.5 ${index === active ? "bg-accent-tint" : ""}`}
+            className={`cursor-pointer rounded-lg px-3 py-2 ${index === active ? "bg-chip" : ""}`}
           >
             <span className="flex items-baseline justify-between gap-3">
-              <span className="truncate text-[15px] font-semibold text-ink">{result.title}</span>
-              {result.kind === "collection" && <span className="shrink-0 rounded-full bg-tag px-2.5 py-0.5 text-[12px] font-semibold text-tag-ink">Collection</span>}
+              <span className="truncate text-[15px] font-medium text-ink">{result.title}</span>
+              {result.kind === "collection" && <span className="shrink-0 text-[12.5px] text-faint">Collection</span>}
             </span>
-            {result.kind === "note" && result.detail && <span className="mt-0.5 block truncate text-[13.5px] text-soft">{result.detail}</span>}
+            {result.kind === "note" && result.detail && <span className="mt-0.5 block truncate text-[13.5px] text-faint">{result.detail}</span>}
           </li>
         ))}
         {wanted && results.length === 0 && <li className="px-3 py-3 text-[14px] text-soft">Nothing matches "{query.trim()}".</li>}

@@ -200,15 +200,15 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
           onMouseLeave={hide}
           role="dialog"
           aria-label={`About ${shown.text}`}
-          className={`${POPOVER} fixed top-0 left-0 z-50 w-max max-w-[340px] px-4 py-3.5 text-[14px] ${changed ? "ring-2 ring-accent-line" : ""}`}
+          className={`${POPOVER} fixed top-0 left-0 z-50 w-max max-w-[340px] px-4 py-3.5 text-[14px] ${changed ? "ring-1 ring-accent-line" : ""}`}
         >
-          <p className="text-label text-soft first-letter:uppercase">
+          <p className="text-[12.5px] text-faint first-letter:uppercase">
             {[nameOf(shown), shown.kind, shown.event === undefined ? undefined : shown.event ? "event" : "ongoing"].filter(Boolean).join(" · ")}
           </p>
           {tag && editing && !tag.proposal && !tag.formula && (
             <EditValue value={tag} count={usage(tag.id)} onSave={(text, scope, quantity) => saveEdit(tag, text, scope, quantity)} onCancel={close} />
           )}
-          {tag?.formula && <p className="mt-1.5 font-medium text-accent-ink">= {describeFormula(tag, (id) => store.get(id)) ?? "a formula"}</p>}
+          {tag?.formula && <p className="mt-1.5 font-medium text-ink">= {describeFormula(tag, (id) => store.get(id)) ?? "a formula"}</p>}
           {tag && !editing && tag.history?.length ? <p className="mt-1.5 text-faint">Was {tag.history.at(-1)!.text}</p> : null}
           {describing ? (
             <p className="mt-1.5">
@@ -221,7 +221,7 @@ export function ValueCard({ editor, store, services = {} }: ValueCardProps) {
           )}
 
           {changed && linked && (
-            <p className="mt-2.5 rounded-xl bg-accent-tint px-3 py-2 text-accent-ink">
+            <p className="mt-2.5 rounded-lg bg-value px-3 py-2 text-value-ink">
               {nameOf(linked)} is {linked.text} in {usedIn(usage(linked.id))}. Change it to {shown.text}?
             </p>
           )}
@@ -310,7 +310,7 @@ export function StartCollection({ value, onStart }: { value: TrackedValue; onSta
         if (name.trim()) onStart(name.trim(), per);
       }}
     >
-      <label className="block text-label text-soft" htmlFor="collection-name">
+      <label className="block text-[12.5px] text-faint" htmlFor="collection-name">
         Collection name
       </label>
       <div className="mt-1.5 flex gap-2">
@@ -319,14 +319,14 @@ export function StartCollection({ value, onStart }: { value: TrackedValue; onSta
           autoFocus
           value={name}
           onChange={(event) => setName(event.target.value)}
-          className="h-9 min-w-0 flex-1 rounded-xl border border-line-strong bg-card px-3 text-[14px] outline-none focus:border-accent focus:ring-[3px] focus:ring-accent-tint"
+          className="h-9 min-w-0 flex-1 rounded-lg border border-line-strong bg-card px-3 text-[14px] outline-none focus:border-ink"
         />
         <button type="submit" className={btnClass({ variant: "primary" })}>
           Create
         </button>
       </div>
       {value.event && (
-        <div role="radiogroup" aria-label="Rows" className="mt-2.5 flex rounded-xl bg-chip p-1">
+        <div role="radiogroup" aria-label="Rows" className="mt-2.5 flex rounded-lg bg-chip p-0.5">
           {(["day", "name"] as const).map((option) => (
             <button
               key={option}
@@ -334,7 +334,7 @@ export function StartCollection({ value, onStart }: { value: TrackedValue; onSta
               role="radio"
               aria-checked={per === option}
               onClick={() => setPer(option)}
-              className={`h-7 flex-1 rounded-lg px-2 text-[12.5px] font-semibold transition-colors ${per === option ? "bg-card text-ink shadow-tile" : "text-soft hover:text-ink"}`}
+              className={`h-7 flex-1 rounded-md px-2 text-[12.5px] font-medium transition-colors ${per === option ? "bg-card text-ink shadow-[0_0_0_1px_var(--line)]" : "text-soft hover:text-ink"}`}
             >
               {option === "day" ? "Row per day" : "Row per thing"}
             </button>

@@ -9,7 +9,7 @@ import type { TrackedValue } from "./values";
 export const nameOf = (value: { name?: string } | undefined) => value?.name?.replaceAll("_", " ") ?? "value";
 export const usedIn = (count: number) => `${count} ${count === 1 ? "note" : "notes"}`;
 
-const FIELD = "flex h-11 items-center rounded-xl border-[1.5px] border-accent bg-card px-3.5 text-[15px] font-medium ring-[3px] ring-accent-tint";
+const FIELD = "flex h-10 items-center rounded-lg border border-ink bg-card px-3 text-[15px] font-medium";
 
 const NUMBER_INPUT = "h-full min-w-0 bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none";
 
@@ -132,7 +132,7 @@ export function EditValue({
       )}
       {asking ? (
         <div className="mt-2">
-          <p className="font-medium text-accent-ink">
+          <p className="font-medium text-ink">
             {value.text} is used in {usedIn(count)}.
           </p>
           <div className="mt-2 flex flex-wrap justify-end gap-2">

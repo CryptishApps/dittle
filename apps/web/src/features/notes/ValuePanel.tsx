@@ -67,47 +67,40 @@ export function ValuePanel({ uid, noteId, valueId, focusOnOpen, editor, store, s
   return (
     <m.aside
       aria-label={`About ${value.text}`}
-      initial={{ opacity: 0, x: 12 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.22, ease }}
-      className="tile fixed inset-x-2 top-[72px] bottom-2 z-40 overflow-y-auto px-6 pt-5 pb-8 text-[15px] sm:inset-x-auto sm:top-[88px] sm:right-6 sm:bottom-6 sm:w-[390px] lg:static lg:z-auto lg:my-5 lg:mr-5 lg:max-h-[calc(100%-2.5rem)] lg:w-[380px] lg:shrink-0 lg:self-start"
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.18, ease }}
+      className="fixed inset-x-2 bottom-2 z-40 max-h-[70dvh] overflow-y-auto rounded-xl bg-card px-4 pt-3.5 pb-4 text-[14px] shadow-pop sm:inset-x-auto sm:top-[76px] sm:right-5 sm:bottom-auto sm:max-h-[calc(100dvh-96px)] sm:w-[320px]"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-label text-faint first-letter:uppercase">{value.kind ?? "Value"}</p>
-          <p className="mt-0.5 truncate text-[22px] font-semibold tracking-[-0.02em] first-letter:uppercase">{nameOf(value) ?? "Value"}</p>
+          <p className="truncate text-[12.5px] text-faint first-letter:uppercase">{nameOf(value) ?? value.kind ?? "Value"}</p>
+          <p className="mt-0.5 text-[20px] leading-tight font-semibold tracking-[-0.02em] break-words tabular-nums">{value.text}</p>
         </div>
-        <button type="button" onClick={onClose} aria-label="Close" className="-mr-2 grid size-9 shrink-0 place-items-center rounded-[10px] bg-panel text-soft hover:bg-chip-hover hover:text-ink">
-          <MIcon name="close" className="size-4" />
+        <button type="button" onClick={onClose} aria-label="Close" className="-mt-0.5 -mr-1.5 grid size-7 shrink-0 place-items-center rounded-md text-faint hover:bg-chip hover:text-ink">
+          <MIcon name="close" className="size-3.5" />
         </button>
       </div>
-      <p className="mt-4">
-        <span
-          className={`keycap inline-block max-w-full px-5 pt-2.5 pb-2 leading-none font-semibold tracking-[-0.04em] break-words tabular-nums ${value.text.length > 9 ? "text-[32px]" : "text-[58px]"}`}
-        >
-          {value.text}
-        </span>
-      </p>
       {value.naming ? (
-        <p className="mt-3">
+        <p className="mt-1.5 text-[13.5px]">
           <span className="t-shimmer-text" data-text="Describing">
             Describing
           </span>
         </p>
       ) : (
-        context && <p className="mt-3 text-soft">{context}</p>
+        context && <p className="mt-1.5 text-[13.5px] text-soft">{context}</p>
       )}
 
       {formula ? (
-        <div className="mt-6 rounded-2xl bg-accent-tint px-4 py-3.5">
-          <p className="text-label text-accent-ink">Worked out</p>
-          <p className="mt-1 font-medium text-ink">= {formula}</p>
-          <p className="mt-1 text-[13.5px] text-soft">Change an input and this follows.</p>
+        <div className="mt-3 border-t border-line pt-3">
+          <p className="text-[12.5px] text-faint">Worked out</p>
+          <p className="mt-0.5 font-medium text-ink">= {formula}</p>
+          <p className="mt-0.5 text-[13px] text-faint">Change an input and this follows.</p>
         </div>
       ) : (
         !value.proposal && (
-          <div className="mt-7">
-            <p className="text-label text-faint">Change</p>
+          <div className="mt-3 border-t border-line pt-3">
+            <p className="text-[12.5px] text-faint">Change</p>
             <EditValue
               key={`${value.id}:${value.text}`}
               value={value}
@@ -126,35 +119,35 @@ export function ValuePanel({ uid, noteId, valueId, focusOnOpen, editor, store, s
         !value.field &&
         !value.proposal &&
         services.startCollection && (
-          <div className="mt-5">
+          <div className="mt-3">
             <StartCollection value={value} onStart={(name, per) => services.startCollection?.(value, name, per)} />
           </div>
         )
       )}
 
-      <p className="mt-7 text-label text-faint">Used in</p>
-      <ul className="mt-1">
+      <p className="mt-4 text-[12.5px] text-faint">Used in</p>
+      <ul>
         {usedIn.map((note) => (
-          <li key={note.id} className="flex items-baseline justify-between gap-3 border-b border-line py-2.5">
+          <li key={note.id} className="flex items-baseline justify-between gap-3 border-b border-line py-1.5 last:border-b-0">
             {note.id === noteId ? (
               <span className="truncate text-ink">{note.title || "Untitled"}</span>
             ) : (
-              <Link to="/notes/$noteId" params={{ noteId: note.id }} className="truncate font-medium text-accent-ink underline-offset-4 hover:underline">
+              <Link to="/notes/$noteId" params={{ noteId: note.id }} className="truncate font-medium text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink">
                 {note.title || "Untitled"}
               </Link>
             )}
-            {note.id === noteId && <span className="shrink-0 text-[13px] text-faint">this note</span>}
+            {note.id === noteId && <span className="shrink-0 text-[12.5px] text-faint">this note</span>}
           </li>
         ))}
       </ul>
 
       {value.history?.length ? (
         <>
-          <p className="mt-7 text-label text-faint">Before</p>
-          <ul className="mt-2 space-y-1 text-soft">
+          <p className="mt-4 text-[12.5px] text-faint">Before</p>
+          <ul className="mt-1 space-y-0.5 text-soft">
             {[...value.history].reverse().map((entry, index) => (
               <li key={index}>
-                <span className="text-faint line-through decoration-accent">{entry.text}</span> <span className="text-faint">· until {WHEN.format(entry.at)}</span>
+                <span className="text-faint line-through">{entry.text}</span> <span className="text-faint">· until {WHEN.format(entry.at)}</span>
               </li>
             ))}
           </ul>
@@ -179,20 +172,20 @@ function CollectionPart({ uid, collectionId, rowId }: { uid: string; collectionI
   const cell = (id: string, fieldId: string) => stored.find((value) => value.subject?.entityId === id && value.field === fieldId);
 
   return (
-    <div className="mt-7 rounded-2xl bg-panel px-4 pt-3.5 pb-2">
+    <div className="mt-4 border-t border-line pt-3">
       <div className="flex items-baseline justify-between gap-3">
-        <span className="text-[17px] font-semibold tracking-[-0.01em]">{collection.name}</span>
-        <Link to="/notes/collections/$collectionId" params={{ collectionId }} className="inline-flex items-center gap-1 text-[13px] font-medium text-accent-ink tabular-nums hover:underline">
+        <span className="text-[14px] font-semibold">{collection.name}</span>
+        <Link to="/notes/collections/$collectionId" params={{ collectionId }} className="inline-flex items-center gap-1 text-[13px] text-soft tabular-nums hover:text-ink">
           {summary.totals[0]?.text ?? summary.count} {summary.scope}
           <MIcon name="right" className="size-3.5" />
         </Link>
       </div>
-      <table className="mt-2 w-full border-collapse text-left text-[13px]">
+      <table className="mt-1.5 w-full border-collapse text-left text-[13px]">
         <thead>
-          <tr className="text-[12px] font-semibold text-soft">
-            <th className="border-b border-line py-2 pr-3 font-semibold first-letter:uppercase">{byDay ? "Day" : collection.rowLabel}</th>
+          <tr className="text-[12px] text-faint">
+            <th className="border-b border-line py-1.5 pr-3 font-medium first-letter:uppercase">{byDay ? "Day" : collection.rowLabel}</th>
             {columns.map((field) => (
-              <th key={field.id} className="border-b border-line py-2 pr-3 font-semibold first-letter:uppercase">
+              <th key={field.id} className="border-b border-line py-1.5 pr-3 font-medium first-letter:uppercase">
                 {field.name}
               </th>
             ))}
