@@ -3,7 +3,8 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { CaptureBox } from "@/features/capture/CaptureBox";
 import { useCollectionSuggestions, type Suggestion } from "@/features/collections/suggestions";
-import { daysUntil, summariseCollection, upcomingDates, type CollectionSummary, type Upcoming } from "@/features/collections/summary";
+import { glanceOf, type GlanceView } from "@/features/collections/glance";
+import { daysUntil, upcomingDates, type Upcoming } from "@/features/collections/summary";
 import { dayLabel } from "@/features/collections/format";
 import { Onboarding } from "@/features/onboarding/Onboarding";
 import { Btn, MIcon } from "@/ui/kit";
@@ -12,6 +13,7 @@ import { noteWith, type NoteDoc } from "./note-doc";
 import { NoteTree } from "./NoteTree";
 import { useOnline } from "./NotesShell";
 import { showToast } from "./toast";
+import type { Collection } from "./fact";
 import type { Folder, NoteSummary } from "./store";
 
 export function HomePage({ uid }: { uid: string }) {
@@ -51,38 +53,43 @@ export function HomePage({ uid }: { uid: string }) {
 
   if (notes.length === 0 && folders.length === 0) return <Onboarding uid={uid} onStart={(title) => start(title)} onStartFrom={startFrom} />;
 
-  const summaries = collections.map((collection) => summariseCollection(collection, rows, values));
   const upcoming = upcomingDates(values);
-  const tracking = summaries.length > 0 || upcoming.length > 0 || suggestions.suggestions.length > 0;
+  const tracking = collections.length > 0 || upcoming.length > 0 || suggestions.suggestions.length > 0;
   const noteTitle = (noteId: string | undefined) => notes.find((note) => note.id === noteId)?.title || "Untitled";
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
-      <div className="mx-auto max-w-[1160px] px-4 pt-7 pb-24 sm:px-10 sm:pt-11">
+      <div className="mx-auto max-w-[760px] px-4 pt-8 pb-24 sm:px-8 sm:pt-12">
         <h1 className="sr-only">Your notes</h1>
+        <p className="mb-3.5 text-[14px] text-faint">{TODAY.format(new Date())}</p>
         <CaptureBox uid={uid} onStartNote={(title) => start(title)} />
         {tracking && (
-          <section aria-label="What you track" className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {summaries.map((summary) => (
-              <CollectionTile key={summary.collection.id} summary={summary} />
-            ))}
-            {upcoming.length > 0 && <UpcomingTile items={upcoming} noteTitle={noteTitle} />}
-            {suggestions.suggestions.map((suggestion) => (
-              <SuggestionTile key={suggestion.id} suggestion={suggestion} onCreate={() => createSuggested(suggestion.id)} onDismiss={() => suggestions.dismiss(suggestion.id)} />
-            ))}
+          <section aria-labelledby="tracking-heading" className="mt-9">
+            <h2 id="tracking-heading" className={SECTION}>
+              Tracking
+            </h2>
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {collections.map((collection) => (
+                <GlanceCard key={collection.id} collection={collection} view={glanceOf(collection, rows, values)} />
+              ))}
+              {upcoming.length > 0 && <NextUpCard items={upcoming} noteTitle={noteTitle} />}
+              {suggestions.suggestions.map((suggestion) => (
+                <SuggestionCard key={suggestion.id} suggestion={suggestion} onCreate={() => createSuggested(suggestion.id)} onDismiss={() => suggestions.dismiss(suggestion.id)} />
+              ))}
+            </div>
           </section>
         )}
 
         {!tracking && values.length > 0 && <FoundHint values={values.slice(0, 3).map((value) => value.text)} count={values.length} />}
 
-        <div className="mt-12 flex items-center justify-between">
-          <h2 className="text-[22px] font-semibold tracking-[-0.02em]">Notes</h2>
-          <Btn onClick={() => setCreatingFolder(true)}>
+        <div className="mt-9 flex items-center justify-between">
+          <h2 className={SECTION}>Notes</h2>
+          <Btn variant="quiet" onClick={() => setCreatingFolder(true)}>
             <MIcon name="folder" className="size-4" />
             New folder
           </Btn>
         </div>
-        <nav aria-label="Notes" className="mt-9">
+        <nav aria-label="Notes" className="mt-1.5">
           <NoteTree
             uid={uid}
             notes={notes}
@@ -99,9 +106,14 @@ export function HomePage({ uid }: { uid: string }) {
   );
 }
 
+const TODAY = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long" });
+const SECTION = "text-[13px] font-semibold text-faint";
+const CARD = "flex min-h-[96px] flex-col rounded-xl border border-line px-4 pt-3.5 pb-3";
+const FIGURE = "text-[26px] leading-none font-semibold tracking-[-0.03em] tabular-nums";
+
 function FoundHint({ values, count }: { values: string[]; count: number }) {
   return (
-    <p className="mt-5 rounded-2xl bg-accent-tint px-5 py-3.5 text-[14px] leading-[1.9] text-soft">
+    <p className="mt-6 rounded-xl border border-line px-4 py-3 text-[14px] leading-[1.9] text-soft">
       Dittle is keeping {count === 1 ? "1 value" : `${count} values`} in step across your notes, like{" "}
       {values.map((text, index) => (
         <span key={index}>
@@ -114,65 +126,72 @@ function FoundHint({ values, count }: { values: string[]; count: number }) {
   );
 }
 
-const BIG = "text-[56px] leading-none font-semibold tracking-[-0.045em] tabular-nums";
-const TILE = "tile flex min-h-[180px] flex-col px-6 pt-5 pb-5.5";
-const MONTH = new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: "UTC" });
-const WEEKDAY = new Intl.DateTimeFormat("en-GB", { weekday: "long", timeZone: "UTC" });
-
-function CollectionTile({ summary }: { summary: CollectionSummary }) {
-  const { collection, count, scope, totals, latest } = summary;
-  const [headline] = totals;
-  const entries = `${count} ${count === 1 ? "entry" : "entries"}`;
-  const partial = headline !== undefined && headline.counted < count;
-  const detail = !headline?.average
-    ? [entries, partial && `${headline.counted} with ${headline.field.name}`]
-    : partial
-      ? [`avg ${headline.average} from ${headline.counted} of ${count}`]
-      : [entries, `avg ${headline.average}`];
+function GlanceCard({ collection, view }: { collection: Collection; view: GlanceView }) {
   return (
-    <Link to="/notes/collections/$collectionId" params={{ collectionId: collection.id }} className={`${TILE} outline-2 outline-transparent transition-[outline-color] hover:outline-accent`}>
-      <span className="text-label text-faint">{collection.name}</span>
-      <span className="mt-2 flex items-baseline gap-2.5">
-        <span className={BIG}>{headline?.text ?? count}</span>
-        <span className="text-[16px] text-soft">{headline ? `${headline.field.name} ${scope}` : scope}</span>
+    <Link to="/notes/collections/$collectionId" params={{ collectionId: collection.id }} className={`${CARD} transition-colors hover:bg-panel`}>
+      <span className="flex items-start justify-between gap-3 text-[13.5px] text-soft">
+        <span className="truncate">{collection.name}</span>
+        {view.aside ? <span className="shrink-0 text-faint">{view.aside}</span> : <Mini view={view} />}
       </span>
-      {headline && (
-        <span className="mt-2.5 text-[14px] text-soft tabular-nums">{detail.filter(Boolean).join(" · ")}</span>
-      )}
-      {latest && (
-        <span className="mt-auto line-clamp-2 pt-1.5 text-[14px] text-soft">
-          Latest · {[latest.label, ...latest.cells].filter(Boolean).join(" · ")}
-        </span>
-      )}
+      <span className="mt-auto flex min-w-0 items-baseline gap-1.5 pt-2">
+        <span className={FIGURE}>{view.figure}</span>
+        <span className="truncate text-[14px] text-soft">{view.caption}</span>
+      </span>
     </Link>
   );
 }
 
-function UpcomingTile({ items, noteTitle }: { items: Upcoming[]; noteTitle: (noteId: string | undefined) => string }) {
+function Mini({ view }: { view: GlanceView }) {
+  if (view.bars?.length) {
+    return (
+      <span aria-hidden className="flex h-[18px] shrink-0 items-end gap-[3px]">
+        {view.bars.map((height, index, all) => (
+          <span key={index} className={`w-[5px] rounded-[1.5px] ${index === all.length - 1 ? "bg-ink" : "bg-line-strong"}`} style={{ height: `${Math.max(3, height * 18)}px` }} />
+        ))}
+      </span>
+    );
+  }
+  if (view.dots) {
+    return (
+      <span aria-hidden className="flex h-[18px] shrink-0 items-center gap-[5px]">
+        {view.dots.map((on, index) => (
+          <span key={index} className={`size-[6px] rounded-full ${on ? "bg-ink" : "bg-line-strong"}`} />
+        ))}
+      </span>
+    );
+  }
+  if (view.line && view.line.length > 1) {
+    const step = 48 / (view.line.length - 1);
+    const points = view.line.map((height, index) => `${(index * step).toFixed(1)},${(16 - height * 14).toFixed(1)}`).join(" ");
+    return (
+      <svg aria-hidden viewBox="-1 0 50 18" className="h-[18px] w-[50px] shrink-0 text-soft">
+        <polyline points={points} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  return null;
+}
+
+function NextUpCard({ items, noteTitle }: { items: Upcoming[]; noteTitle: (noteId: string | undefined) => string }) {
   const [first, ...rest] = items;
   if (!first) return null;
   const days = daysUntil(first.on);
-  const date = new Date(`${first.on}T00:00:00Z`);
   return (
-    <div className={TILE}>
-      <span className="text-label text-faint">Coming up</span>
-      <Link to="/notes/$noteId" params={{ noteId: first.value.origin?.noteId ?? "" }} disabled={!first.value.origin?.noteId} className="group mt-3 flex items-center gap-4">
-        <span aria-hidden className="w-[76px] shrink-0 -rotate-3 overflow-hidden rounded-2xl bg-card text-center shadow-[0_0_0_1px_var(--line),0_14px_20px_-14px_rgb(18_20_24/0.4)]">
-          <span className="block bg-date py-1 text-[11px] font-bold tracking-[0.08em] text-date-ink uppercase">{MONTH.format(date)}</span>
-          <span className="block pt-0.5 text-[32px] leading-tight font-semibold tracking-[-0.03em]">{date.getUTCDate()}</span>
-          <span className="block pb-1.5 text-[11px] font-semibold text-soft">{WEEKDAY.format(date)}</span>
-        </span>
-        <span className="min-w-0">
-          <span className="block text-[44px] leading-none font-semibold tracking-[-0.045em] tabular-nums transition-colors group-hover:text-accent-ink">{days === 0 ? "Today" : `${days} ${days === 1 ? "day" : "days"}`}</span>
-          <span className="mt-1 block truncate text-[15px] text-soft">{first.value.subject?.label ?? noteTitle(first.value.origin?.noteId)}</span>
-        </span>
+    <div className={CARD}>
+      <span className="flex items-start justify-between gap-3 text-[13.5px] text-soft">
+        <span>Next up</span>
+        <span className="shrink-0 text-faint">{dayLabel(first.on)}</span>
+      </span>
+      <Link to="/notes/$noteId" params={{ noteId: first.value.origin?.noteId ?? "" }} disabled={!first.value.origin?.noteId} className="group mt-auto flex min-w-0 items-baseline gap-1.5 pt-2">
+        <span className={FIGURE}>{days === 0 ? "Today" : `${days} ${days === 1 ? "day" : "days"}`}</span>
+        <span className="truncate text-[14px] text-soft group-hover:text-ink">{first.value.subject?.label ?? noteTitle(first.value.origin?.noteId)}</span>
       </Link>
       {rest.length > 0 && (
-        <ul className="mt-auto divide-y divide-line pt-3 text-[14.5px]">
+        <ul className="mt-2.5 space-y-0.5 border-t border-line pt-2 text-[13px]">
           {rest.map((item) => (
-            <li key={item.value.id} className="flex justify-between gap-4 py-2">
-              <span className="truncate font-medium text-ink">{item.value.subject?.label ?? noteTitle(item.value.origin?.noteId)}</span>
-              <span className="shrink-0 text-soft tabular-nums">{dayLabel(item.on)}</span>
+            <li key={item.value.id} className="flex justify-between gap-3">
+              <span className="truncate text-soft">{item.value.subject?.label ?? noteTitle(item.value.origin?.noteId)}</span>
+              <span className="shrink-0 text-faint tabular-nums">{dayLabel(item.on)}</span>
             </li>
           ))}
         </ul>
@@ -181,26 +200,21 @@ function UpcomingTile({ items, noteTitle }: { items: Upcoming[]; noteTitle: (not
   );
 }
 
-function SuggestionTile({ suggestion, onCreate, onDismiss }: { suggestion: Suggestion; onCreate: () => void; onDismiss: () => void }) {
+function SuggestionCard({ suggestion, onCreate, onDismiss }: { suggestion: Suggestion; onCreate: () => void; onDismiss: () => void }) {
   return (
-    <div className="sticky-note flex min-h-[180px] rotate-1 flex-col px-6 pt-5 pb-5.5">
-      <span className="text-label text-sticky-soft">Suggested collection</span>
-      <span className="mt-2 text-[23px] leading-tight font-semibold tracking-[-0.02em]">{suggestion.proposal.name}</span>
-      <span className="mt-1 line-clamp-2 text-[15px] leading-normal">
+    <div className={CARD}>
+      <span className="text-[13.5px] text-soft">Suggested collection</span>
+      <span className="mt-1 truncate text-[16px] font-semibold">{suggestion.proposal.name}</span>
+      <span className="mt-0.5 line-clamp-2 text-[13.5px] text-faint">
         {suggestion.rowCount} rows · {suggestion.plan.collection.fields.map((field) => field.name).join(", ")}
       </span>
-      <span className="mt-auto flex gap-2 pt-4">
-        <button type="button" onClick={onCreate} className="inline-flex h-9 items-center rounded-[10px] bg-sticky-ink px-4 text-[14px] font-semibold text-sticky transition-opacity hover:opacity-90">
+      <span className="mt-auto flex gap-1.5 pt-3">
+        <Btn primary onClick={onCreate}>
           Create
-        </button>
-        <button
-          type="button"
-          onClick={onDismiss}
-          aria-label={`Dismiss ${suggestion.proposal.name}`}
-          className="inline-flex h-9 items-center rounded-[10px] bg-sticky-ink/8 px-4 text-[14px] font-semibold text-sticky-ink transition-colors hover:bg-sticky-ink/14"
-        >
-          Not now
-        </button>
+        </Btn>
+        <Btn variant="quiet" onClick={onDismiss}>
+          <span className="sr-only">Dismiss {suggestion.proposal.name}: </span>Not now
+        </Btn>
       </span>
     </div>
   );

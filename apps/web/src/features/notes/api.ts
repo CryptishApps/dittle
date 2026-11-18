@@ -2,7 +2,7 @@ import { queryOptions, type FetchQueryOptions, type QueryClient, type QueryKey }
 import { afterFirstPaint } from "@/lib/first-paint";
 import { ensureLive, live } from "@/lib/live-query";
 import { EMPTY_NOTE, summarise, type NoteDoc } from "./note-doc";
-import type { CalculatedColumn, Collection, Row } from "./fact";
+import type { CalculatedColumn, Collection, Glance, Row } from "./fact";
 import type { CellPlacement, CellWrite, Folder, Note, NoteSummary, StoredValue } from "./store";
 
 export const loadStore = () => import("./store");
@@ -83,6 +83,7 @@ export const writes = {
   placeCell: async (uid: string, placement: CellPlacement) => (await loadStore()).placeCell(uid, placement),
   deleteCollection: (uid: string, id: string) => later((store) => store.deleteCollection(uid, id)),
   saveColumns: (uid: string, collectionId: string, columns: CalculatedColumn[]) => later((store) => store.saveColumns(uid, collectionId, columns)),
+  setGlance: (uid: string, collectionId: string, glance: Glance) => later((store) => store.setGlance(uid, collectionId, glance)),
   relabelNotes: (uid: string, valueId: string, label: string, noteIds: string[]) => later((store) => void store.relabelNotes(uid, valueId, label, noteIds)),
 };
 

@@ -107,7 +107,7 @@ function attempt(mode: ActionMode, code: string, actions: EmailActions): Promise
 function Heading({ title, sub, children }: { title: string; sub: string; children?: ReactNode }) {
   return (
     <>
-      <h1 className="font-heading text-[44px] leading-[1.02] font-semibold tracking-[-0.045em]">
+      <h1 className="text-[34px] leading-[1.1] font-semibold tracking-[-0.03em]">
         <TypeOn key={title} text={title} duration={520} />
       </h1>
       <p className="mt-3 text-[16px] leading-[1.6] text-soft">{sub}</p>
@@ -215,7 +215,7 @@ function Alert({ tone, children }: { tone: "error" | "info"; children: ReactNode
   return (
     <p
       role={tone === "error" ? "alert" : "status"}
-      className={`mt-4 rounded-xl px-4 py-3 text-[14px] leading-[1.55] ${tone === "error" ? "bg-danger-tint text-danger" : "bg-accent-tint text-accent-ink"}`}
+      className={`mt-4 rounded-xl px-4 py-3 text-[14px] leading-[1.55] ${tone === "error" ? "bg-danger-tint text-danger" : "bg-panel text-ink"}`}
     >
       {children}
     </p>

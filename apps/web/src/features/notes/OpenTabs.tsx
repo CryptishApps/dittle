@@ -5,7 +5,9 @@ import { MIcon } from "@/ui/kit";
 import { collectionsQuery, notesQuery } from "./api";
 import { closeTab, keepTabs, openTab, useTabs, type Tab } from "./tabs";
 
-const TAB = "tab-shape relative flex h-12 shrink-0 items-center rounded-t-[15px] text-[14.5px] transition-colors";
+const TAB = "relative top-px flex h-10 shrink-0 items-center rounded-t-[9px] border border-b-0 text-[14px] transition-colors";
+const ON = "border-line bg-page font-semibold text-ink after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-page";
+const OFF = "border-transparent text-soft hover:text-ink";
 
 export function OpenTabs({ uid, onNewNote }: { uid: string; onNewNote: () => void }) {
   const navigate = useNavigate();
@@ -42,13 +44,13 @@ export function OpenTabs({ uid, onNewNote }: { uid: string; onNewNote: () => voi
   };
 
   return (
-    <nav aria-label="Open notes" className="no-scrollbar -mb-px flex min-w-0 items-end gap-0.5 overflow-x-auto pl-2 sm:pl-6">
+    <nav aria-label="Open notes" className="no-scrollbar flex min-w-0 items-end gap-0.5 overflow-x-auto pl-2 sm:pl-5">
       <Link
         to="/notes"
         activeOptions={{ exact: true }}
-        className={`${TAB} gap-2 px-4 font-medium ${onHome ? "tab-on bg-side font-semibold text-ink" : "text-soft hover:bg-panel/70 hover:text-ink"}`}
+        className={`${TAB} gap-2 px-3.5 ${onHome ? ON : OFF}`}
       >
-        <MIcon name="home" className="size-[17px]" />
+        <MIcon name="home" className="size-4" />
         <span className="max-sm:sr-only">Home</span>
       </Link>
       {tabs.map((tab) => {
@@ -58,11 +60,10 @@ export function OpenTabs({ uid, onNewNote }: { uid: string; onNewNote: () => voi
           <div
             key={`${tab.kind}:${tab.id}`}
             onAuxClick={(event) => event.button === 1 && close(tab)}
-            className={`${TAB} group max-w-[240px] pr-1.5 ${active ? "tab-on bg-side font-semibold text-ink" : "font-medium text-soft hover:bg-panel/70 hover:text-ink"}`}
+            className={`${TAB} group max-w-[240px] pr-1.5 ${active ? ON : OFF}`}
           >
             {tab.kind === "note" ? (
-              <Link to="/notes/$noteId" params={{ noteId: tab.id }} aria-current={active ? "page" : undefined} className="flex h-full min-w-0 items-center gap-2 rounded-t-[15px] pl-4">
-                <span aria-hidden className={`size-2 shrink-0 rounded-[3px] ${active ? "bg-accent" : "bg-quiet"}`} />
+              <Link to="/notes/$noteId" params={{ noteId: tab.id }} aria-current={active ? "page" : undefined} className="flex h-full min-w-0 items-center gap-2 rounded-t-[9px] pl-3.5">
                 <span className="truncate">{name}</span>
               </Link>
             ) : (
@@ -70,9 +71,9 @@ export function OpenTabs({ uid, onNewNote }: { uid: string; onNewNote: () => voi
                 to="/notes/collections/$collectionId"
                 params={{ collectionId: tab.id }}
                 aria-current={active ? "page" : undefined}
-                className="flex h-full min-w-0 items-center gap-2 rounded-t-[15px] pl-3.5"
+                className="flex h-full min-w-0 items-center gap-2 rounded-t-[9px] pl-3.5"
               >
-                <MIcon name="table" className={`size-4 shrink-0 ${active ? "text-accent" : "text-quiet"}`} />
+                <MIcon name="table" className="size-4 shrink-0 text-faint" />
                 <span className="truncate">{name}</span>
               </Link>
             )}
@@ -80,15 +81,15 @@ export function OpenTabs({ uid, onNewNote }: { uid: string; onNewNote: () => voi
               type="button"
               onClick={() => close(tab)}
               aria-label={`Close ${name}`}
-              className={`ml-1.5 grid size-6 shrink-0 place-items-center rounded-md text-faint transition-colors hover:bg-chip-hover hover:text-ink ${active ? "bg-chip" : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100"}`}
+              className="ml-1 grid size-6 shrink-0 place-items-center rounded-md text-faint transition-colors hover:bg-chip hover:text-ink"
             >
               <MIcon name="close" className="size-3" />
             </button>
           </div>
         );
       })}
-      <button type="button" onClick={onNewNote} aria-label="New note" title="New note" className={`${TAB} px-3.5 text-soft hover:bg-panel/70 hover:text-ink`}>
-        <MIcon name="plus" className="size-[17px]" />
+      <button type="button" onClick={onNewNote} aria-label="New note" title="New note" className={`${TAB} ${OFF} px-3`}>
+        <MIcon name="plus" className="size-4" />
       </button>
     </nav>
   );

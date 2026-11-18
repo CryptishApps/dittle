@@ -56,8 +56,8 @@ try {
   });
 
   await home(page);
-  await page.locator("section[aria-label='What you track']").waitFor();
-  await page.waitForFunction(() => document.querySelector("section[aria-label='What you track']")?.textContent?.includes("Coming up"), null, { timeout: AI_TIMEOUT });
+  await page.getByRole("region", { name: "Tracking" }).waitFor();
+  await page.getByRole("region", { name: "Tracking" }).getByText("Next up").waitFor({ timeout: AI_TIMEOUT });
   await settle(page);
   await shoot(page, "home");
 

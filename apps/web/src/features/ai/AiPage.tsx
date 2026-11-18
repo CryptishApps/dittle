@@ -47,22 +47,22 @@ export function AiPage() {
       </header>
 
       <main className="mx-auto max-w-[700px] px-6 py-12 sm:px-10 sm:py-16">
-        <p className="inline-flex h-7 items-center gap-2 rounded-full bg-accent-tint px-3 text-label text-accent-ink">
-          <span aria-hidden className="size-1.5 rounded-full bg-accent" />
+        <p className="inline-flex h-7 items-center gap-2 rounded-full border border-line px-3 text-[13px] text-soft">
+          <span aria-hidden className="size-1.5 rounded-full bg-ink" />
           On-device AI
         </p>
-        <h1 className="mt-4 font-heading text-[44px] leading-[1.02] font-semibold tracking-[-0.045em] sm:text-[56px]">Gemini Nano</h1>
+        <h1 className="mt-4 text-[34px] leading-[1.1] font-semibold tracking-[-0.03em] sm:text-[40px]">Gemini Nano</h1>
 
         <m.section
           layout
           transition={{ duration: 0.3, ease }}
           aria-live="polite"
-          className={`tile mt-8 px-6 py-5 ${model.status === "downloadable" ? "outline-2 outline-accent" : ""}`}
+          className={`mt-8 rounded-xl border px-5 py-4 ${model.status === "downloadable" ? "border-ink" : "border-line"}`}
         >
           <div className="flex items-center gap-3">
-            {model.status === "available" && <SpinCheck done className="-m-1 text-accent" />}
-            {(model.status === "downloading" || model.status === "checking") && <SpinCheck className="-m-1 text-accent" />}
-            <h2 className="font-heading text-[22px] font-semibold tracking-[-0.025em]">
+            {model.status === "available" && <SpinCheck done className="-m-1 text-ink" />}
+            {(model.status === "downloading" || model.status === "checking") && <SpinCheck className="-m-1 text-ink" />}
+            <h2 className="text-[18px] font-semibold tracking-[-0.02em]">
               {HEADLINE[model.status]}
               {model.status === "downloading" && model.progress !== undefined && <span className="ml-2 text-soft tabular-nums">{percent}%</span>}
             </h2>
@@ -71,7 +71,7 @@ export function AiPage() {
 
           {model.status === "downloading" && model.progress !== undefined && (
             <div className="mt-4 h-2 overflow-hidden rounded-full bg-chip" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100} aria-label="Download progress">
-              <div className="h-full rounded-full bg-accent transition-[width] duration-300" style={{ width: `${percent}%` }} />
+              <div className="h-full rounded-full bg-ink transition-[width] duration-300" style={{ width: `${percent}%` }} />
             </div>
           )}
           {model.status === "downloadable" && (
@@ -106,11 +106,11 @@ export function AiPage() {
         </Section>
 
         <section className="mt-12">
-          <h2 className="font-heading text-[20px] font-semibold tracking-[-0.025em]">This session</h2>
+          <h2 className="text-[18px] font-semibold tracking-[-0.02em]">This session</h2>
           {calls.length === 0 ? (
             <p className="mt-3 text-[15px] text-soft">No AI calls yet. Tag a value with @ in a note and it shows here.</p>
           ) : (
-            <table className="mt-3 w-full overflow-hidden rounded-[20px] border-separate border-spacing-0 bg-card text-left text-[14px] shadow-sheet">
+            <table className="mt-3 w-full overflow-hidden rounded-xl border-separate border-spacing-0 border border-line bg-card text-left text-[14px]">
               <thead className="bg-side text-label text-soft">
                 <tr>
                   <th className="px-5 py-3 font-semibold">Task</th>
@@ -138,8 +138,8 @@ export function AiPage() {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="mt-10">
-      <h2 className="font-heading text-[20px] font-semibold tracking-[-0.025em]">{title}</h2>
-      <ul className="mt-3 list-disc space-y-2 pl-5 text-[15px] leading-[1.65] text-ink marker:text-accent">{children}</ul>
+      <h2 className="text-[18px] font-semibold tracking-[-0.02em]">{title}</h2>
+      <ul className="mt-3 list-disc space-y-2 pl-5 text-[15px] leading-[1.65] text-ink marker:text-quiet">{children}</ul>
     </section>
   );
 }

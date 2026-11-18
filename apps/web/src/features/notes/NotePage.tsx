@@ -87,10 +87,10 @@ function OpenNote({ uid, noteId, doc, pending }: { uid: string; noteId: string; 
 
   return (
     <div className="flex min-h-0 flex-1">
-      <div className="flex min-w-0 flex-1 flex-col">
-        <NoteBar uid={uid} noteId={noteId} />
-        <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2 sm:px-6 sm:pb-6">
-          <article className="mx-auto min-h-full max-w-[860px] rounded-[22px] bg-card px-5 pt-9 pb-32 shadow-sheet sm:rounded-[28px] sm:px-[68px] sm:pt-14">
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-[760px] px-5 pb-32 sm:px-8">
+          <NoteBar uid={uid} noteId={noteId} />
+          <article className="pt-3 sm:pt-5">
             <NoteEditorView editor={editor} store={store} services={services} />
           </article>
         </div>
@@ -134,13 +134,20 @@ function NoteBar({ uid, noteId }: { uid: string; noteId: string }) {
     showToast(`Deleted ${note?.title ? `"${note.title}"` : "note"}`, undo);
   };
   return (
-    <nav aria-label="Breadcrumb" className="flex h-16 shrink-0 items-center gap-2 px-3 text-[14.5px] font-medium text-soft sm:px-7">
-      <Link to="/notes" className="inline-flex h-9 items-center gap-1.5 rounded-[11px] bg-card pr-3.5 pl-2.5 shadow-[0_0_0_1px_var(--line)] transition-colors hover:text-ink">
-        <MIcon name="left" className="size-4" />
+    <nav aria-label="Breadcrumb" className="flex h-14 items-center gap-1.5 pt-4 text-[14px] text-faint sm:pt-6">
+      <Link to="/notes" className="shrink-0 transition-colors hover:text-ink">
         Home
       </Link>
-      {folder && <span className="inline-flex h-9 min-w-0 items-center truncate rounded-[11px] bg-panel px-3.5">{folder.name}</span>}
-      <span className="truncate px-1 font-semibold text-ink">{note?.title || "Untitled"}</span>
+      {folder && (
+        <>
+          <MIcon name="chevron" className="size-3.5 shrink-0" />
+          <span className="min-w-0 truncate">{folder.name}</span>
+        </>
+      )}
+      <MIcon name="chevron" className="size-3.5 shrink-0" />
+      <span aria-current="page" className="min-w-0 truncate text-soft">
+        {note?.title || "Untitled"}
+      </span>
       <span className="ml-auto">
         <RowMenu label="More actions for this note">
           <MenuItem onSelect={() => void remove()} danger>
@@ -156,7 +163,7 @@ function MissingNote() {
   return (
     <div className="grid flex-1 place-items-center px-6 text-center">
       <div>
-        <p className="font-heading text-[28px] font-semibold tracking-[-0.025em]">This note doesn't exist any more.</p>
+        <p className="text-[22px] font-semibold tracking-[-0.02em]">This note doesn't exist any more.</p>
         <Link to="/notes" className={`${btnClass({ variant: "primary", size: "md" })} mt-6`}>
           Back to your notes
         </Link>

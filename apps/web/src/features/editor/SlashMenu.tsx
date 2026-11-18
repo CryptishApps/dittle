@@ -7,7 +7,7 @@ export function SlashMenu(props: MenuProps<SlashCommand>) {
   const { index, point } = useMenuCursor(props);
 
   return (
-    <div className={`${POPOVER} w-[300px] p-1.5 text-[14px]`} role="listbox" aria-label="Commands">
+    <div className={`${POPOVER} w-[300px] p-1 text-[14px]`} role="listbox" aria-label="Commands">
       {items.length === 0 ? (
         <p className="px-3 py-2.5 text-soft">No command matches.</p>
       ) : (
@@ -20,7 +20,7 @@ export function SlashMenu(props: MenuProps<SlashCommand>) {
             onMouseDown={(event) => event.preventDefault()}
             onMouseEnter={() => point(position)}
             onClick={() => command(item)}
-            className="block w-full rounded-xl px-3 py-2 text-left aria-selected:bg-panel"
+            className="block w-full rounded-lg px-2.5 py-1.5 text-left aria-selected:bg-chip"
           >
             <span className="block truncate font-medium text-ink">{item.label}</span>
             <span className="block truncate text-[12.5px] text-soft">{item.hint}</span>

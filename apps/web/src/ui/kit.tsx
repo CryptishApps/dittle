@@ -48,21 +48,21 @@ type BtnVariant = "primary" | "secondary" | "quiet" | "danger" | "inverse";
 type BtnSize = "sm" | "md" | "lg";
 
 const BTN_VARIANT: Record<BtnVariant, string> = {
-  primary: "bg-accent text-on-accent shadow-press hover:bg-accent-ink",
-  secondary: "border border-line-strong bg-card text-ink hover:border-ink",
+  primary: "bg-ink text-page hover:opacity-85",
+  secondary: "border border-line-strong bg-card text-ink hover:bg-chip",
   quiet: "text-soft hover:bg-chip hover:text-ink",
   danger: "bg-danger text-page hover:opacity-90",
   inverse: "bg-ink text-page hover:opacity-90",
 };
 
 const BTN_SIZE: Record<BtnSize, string> = {
-  sm: "h-8 gap-1.5 rounded-[10px] px-3 text-[13px]",
-  md: "h-10 gap-2 rounded-xl px-4 text-[14.5px]",
-  lg: "h-13 gap-2 rounded-[14px] px-6 text-[16px]",
+  sm: "h-8 gap-1.5 rounded-lg px-3 text-[13px]",
+  md: "h-10 gap-2 rounded-[10px] px-4 text-[14.5px]",
+  lg: "h-12 gap-2 rounded-xl px-6 text-[15.5px]",
 };
 
 export function btnClass({ variant = "secondary", size = "md" }: { variant?: BtnVariant; size?: BtnSize } = {}): string {
-  return `inline-flex shrink-0 items-center justify-center font-semibold whitespace-nowrap transition-colors disabled:pointer-events-none disabled:opacity-50 ${BTN_VARIANT[variant]} ${BTN_SIZE[size]}`;
+  return `inline-flex shrink-0 items-center justify-center font-medium whitespace-nowrap transition-colors disabled:pointer-events-none disabled:opacity-50 ${BTN_VARIANT[variant]} ${BTN_SIZE[size]}`;
 }
 
 export function Btn({
@@ -91,10 +91,10 @@ export function Btn({
   );
 }
 
-export const POPOVER = "rounded-2xl bg-card shadow-pop";
+export const POPOVER = "rounded-xl bg-card shadow-pop";
 
 export function Kbd({ children }: { children: ReactNode }) {
-  return <kbd className="inline-flex h-6 items-center rounded-md border border-line-strong border-b-2 bg-card px-2 font-sans text-[12px] text-soft">{children}</kbd>;
+  return <kbd className="inline-flex h-5 items-center rounded-[5px] border border-line px-1.5 font-sans text-[11.5px] text-faint">{children}</kbd>;
 }
 
 export type MIconName = "inbox" | "today" | "notes" | "folder" | "file" | "search" | "plus" | "chevron" | "left" | "right" | "close" | "check" | "sidebar" | "chip" | "share" | "equals" | "home" | "table";

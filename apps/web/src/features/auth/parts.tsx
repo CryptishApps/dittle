@@ -82,7 +82,7 @@ export function PasswordRules({ check }: { check?: PasswordCheck }) {
       {check.rules.map((rule) => (
         <li
           key={rule.label}
-          className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[12.5px] font-medium transition-colors ${rule.met ? "bg-accent-tint text-accent-ink" : "bg-chip text-soft"}`}
+          className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[12.5px] font-medium transition-colors ${rule.met ? "bg-ink text-page" : "bg-chip text-soft"}`}
         >
           {rule.met && <MIcon name="check" className="size-3" />}
           {rule.label}
@@ -133,14 +133,13 @@ const PEEK_SHOWN = "(min-width: 1024px)";
 function AppPeek() {
   const [shown] = useState(() => window.matchMedia(PEEK_SHOWN).matches);
   return (
-    <aside aria-hidden className="relative m-3 hidden overflow-hidden rounded-[28px] lg:block">
-      <div className="desk absolute inset-0" />
-      <div className="absolute top-[14%] left-[12%] w-[150%] overflow-hidden rounded-[18px] border border-line bg-card p-1.5 shadow-pop">
+    <aside aria-hidden className="relative m-3 hidden overflow-hidden rounded-2xl border border-line bg-panel lg:block">
+      <div className="absolute top-[14%] left-[12%] w-[150%] overflow-hidden rounded-xl border border-line bg-card p-1">
         <div className="overflow-hidden rounded-xl">
           <Shot name="hero" alt="" priority={shown} sizes={`${PEEK_SHOWN} 80vw, 1px`} />
         </div>
       </div>
-      <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-b from-transparent to-side" />
+      <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-b from-transparent to-panel" />
     </aside>
   );
 }

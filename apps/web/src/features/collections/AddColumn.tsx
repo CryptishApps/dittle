@@ -14,7 +14,7 @@ const OPERATORS = [
 type Operator = (typeof OPERATORS)[number]["op"];
 type AddColumnProps = { collection: Collection; rows: RowCells[]; scales: Scales; onAdd: (column: CalculatedColumn) => void };
 
-const CONTROL = "h-9 rounded-xl border border-line-strong bg-card px-3 text-[14px] text-ink outline-none focus:border-accent focus:ring-[3px] focus:ring-accent-tint";
+const CONTROL = "h-9 rounded-lg border border-line-strong bg-card px-3 text-[14px] text-ink outline-none focus:border-ink";
 
 export function AddColumn({ collection, rows, scales, onAdd }: AddColumnProps) {
   const fields = numericFields(collection.fields);
@@ -80,8 +80,8 @@ export function AddColumn({ collection, rows, scales, onAdd }: AddColumnProps) {
   }
 
   return (
-    <div className="mt-5 rounded-2xl border border-line bg-card px-5 py-4 shadow-tile">
-      <p className="text-label text-soft">Calculated column</p>
+    <div className="mt-5 rounded-xl border border-line bg-card px-4 py-3.5">
+      <p className="text-[13px] font-semibold text-faint">Calculated column</p>
       {suggested === "asking" ? (
         <p className="mt-2 text-[14px]">
           <span className="t-shimmer-text" data-text="Looking for useful columns">
@@ -93,7 +93,7 @@ export function AddColumn({ collection, rows, scales, onAdd }: AddColumnProps) {
           <ul className="mt-2 flex flex-wrap gap-2">
             {suggested.map((column) => (
               <li key={column.id}>
-                <button type="button" onClick={() => add(column)} className="rounded-lg border border-dashed border-accent-line bg-accent-tint px-3.5 py-1.5 text-[13.5px] font-medium text-accent-ink hover:border-accent">
+                <button type="button" onClick={() => add(column)} className="rounded-lg border border-line-strong px-3 py-1.5 text-[13.5px] font-medium text-ink hover:bg-chip">
                   {column.name} = {describeColumn(column, fields)}
                 </button>
               </li>

@@ -77,7 +77,7 @@ export function RequestPreview({ editor }: { editor: Editor }) {
           aria-label="Preview"
           className={`${POPOVER} fixed top-0 left-0 z-50 w-[360px] max-w-[calc(100vw-1rem)] px-5 py-4 text-[14px]`}
         >
-          <p className="text-label text-accent-ink">
+          <p className="text-[12.5px] text-faint">
             Written {written.where === "on_device" ? "on this device" : "in the cloud"} from your note
           </p>
           <ul className="mt-2.5 max-h-[260px] space-y-1 overflow-y-auto leading-[1.6] text-ink">
