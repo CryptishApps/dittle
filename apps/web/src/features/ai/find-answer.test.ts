@@ -62,3 +62,16 @@ describe("reading what the model found in a paragraph", () => {
     expect(found.requests).toEqual(["Add a shopping list here."]);
   });
 });
+
+describe("readFound with tracked text", () => {
+  const paragraph = "Made chorizo and cabbage pasta for dinner.";
+  const text = JSON.stringify({ values: [{ quote: "chorizo and cabbage pasta", kind: "text", name: "dinner_dish" }], requests: [], filings: [] });
+
+  test("keeps a text value when the person tracks text columns", () => {
+    expect(readFound(text, paragraph, { tracked: true }).values).toEqual([{ quote: "chorizo and cabbage pasta", kind: "text", name: "dinner_dish" }]);
+  });
+
+  test("drops text values when nothing is tracked, so plain words never light up", () => {
+    expect(readFound(text, paragraph).values).toEqual([]);
+  });
+});

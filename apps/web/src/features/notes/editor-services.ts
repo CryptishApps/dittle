@@ -1,7 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { dayLabel, rowLabel } from "@/features/collections/format";
 import { tidyColumnNames } from "@/features/collections/name-columns";
-import { freeRowId, placeByDay, placeByName, planCollection, rowOptions, type Placement } from "@/features/collections/logic";
+import { freeRowId, placeByDay, placeByName, planCollection, rowOptions, trackedTextOf, type Placement } from "@/features/collections/logic";
 import { changeEverywhere, type Quantity } from "@/features/editor/linking";
 import { acceptFormula, describeFormula, inputsFor, quantityOf } from "@/features/formulas/apply";
 import type { EditorServices } from "@/features/editor/services";
@@ -327,6 +327,7 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
       return filing;
     },
     ignoredRequests: () => queryClient.getQueryData(noteQuery(uid, noteId).queryKey)?.ignoredRequests ?? [],
+    trackedText: () => trackedTextOf(collections()),
     ignoreRequest: (text) => writes.ignoreRequest(uid, noteId, text),
   };
 }

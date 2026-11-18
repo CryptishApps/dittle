@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Editor } from "@tiptap/react";
 import { AnimatePresence, m, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { trackedTextOf } from "@/features/collections/logic";
 import { trackAllSpotted } from "@/features/editor/filing";
 import { NoteEditorView, useNoteEditor } from "@/features/editor/NoteEditor";
 import { spottedValues, type Spotted } from "@/features/editor/spotting";
@@ -42,11 +43,13 @@ export default function PracticeStep({ uid, recipes, today, onDone }: Props) {
   const [store] = useState(() => createValueStore());
   const [initial] = useState(() => fromNoteDoc(noteWith(TITLE)));
   const example = useMemo(() => practiceExample(recipes), [recipes]);
-  const editor = useNoteEditor({ store, content: initial, label: "Practice note", autofocus: "end", placeholder: example });
+  const tracked = useRef<string[]>([]);
+  const editor = useNoteEditor({ store, content: initial, label: "Practice note", autofocus: "end", placeholder: example, services: { trackedText: () => tracked.current } });
   const spotted = useSpotted(editor);
   const collections = useQuery(collectionsQuery(uid)).data;
   const rows = useQuery(rowsQuery(uid)).data;
   const shelf = useMemo(() => shelfOf(collections ?? [], rows ?? []), [collections, rows]);
+  tracked.current = trackedTextOf(shelf.collections);
   const [wheres, setWheres] = useState<ReadonlyMap<string, Where>>(new Map());
   const asked = useRef(new Set<string>());
   const [typing, setTyping] = useState(false);
@@ -145,7 +148,7 @@ export default function PracticeStep({ uid, recipes, today, onDone }: Props) {
             </button>
           </>
         ) : spotted.length === 0 ? (
-          <span>Keep going. Dittle looks for amounts, times, days, people and places.</span>
+          <span>Keep going. Dittle looks for amounts, times, days, people and places{tracked.current.length > 0 ? ", and anything your collections track" : ""}.</span>
         ) : (
           <span>
             Found {spotted.length} {spotted.length === 1 ? "value" : "values"}

@@ -3,7 +3,7 @@ import { parseIsoDuration } from "@/features/formulas/duration";
 import { isCurrency, isMeasure, MEASURE_UNITS } from "@/features/formulas/units";
 import { nameOf, readFound, records, strings, type Filing } from "./find-answer";
 import { createHybrid, type InferenceWhere } from "./hybrid";
-import { GRAINS, plainAmount, TAG_KINDS, validWhen, VALUE_KINDS, type Grain, type TagKind } from "./value-shapes";
+import { GRAINS, plainAmount, TAG_KINDS, validWhen, type Grain, type TagKind } from "./value-shapes";
 
 export { DESCRIBE_PROMPT_VERSION } from "./prompt-versions";
 
@@ -39,6 +39,8 @@ For each value give:
 
 "filings": sentences that ask for details in this paragraph to be kept in a list, log or table, such as "add this to my runs", "put that in the budget" or "start a list of swims with this", copied exactly as "sentence". "list" is a short plural name for that list in sentence case, such as Runs, Swims or Budget. A filing is never also a request.
 
+A "Tracked" line, when there is one, lists the plain-text details the person keeps in their collections, such as Dinners (dish). Also give any phrase in the paragraph that is one of those details, with kind text and only the phrase itself: "made chorizo pasta for dinner" gives "chorizo pasta" for Dinners (dish). Without a Tracked line, never give a text value.
+
 Ordinary words are never values. If there are no values, return an empty list.
 
 Examples
@@ -47,7 +49,10 @@ Answer: {"values":[{"quote":"12","kind":"count","name":"dinner_guests"},{"quote"
 Paragraph: Still 80 guests, so 10 tables. Remember to ask Sam about the cake.
 Answer: {"values":[{"quote":"80","kind":"count","name":"guest_count"},{"quote":"10","kind":"count","name":"table_count"},{"quote":"Sam","kind":"person","name":"cake_contact"}],"requests":[],"filings":[]}
 Paragraph: Ran 8 km along the river this morning in 46 minutes. Add this to my runs.
-Answer: {"values":[{"quote":"8 km","kind":"number","name":"run_distance"},{"quote":"46 minutes","kind":"duration","name":"run_time"}],"requests":[],"filings":[{"sentence":"Add this to my runs.","list":"Runs"}]}`;
+Answer: {"values":[{"quote":"8 km","kind":"number","name":"run_distance"},{"quote":"46 minutes","kind":"duration","name":"run_time"}],"requests":[],"filings":[{"sentence":"Add this to my runs.","list":"Runs"}]}
+Tracked: Dinners (dish); Books (title)
+Paragraph: Long day at work, then made a lamb tagine for dinner and read two chapters of Piranesi before bed.
+Answer: {"values":[{"quote":"lamb tagine","kind":"text","name":"dinner_dish"},{"quote":"Piranesi","kind":"text","name":"book_title"}],"requests":[],"filings":[]}`;
 
 const DESCRIBE_INSTRUCTIONS = `You get one paragraph from someone's notes and a list of values that appear in it. Describe each listed value, in the same order. Never add values that are not listed.
 
@@ -99,7 +104,7 @@ const FIND_SCHEMA = {
       maxItems: MAX_VALUES,
       items: {
         type: "object",
-        properties: { quote: { type: "string" }, kind: { type: "string", enum: [...VALUE_KINDS] }, name: { type: "string" } },
+        properties: { quote: { type: "string" }, kind: { type: "string", enum: [...TAG_KINDS] }, name: { type: "string" } },
         required: ["quote", "kind", "name"],
       },
     },
@@ -146,13 +151,17 @@ const DESCRIBE_SCHEMA = {
 
 type ParagraphInput = { paragraph: string; noteTitle: string; today?: Date };
 
-export function createDescriber(mode: InferenceMode) {
-  const finder = createHybrid("Find values", mode, FIND_INSTRUCTIONS, FIND_SCHEMA);
-  const describer = createHybrid("Describe values", mode, DESCRIBE_INSTRUCTIONS, DESCRIBE_SCHEMA);
+export function findPrompt(paragraph: string, tracked: string[] = []): string {
+  return tracked.length > 0 ? `Tracked: ${tracked.join("; ")}\nParagraph: ${paragraph}` : `Paragraph: ${paragraph}`;
+}
 
-  const find = async ({ paragraph }: ParagraphInput): Promise<FindResult> => {
-    const { text, ...timed } = await finder.ask(`Paragraph: ${paragraph}`);
-    return { ...readFound(text, paragraph), ...timed };
+export function createDescriber(findMode: InferenceMode, describeMode = findMode) {
+  const finder = createHybrid("Find values", findMode, FIND_INSTRUCTIONS, FIND_SCHEMA);
+  const describer = createHybrid("Describe values", describeMode, DESCRIBE_INSTRUCTIONS, DESCRIBE_SCHEMA);
+
+  const find = async ({ paragraph, tracked = [] }: ParagraphInput & { tracked?: string[] }): Promise<FindResult> => {
+    const { text, ...timed } = await finder.ask(findPrompt(paragraph, tracked));
+    return { ...readFound(text, paragraph, { tracked: tracked.length > 0 }), ...timed };
   };
 
   const describe = async ({ paragraph, noteTitle, today = new Date(), quotes }: ParagraphInput & { quotes: string[] }): Promise<DescribeResult> => {
@@ -169,7 +178,7 @@ export function createDescriber(mode: InferenceMode) {
   return { model: finder.model, find, describe, tag };
 }
 
-const shared = createDescriber(InferenceMode.PREFER_ON_DEVICE);
+const shared = createDescriber(InferenceMode.PREFER_ON_DEVICE, InferenceMode.PREFER_IN_CLOUD);
 
 export const deviceModel = shared.model;
 export const findValues = shared.find;

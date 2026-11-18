@@ -23,9 +23,9 @@ const LEAD = "mt-4 max-w-[52ch] text-[17px] leading-[1.65] text-soft";
 const STEPS: Step[] = [
   {
     key: "hover",
-    label: "On device",
+    label: "On device and cloud",
     title: "It knows what each value is",
-    body: "Type @ before a value to tag it, or let Dittle spot it for you. Gemini Nano names it, like price per head or run distance, and notices when one is worked out from others. Hover a value to see what it is and how many notes use it.",
+    body: "Type @ before a value to tag it, or let Gemini Nano spot it as you type. The cloud names it, like price per head or run distance, and Nano notices when one is worked out from others. Hover a value to see what it is and how many notes use it.",
     visual: <Shot name="hover" alt="The catering note with a card on £3,040 showing it is worked out from the catering price and the guest count." focus={{ x: 19, y: 9, zoom: 1.55 }} />,
   },
   {
@@ -60,17 +60,17 @@ const STEPS: Step[] = [
 
 const MODELS: { job: string; model: string; where: string; how: string }[] = [
   {
-    job: "Find and name values, file them into collections, spot formulas, write requests",
+    job: "Find values as you type, name columns, spot formulas, write requests",
     model: "Gemini Nano",
     where: "On device",
     how: "Chrome's Prompt API, through Firebase AI Logic hybrid mode",
   },
   { job: "The same jobs when the device has no model", model: "Gemini Flash-Lite", where: "Cloud", how: "Firebase AI Logic falls back to the cloud" },
   {
-    job: "Sort what you type or paste into the home box, link values across notes, read updates",
+    job: "Describe values, file them into collections, link them across notes, sort the home box, read updates",
     model: "Gemini Flash-Lite",
     where: "Cloud, Nano offline",
-    how: "These weigh everything you track at once, so the cloud goes first and Nano takes over offline",
+    how: "These decide where your values go, so the cloud goes first and Nano takes over offline",
   },
   { job: "Suggest collections across all your notes", model: "Gemini Flash-Lite", where: "Cloud", how: "Only the tracked values are sent, not the notes" },
 ];
@@ -245,7 +245,7 @@ export function Welcome({ onStart, onSignIn }: WelcomeProps) {
                   On device
                 </p>
                 <h2 className={H2}>Gemini Nano, right on your device.</h2>
-                <p className={LEAD}>Most of the work runs on Gemini Nano inside your browser or phone. It is private, quick and works without a connection. The cloud steps in when your device can’t, or when the job is too big.</p>
+                <p className={LEAD}>Gemini Nano runs inside your browser. It spots values as you type, privately and without a connection. The cloud makes the calls that decide where a value goes, and Nano takes those over when you’re offline.</p>
               </Reveal>
               <Reveal delay={0.08} className="mt-10 space-y-3 md:hidden">
                 {MODELS.map((row) => (
@@ -284,7 +284,7 @@ export function Welcome({ onStart, onSignIn }: WelcomeProps) {
                 </table>
               </Reveal>
               <Reveal delay={0.1} className="mt-12 grid gap-x-8 gap-y-6 sm:grid-cols-3">
-                <Fact icon="lock" title="Private" body="On-device jobs keep your notes on your device. Cloud fallback sends one paragraph, or the note for a request. Collection suggestions send only values." />
+                <Fact icon="lock" title="Private" body="On-device jobs keep your notes on your device. Cloud jobs send only what they work on: one paragraph, or what you type in the home box. Collection suggestions send only values." />
                 <Fact icon="offline" title="Offline" body="Notes save to your device first and sync when you’re back. The on-device model works without a connection." />
                 <Fact icon="code" title="Open" body="The code is on GitHub. Read how every AI call is made, or run your own copy." />
               </Reveal>
