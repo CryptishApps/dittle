@@ -30,5 +30,6 @@ export type StoredValue = { id: string } & FactFields;
 export type CollectionField = { id: string; name: string; kind: TagKind };
 export type CollectionKey = { by: "when"; grain: "day" } | { by: "name" };
 export type CalculatedColumn = { id: string; name: string; expr: string; inputs: string[] };
-export type Collection = { id: string; name: string; rowLabel: string; fields: CollectionField[]; columns?: CalculatedColumn[]; key: CollectionKey; createdAt: number };
+export type Glance = "total" | "count" | "average" | "countdown";
+export type Collection = { id: string; name: string; rowLabel: string; fields: CollectionField[]; columns?: CalculatedColumn[]; key: CollectionKey; glance?: Glance; createdAt: number };
 export type Row = { id: string; collectionId: string; label: string; period?: string; createdAt: number };

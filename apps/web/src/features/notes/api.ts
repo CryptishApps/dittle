@@ -7,7 +7,7 @@ import type { CellPlacement, CellWrite, Folder, Note, NoteSummary, StoredValue }
 
 export const loadStore = () => import("./store");
 
-export const KEPT_SHAPES_VERSION = "3";
+export const KEPT_SHAPES_VERSION = "4";
 
 export const cachedThenLive = <T, Key extends QueryKey>(queryClient: QueryClient, options: FetchQueryOptions<T, Error, T, Key>): Promise<T> =>
   ensureLive(queryClient, options, afterFirstPaint);

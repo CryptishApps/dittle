@@ -1,13 +1,14 @@
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { CaptureBox } from "@/features/capture/CaptureBox";
 import { useCollectionSuggestions, type Suggestion } from "@/features/collections/suggestions";
 import { daysUntil, summariseCollection, upcomingDates, type CollectionSummary, type Upcoming } from "@/features/collections/summary";
 import { dayLabel } from "@/features/collections/format";
-import { Btn, btnClass, Kbd, MIcon } from "@/ui/kit";
+import { Onboarding } from "@/features/onboarding/Onboarding";
+import { Btn, MIcon } from "@/ui/kit";
 import { collectionsQuery, foldersQuery, notesQuery, rowsQuery, startNote, valuesQuery, writes } from "./api";
 import { noteWith, type NoteDoc } from "./note-doc";
-import { STARTERS } from "./starters";
 import { NoteTree } from "./NoteTree";
 import { useOnline } from "./NotesShell";
 import { showToast } from "./toast";
@@ -48,7 +49,7 @@ export function HomePage({ uid }: { uid: string }) {
     showToast(`Created ${collection.name} with ${newRows.length} rows`);
   };
 
-  if (notes.length === 0 && folders.length === 0) return <FirstVisit onStart={(title) => start(title)} onStartFrom={startFrom} />;
+  if (notes.length === 0 && folders.length === 0) return <Onboarding uid={uid} onStart={(title) => start(title)} onStartFrom={startFrom} />;
 
   const summaries = collections.map((collection) => summariseCollection(collection, rows, values));
   const upcoming = upcomingDates(values);
@@ -59,7 +60,7 @@ export function HomePage({ uid }: { uid: string }) {
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto max-w-[1160px] px-4 pt-7 pb-24 sm:px-10 sm:pt-11">
         <h1 className="sr-only">Your notes</h1>
-        <StartNote onStart={(title) => start(title)} />
+        <CaptureBox uid={uid} onStartNote={(title) => start(title)} />
         {tracking && (
           <section aria-label="What you track" className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {summaries.map((summary) => (
@@ -95,73 +96,6 @@ export function HomePage({ uid }: { uid: string }) {
         </nav>
       </div>
     </div>
-  );
-}
-
-function FirstVisit({ onStart, onStartFrom }: { onStart: (title: string) => void; onStartFrom: (doc: NoteDoc) => void }) {
-  return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
-      <div className="mx-auto max-w-[760px] px-4 pt-12 pb-24 sm:px-8 sm:pt-20">
-        <h1 className="text-[44px] leading-[1.04] font-semibold tracking-[-0.045em] sm:text-[58px]">
-          Plans change.
-          <span className="block text-quiet">Your notes keep up.</span>
-        </h1>
-        <p className="mt-5 max-w-[54ch] text-[17px] leading-[1.65] text-soft">
-          Write a trip, a wedding or a training plan as notes. Dittle spots the prices, dates and distances, keeps every copy in step, and files them into tables that add themselves up.
-        </p>
-        <div className="mt-8">
-          <StartNote onStart={onStart} autoFocus />
-        </div>
-        <h2 className="mt-12 text-[20px] font-semibold tracking-[-0.02em]">Or open an example</h2>
-        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-          {STARTERS.map((starter) => (
-            <li key={starter.title}>
-              <button
-                type="button"
-                onClick={() => onStartFrom(starter.doc)}
-                className="group flex h-full w-full flex-col rounded-[18px] bg-card px-5 pt-4 pb-4.5 text-left shadow-[0_0_0_1px_var(--line),0_1px_2px_rgb(18_20_24/0.04)] transition-shadow hover:shadow-tile focus-visible:shadow-tile"
-              >
-                <span className="flex w-full items-center justify-between gap-3">
-                  <span className="text-[16.5px] font-semibold tracking-[-0.01em] text-ink">{starter.title}</span>
-                  <MIcon name="right" className="size-4 shrink-0 text-faint transition-colors group-hover:text-accent" />
-                </span>
-                <span className="mt-1.5 text-[14.5px] leading-[1.6] text-soft">{starter.summary}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-}
-
-function StartNote({ onStart, autoFocus = false }: { onStart: (title: string) => void; autoFocus?: boolean }) {
-  const [title, setTitle] = useState("");
-  return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault();
-        onStart(title.trim());
-      }}
-      className="flex h-16 items-center gap-3 rounded-[20px] bg-card pr-2.5 pl-6 shadow-[0_0_0_1px_var(--line),0_20px_30px_-24px_rgb(18_20_24/0.3)] transition-shadow focus-within:shadow-[0_0_0_2px_var(--accent),0_0_0_6px_var(--accent-tint)]"
-    >
-      <input
-        autoFocus={autoFocus}
-        value={title}
-        onChange={(event) => setTitle(event.target.value)}
-        placeholder="Start a note"
-        aria-label="Start a note with this title"
-        className="h-full min-w-0 flex-1 bg-transparent text-[18px] text-ink outline-none placeholder:text-faint"
-        style={{ outline: "none" }}
-      />
-      <span className="hidden sm:inline-flex">
-        <Kbd>Enter</Kbd>
-      </span>
-      <button type="submit" className={btnClass({ variant: "primary", size: "md" })}>
-        <MIcon name="plus" className="size-4" />
-        <span className="max-sm:sr-only">New note</span>
-      </button>
-    </form>
   );
 }
 
