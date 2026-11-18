@@ -4,6 +4,8 @@ import { FRAME, Icon, VALUE, useLoop } from "./quiet";
 
 const STEPS = [1400, 1400, 7000];
 
+const PEOPLE: Record<string, string> = { Tom: "text-[var(--sun-ink)]", Ana: "text-[var(--sky-ink)]", Mia: "text-faint" };
+
 const CHAT: { who: string; said: string }[] = [
   { who: "Tom", said: "villa’s confirmed!! €1,680 for the 4 nights" },
   { who: "Ana", said: "flights are £118 each, we land 9:40 fri 11th" },
@@ -21,15 +23,17 @@ export function TidyDemo() {
         <p className="text-[13px] font-semibold text-faint">You pasted</p>
         <ul className="mt-3 space-y-2" aria-label="A pasted group chat">
           {CHAT.map((line, index) => (
-            <li key={index} className="rounded-xl bg-panel px-3.5 py-2.5">
-              <p className="text-[12.5px] font-semibold text-faint">{line.who}</p>
+            <li key={index} className={`max-w-[92%] rounded-2xl px-3.5 py-2.5 ${line.who === "Ana" ? "ml-auto rounded-br-md bg-[var(--sky-strong)]" : "rounded-bl-md bg-panel"}`}>
+              <p className={`text-[12.5px] font-semibold ${PEOPLE[line.who] ?? "text-faint"}`}>{line.who}</p>
               <p className="text-[15px] leading-snug">{line.said}</p>
             </li>
           ))}
         </ul>
       </div>
-      <div className="flex items-center justify-center pt-1 text-faint lg:pt-48">
-        <Icon name="arrow" className="size-5 rotate-90 lg:rotate-0" />
+      <div className="flex items-center justify-center pt-1 lg:pt-48">
+        <span className="grid size-10 place-items-center rounded-full bg-[var(--brand-blue)] text-white shadow-[0_8px_20px_-8px_rgb(31_95_240/0.8)]">
+          <Icon name="arrow" className="size-5 rotate-90 lg:rotate-0" />
+        </span>
       </div>
       <div>
         <p className="text-[13px] font-semibold text-faint">Dittle made</p>

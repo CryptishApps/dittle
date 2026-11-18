@@ -1,15 +1,15 @@
 import { AnimatePresence, m } from "motion/react";
 import type { ReactNode } from "react";
-import { ease } from "../../ui/kit";
 import { FRAME, Icon, VALUE, useLoop, type IconName } from "./quiet";
 
 const STEPS = [1000, 2200, 2200, 5200];
 
-type Receipt = { icon: IconName; input: string; says: ReactNode };
+type Receipt = { icon: IconName; tone: string; input: string; says: ReactNode };
 
 const RECEIPTS: Receipt[] = [
   {
     icon: "type",
+    tone: "bg-[var(--sky-strong)] text-[var(--sky-ink)]",
     input: "“ran 6k by the canal, 31 mins”",
     says: (
       <>
@@ -19,6 +19,7 @@ const RECEIPTS: Receipt[] = [
   },
   {
     icon: "image",
+    tone: "bg-[var(--sun-strong)] text-[var(--sun-ink)]",
     input: "Screenshot of a booking",
     says: (
       <>
@@ -28,6 +29,7 @@ const RECEIPTS: Receipt[] = [
   },
   {
     icon: "mic",
+    tone: "bg-[var(--brand-blue)] text-white",
     input: "“Mum’s birthday is 3 December, the blue scarf, about £45”",
     says: (
       <>
@@ -49,7 +51,7 @@ export function CaptureDemo() {
   const shown = RECEIPTS.slice(0, step);
   return (
     <div ref={ref} className={`${FRAME} p-4 sm:p-6`} role="img" aria-label="One box takes typing, a pasted chat, a screenshot or your voice. Three receipts appear: a run filed in Runs, flight prices updated from a booking screenshot, and a new birthday note from a voice memo. Each has an Undo.">
-      <div className="flex h-12 items-center gap-3 rounded-xl border border-line-strong px-4 text-[15.5px] text-faint">
+      <div className="flex h-12 items-center gap-3 rounded-xl border border-[var(--accent-line)] px-4 text-[15.5px] text-faint shadow-[0_0_0_4px_var(--sky)]">
         <span className="flex-1 truncate">New note, or jot something down</span>
         <Icon name="mic" className="size-[18px]" />
       </div>
@@ -67,20 +69,20 @@ export function CaptureDemo() {
           {shown.map((receipt) => (
             <m.li
               key={receipt.input}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, y: 14, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, transition: { duration: 0.25 } }}
-              transition={{ duration: 0.5, ease }}
+              transition={{ type: "spring", stiffness: 380, damping: 30 }}
               className="flex items-start gap-3.5 border-b border-line py-3 last:border-b-0"
             >
-              <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg bg-panel text-soft">
+              <span className={`mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg ${receipt.tone}`}>
                 <Icon name={receipt.icon} className="size-4" />
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-[15px] leading-snug">{receipt.input}</p>
                 <p className="mt-1 text-[13.5px] leading-relaxed text-soft">{receipt.says}</p>
               </div>
-              <span className="mt-0.5 text-[13.5px] font-semibold text-soft">Undo</span>
+              <span className="mt-0.5 text-[13.5px] font-semibold text-[var(--sky-ink)]">Undo</span>
             </m.li>
           ))}
         </AnimatePresence>
