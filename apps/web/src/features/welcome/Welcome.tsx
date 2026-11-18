@@ -32,7 +32,7 @@ const STEPS: Step[] = [
     key: "panel",
     label: "On device",
     title: "Click a value to see where it lives",
-    body: "A side panel shows the value, a field to change it, the notes that use it and its row in a collection. Three plans written in three different notes line up in one Things to do table, with the cost each and the date.",
+    body: "A side panel shows the value, a field to change it, the notes that use it and its row in a collection. Three bookings written in three different notes line up in one Things to do table, with the cost each and the date.",
     visual: <Shot name="panel" alt="A side panel for €45 with a field to change it and a Things to do table listing a fado night, Jerónimos Monastery and Pena Palace with their prices and dates." focus={{ x: 21, y: 7, zoom: 1.27 }} />,
   },
   {
@@ -45,7 +45,7 @@ const STEPS: Step[] = [
   {
     key: "home",
     label: "On device, cloud for suggestions",
-    title: "The whole plan on your home page",
+    title: "Everything you track, on your home page",
     body: "Each collection adds itself up, like what the things to do cost each of you. The dates in your notes count down, and Dittle suggests a new collection when it sees a pattern.",
     visual: <Shot name="home" alt="The home page with a Things to do tile showing €95 in total, a Next up tile counting down 23 days to the barn deposit, and a list of notes." focus={{ x: 19, y: 6, zoom: 1.45 }} />,
   },
@@ -138,17 +138,17 @@ export function Welcome({ onStart, onSignIn }: WelcomeProps) {
                   <Icon name="arrow" className="size-3.5" />
                 </a>
                 <h1 className="mx-auto mt-6 max-w-[14ch] text-[44px] leading-[1.02] font-semibold tracking-[-0.045em] sm:text-[68px]">
-                  Plans change.
+                  Notes that
                   <span className="welcome-headline block pb-1">
-                    Your notes <span className="welcome-swash">keep up.</span>
+                    <span className="welcome-swash">keep track.</span>
                   </span>
                 </h1>
                 <p className="mx-auto mt-5 max-w-[52ch] text-[18px] leading-[1.6] text-balance text-soft sm:text-[19px]">
-                  Write plans and logs as plain notes. Dittle spots the prices, dates and distances, keeps every copy in step and adds them up for you.
+                  Write runs, dinners, trips and budgets the way you already do. Dittle spots the numbers and dates, keeps every copy in step, files them into tables and does the maths.
                 </p>
                 <div className="mt-8 flex flex-wrap justify-center gap-2.5">
                   <button type="button" onClick={onStart} className={`${PRIMARY} h-12 px-5 text-[16px]`}>
-                    Start planning, free
+                    Start writing, free
                     <Icon name="arrow" className="welcome-cta-arrow size-4" />
                   </button>
                   <a href="#demo" onClick={again} className={`${SECONDARY} h-12 px-5 text-[16px]`}>
@@ -219,7 +219,7 @@ export function Welcome({ onStart, onSignIn }: WelcomeProps) {
               <p className={LEAD}>Pick what you keep track of. Dittle sets up the notes and collections to start from, and you write the rest your way.</p>
               <TrackPicker />
               <button type="button" onClick={onStart} className={`${PRIMARY} mt-8`}>
-                Start planning, free
+                Start writing, free
                 <Icon name="arrow" className="welcome-cta-arrow size-4" />
               </button>
             </Reveal>
@@ -303,12 +303,12 @@ export function Welcome({ onStart, onSignIn }: WelcomeProps) {
             <div className="welcome-wash absolute inset-0 -z-10" aria-hidden />
             <div className={`${WRAP} py-24 text-center sm:py-32`}>
               <h2 className="text-[40px] leading-[1.04] font-semibold tracking-[-0.04em] sm:text-[60px]">
-                Plans change.
-                <span className="welcome-headline block pb-1">Your notes keep up.</span>
+                Write it once.
+                <span className="welcome-headline block pb-1">Dittle keeps it up to date.</span>
               </h2>
               <div className="mt-8 flex flex-wrap justify-center gap-2.5">
                 <button type="button" onClick={onStart} className={`${PRIMARY} h-12 px-5 text-[16px]`}>
-                  Start planning, free
+                  Start writing, free
                   <Icon name="arrow" className="welcome-cta-arrow size-4" />
                 </button>
                 <a href={REPO_URL} className={`${SECONDARY} h-12 px-5 text-[16px]`}>

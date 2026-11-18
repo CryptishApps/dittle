@@ -1,6 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { dayLabel, rowLabel } from "@/features/collections/format";
-import { tidyColumnNames } from "@/features/collections/name-columns";
+import { columnsSettled, tidyColumnNames } from "@/features/collections/name-columns";
 import { freeRowId, placeByDay, placeByName, planCollection, rowOptions, trackedTextOf, type Placement } from "@/features/collections/logic";
 import { changeEverywhere, type Quantity } from "@/features/editor/linking";
 import { acceptFormula, describeFormula, inputsFor, quantityOf } from "@/features/formulas/apply";
@@ -111,6 +111,7 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
   };
 
   const decide = async (value: TrackedValue, sentence?: string): Promise<Decision> => {
+    await columnsSettled();
     const fact = { ...store.get(value.id), ...value };
     const all = collections();
     if (fact.field || all.length === 0) return { kind: "none", fact };
@@ -276,7 +277,7 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
     for (const value of values) known.set(value.id, { ...known.get(value.id), ...value });
     const plan = planCollection(lead, [...known.values()], list, lead.event ? "day" : "name");
     writes.createCollection(uid, plan.collection, plan.rows, plan.cells);
-    void tidyColumnNames(uid, plan.collection, plan.cells.map((cell) => ({ text: known.get(cell.valueId)?.text ?? "", field: cell.fieldId })));
+    void tidyColumnNames(queryClient, uid, plan.collection, plan.cells.map((cell) => ({ text: known.get(cell.valueId)?.text ?? "", field: cell.fieldId })));
     showToast(`Started ${list} with ${rowLabel(plan.rows[0]!)}`);
     return true;
   };
@@ -318,7 +319,7 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
     startCollection: (value, name, per) => {
       const plan = planCollection(value, store.list(), name, per);
       writes.createCollection(uid, plan.collection, plan.rows, plan.cells);
-      void tidyColumnNames(uid, plan.collection, plan.cells.map((cell) => ({ text: store.get(cell.valueId)?.text ?? "", field: cell.fieldId })));
+      void tidyColumnNames(queryClient, uid, plan.collection, plan.cells.map((cell) => ({ text: store.get(cell.valueId)?.text ?? "", field: cell.fieldId })));
       showToast(`Created ${name} with ${plan.cells.length} ${plan.cells.length === 1 ? "value" : "values"}`);
     },
     fileValues: (values, list, sentence) => {

@@ -1,12 +1,12 @@
 # Dittle
 
-Plan things in plain notes. Change a number once, and every note that uses it follows.
+Notes that keep track. Write things down the way you already do: runs, dinners, trips, budgets. Dittle files the numbers into tables, does the maths, and when a number changes in one note, every note that uses it follows.
 
-A plan is mostly numbers. For a group trip to Lisbon: 6 people, a €1,680 villa, £118 flights, a fado night on Saturday 12 December. The same numbers end up in the villa note, the flights note, the budget and the message to the group. Then two more friends say yes, you update two of the four notes, and the one you miss is the one that costs you.
+Most of what people write down has numbers in it. For a group trip to Lisbon: 6 people, a €1,680 villa, £118 flights, a fado night on Saturday 12 December. The same numbers end up in the villa note, the flights note, the budget and the message to the group. Then two more friends say yes, you update two of the four notes, and the one you miss is the one that costs you.
 
 Dittle reads the numbers as you write. It works out what each one is, which ones are the same thing in different notes, and which are calculated from others. Change the group from 6 to 8 in one note and the flights total goes from £708 to £944, the villa from €280 each to €210, and every other note that says 6 offers to follow. Write three things to do in three notes and they line up in one table, with the cost each added up and the next date counting down on your home page.
 
-It works for any plan with numbers in it: a trip, a wedding, an offsite, a training block.
+Logs work the same way. Write "ran 7.5 km in 49:40" in any note and it lands in your Runs table, with the month's distance on your home page. It works for anything with numbers in it: runs, meals, workouts, a trip, a wedding budget.
 
 Dittle doesn't summarise your notes. The AI's job is to keep track of what the numbers in them mean.
 
@@ -22,7 +22,7 @@ In a hurry? On the first screen, choose "Or look around a sample trip first" for
 
 1. Sign up. Dittle asks what you keep track of. Pick Running log and Weekly meal plan and press Enter.
 2. Each pick shows a sample entry with its values highlighted. Press Enter to file it: the run lands in a Runs table with its pace worked out. Tap "Add Sunday's 8 km too" for a second row, and choose what your home shows.
-3. On "Plans change. Try it." press Enter. Dittle lists every place that updated: the sentence in the note, the row, the pace and the home total. Then See my notes: each pick has a folder, a note and a collection.
+3. On "Things change. Try it." press Enter. Dittle lists every place that updated: the sentence in the note, the row, the pace and the home total. Then See my notes: each pick has a folder, a note and a collection.
 4. In the box at the top of home, type `ran 6k by the canal, 31 mins` and press Enter. A receipt says where it went (Filed in Runs, with the day, distance and pace) with Undo. Try `dinner on saturday is fish tacos` too, or hold M and say it, or drop a screenshot of a booking on the box.
 5. Click "a group chat" under the box. Dittle turns a messy chat into a tidy note with the values tracked. Choose Save note.
 6. Click + in the tabs to start a note called "Villa". Type `The villa is @€1,680` and press Tab, then `for @6` and Tab, then `of us, so @€280` and Tab, then `each.` Tab tags the value and adds the space after it. A few seconds later a message says €280 now follows a formula, something like villa cost ÷ guest count. Start a note called "Flights" and type `@6`, press ↓ to pick the 6 you already have, then Tab, and carry on with `seats at @£118` and Tab, then `each, so @£708` and Tab, then `in total.` Click the 6, change it to 8 and choose Update all. Both notes change: €280 becomes €210 and £708 becomes £944.

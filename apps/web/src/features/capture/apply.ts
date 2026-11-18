@@ -138,7 +138,7 @@ function newCollection(name: string, paragraph: DraftParagraph): { collection: C
 }
 
 async function file(context: CaptureContext, route: Extract<CaptureRoute, { action: "file" }>, found: ReturnType<typeof shownFor>): Promise<Outcome> {
-  const { uid, store } = context;
+  const { queryClient, uid, store } = context;
   const { paragraph } = route;
   const fresh = route.collection === "new" ? newCollection(route.list, paragraph) : undefined;
   const collection = fresh?.collection ?? found.collections[route.collection as number]!;
@@ -155,7 +155,7 @@ async function file(context: CaptureContext, route: Extract<CaptureRoute, { acti
     if (fresh) writes.deleteCollection(uid, collection.id);
     throw new Error("Nothing fits a field");
   }
-  if (fresh) void tidyColumnNames(uid, collection, picks.map(({ value, field }) => ({ text: value.quote, field: field.id })));
+  if (fresh) void tidyColumnNames(queryClient, uid, collection, picks.map(({ value, field }) => ({ text: value.quote, field: field.id })));
 
   const values = picks.map(({ value }) => store.add(value.quote, factOf(value, paragraph.text)));
   const [lead] = values;
