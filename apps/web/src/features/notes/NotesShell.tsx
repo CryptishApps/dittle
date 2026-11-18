@@ -15,7 +15,6 @@ import { SearchDialog, useSearchShortcut } from "./Search";
 import { dismissToast, holdToast, useToast } from "./toast";
 
 const PasteDialog = lazy(() => import("@/features/paste/PasteDialog").then((module) => ({ default: module.PasteDialog })));
-const DeleteAccountDialog = lazy(() => import("./DeleteAccount").then((module) => ({ default: module.DeleteAccountDialog })));
 
 const subscribeOnline = (onChange: () => void) => {
   window.addEventListener("online", onChange);
@@ -37,7 +36,6 @@ export function NotesShell({ account }: { account: Account }) {
   const toast = useToast();
   const [leaving, setLeaving] = useState(false);
   const [searching, setSearching] = useState(false);
-  const [deleteAccount, setDeleteAccount] = useState<"unopened" | "open" | "closed">("unopened");
   const accountButton = useRef<HTMLButtonElement>(null);
   const openSearch = useCallback(() => setSearching(true), []);
   useSearchShortcut(openSearch);
@@ -103,7 +101,6 @@ export function NotesShell({ account }: { account: Account }) {
             leaving={leaving}
             trigger={accountButton}
             onSignOut={() => void signOut()}
-            onDeleteAccount={() => setDeleteAccount("open")}
           />
         </div>
       </header>
@@ -118,17 +115,6 @@ export function NotesShell({ account }: { account: Account }) {
       {pasted && (
         <Suspense>
           <PasteDialog uid={account.uid} input={pasted} onClose={() => setPasted(undefined)} />
-        </Suspense>
-      )}
-      {deleteAccount !== "unopened" && (
-        <Suspense>
-          <DeleteAccountDialog
-            uid={account.uid}
-            online={online}
-            open={deleteAccount === "open"}
-            onOpenChange={(open) => setDeleteAccount(open ? "open" : "closed")}
-            returnFocus={() => accountButton.current?.focus()}
-          />
         </Suspense>
       )}
 
@@ -177,10 +163,9 @@ type AccountMenuProps = {
   leaving: boolean;
   trigger: RefObject<HTMLButtonElement | null>;
   onSignOut: () => void;
-  onDeleteAccount: () => void;
 };
 
-function AccountMenu({ account, online, leaving, trigger, onSignOut, onDeleteAccount }: AccountMenuProps) {
+function AccountMenu({ account, online, leaving, trigger, onSignOut }: AccountMenuProps) {
   const name = account.name || "Account";
   return (
     <DropdownMenu.Root modal={false}>
@@ -206,17 +191,20 @@ function AccountMenu({ account, online, leaving, trigger, onSignOut, onDeleteAcc
             {online ? "Online · synced" : "Offline · saved on this device"}
           </DropdownMenu.Label>
           <DropdownMenu.Separator className="mx-1 my-1 h-px bg-line" />
+          <DropdownMenu.Item asChild>
+            <Link to="/notes/account" className={MENU_ROW}>
+              Account
+              <MIcon name="right" className="ml-auto size-3.5" />
+            </Link>
+          </DropdownMenu.Item>
           <MenuItem onSelect={onSignOut}>{leaving ? "Signing out" : "Sign out"}</MenuItem>
-          <MenuItem onSelect={onDeleteAccount} danger>
-            Delete account
-          </MenuItem>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
   );
 }
 
-const MODEL_LABEL: Record<DeviceModelStatus, string> = {
+export const MODEL_LABEL: Record<DeviceModelStatus, string> = {
   checking: "Checking",
   "no-api": "Cloud only in this browser",
   unavailable: "Cloud only on this device",

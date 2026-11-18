@@ -143,9 +143,8 @@ async function signUp(page: Page) {
 }
 
 async function deleteAccount(page: Page) {
-  await page.goto(`${base}/notes`, { waitUntil: "load" });
-  await page.getByRole("button", { name: "Account and status" }).click();
-  await page.getByRole("menuitem", { name: "Delete account" }).click();
+  await page.goto(`${base}/notes/account`, { waitUntil: "load" });
+  await page.getByRole("button", { name: "Delete account…" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Delete account" }).click();
   await page.waitForURL(`${base}/`, { timeout: 30_000 });
   console.log("Deleted the throwaway account and its notes.");
