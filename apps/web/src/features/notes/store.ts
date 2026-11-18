@@ -20,7 +20,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firestore";
 import type { Listen } from "@/lib/live-query";
-import type { CalculatedColumn, Collection, Glance, Row, StoredValue } from "./fact";
+import type { CalculatedColumn, Collection, CollectionField, Glance, Row, StoredValue } from "./fact";
 import { EMPTY_NOTE, relabel, summarise, valueIdsOf, type NoteDoc } from "./note-doc";
 
 export type NoteSummary = { id: string; title: string; preview: string; text: string; updatedAt: number; pending: boolean; folderId: string | null; valueIds: string[] };
@@ -268,6 +268,10 @@ export function placeCell(uid: string, { row, newRow, valueId, fieldId, replaces
 
 export function saveColumns(uid: string, collectionId: string, columns: CalculatedColumn[]): void {
   write(updateDoc(doc(collectionsOf(uid), collectionId), { columns, updatedAt: serverTimestamp() }));
+}
+
+export function renameFields(uid: string, collectionId: string, fields: CollectionField[]): void {
+  write(updateDoc(doc(collectionsOf(uid), collectionId), { fields, updatedAt: serverTimestamp() }));
 }
 
 export function setGlance(uid: string, collectionId: string, glance: Glance): void {

@@ -1,3 +1,4 @@
+import { tidyColumnNames } from "@/features/collections/name-columns";
 import type { QueryClient } from "@tanstack/react-query";
 import type { CaptureRoute, CaptureShown, DraftParagraph, NoteDraft } from "@/features/ai/capture-answer";
 import { columnValue } from "@/features/collections/columns";
@@ -154,6 +155,7 @@ async function file(context: CaptureContext, route: Extract<CaptureRoute, { acti
     if (fresh) writes.deleteCollection(uid, collection.id);
     throw new Error("Nothing fits a field");
   }
+  if (fresh) void tidyColumnNames(uid, collection, picks.map(({ value, field }) => ({ text: value.quote, field: field.id })));
 
   const values = picks.map(({ value }) => store.add(value.quote, factOf(value, paragraph.text)));
   const [lead] = values;

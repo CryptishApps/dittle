@@ -2,7 +2,7 @@ import { queryOptions, type FetchQueryOptions, type QueryClient, type QueryKey }
 import { afterFirstPaint } from "@/lib/first-paint";
 import { ensureLive, live } from "@/lib/live-query";
 import { EMPTY_NOTE, summarise, type NoteDoc } from "./note-doc";
-import type { CalculatedColumn, Collection, Glance, Row } from "./fact";
+import type { CalculatedColumn, Collection, CollectionField, Glance, Row } from "./fact";
 import type { CellPlacement, CellWrite, Folder, Note, NoteSummary, StarterSeed, StoredValue } from "./store";
 
 export const loadStore = () => import("./store");
@@ -84,6 +84,7 @@ export const writes = {
   deleteCollection: (uid: string, id: string) => later((store) => store.deleteCollection(uid, id)),
   saveColumns: (uid: string, collectionId: string, columns: CalculatedColumn[]) => later((store) => store.saveColumns(uid, collectionId, columns)),
   setGlance: (uid: string, collectionId: string, glance: Glance) => later((store) => store.setGlance(uid, collectionId, glance)),
+  renameFields: (uid: string, collectionId: string, fields: CollectionField[]) => later((store) => store.renameFields(uid, collectionId, fields)),
   relabelNotes: (uid: string, valueId: string, label: string, noteIds: string[]) => later((store) => void store.relabelNotes(uid, valueId, label, noteIds)),
   seedStarter: async (uid: string, seed: StarterSeed) => (await loadStore()).seedStarter(uid, seed),
 };
