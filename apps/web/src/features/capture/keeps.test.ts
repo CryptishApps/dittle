@@ -141,7 +141,7 @@ describe("where values would be filed", () => {
     const lines = keepLines(race, new Map(), today, wheres);
     expect(lines).toEqual([
       { kind: "filed", index: 2, also: [2], sign: "→", label: "Runs · Sun 15 Nov", how: "Time goes in when you save.", figure: "52:41" },
-      { kind: "filed", index: 3, also: [3], sign: "→", label: "Runs", how: "Asks before adding to Runs.", figure: "53:10" },
+      { kind: "filed", index: 3, also: [3], sign: "→", label: "Runs", how: "Asks before adding it as the time.", figure: "53:10" },
     ]);
     expect([...liveValues(race, lines)].sort()).toEqual([2, 3]);
   });
@@ -151,6 +151,31 @@ describe("where values would be filed", () => {
     expect(keepLines(race, new Map(), today, wheres)).toEqual([]);
   });
 
+  test("try-it is offered only for a count, never for a measurement like a race distance", () => {
+    const tenK: NoteDraft = {
+      title: "10K",
+      paragraphs: [
+        {
+          text: "Ran 10 km in 52:41, a pace of 5:16/km.",
+          values: [
+            { ...count("10", 10, "distance"), kind: "number", after: " km" },
+            stay("52:41", 3161, "chip_time"),
+            { ...stay("5:16/km", 316, "pace"), formula: "v2 / v1", field: null },
+          ],
+        },
+      ],
+    };
+    expect(tryItOf(tenK)).toBeUndefined();
+  });
+
+  test("two unsure values get a line each, never joined into one figure", () => {
+    const wheres = new Map([
+      [2, { at: "collection", collection: "Runs", field: "Time", row: "Sun 15 Nov", sure: false } as const],
+      [3, { at: "collection", collection: "Runs", field: "Time", row: "Sun 15 Nov", sure: false } as const],
+    ]);
+    expect(keepLines(race, new Map(), today, wheres).map((line) => line.figure)).toEqual(["52:41", "53:10"]);
+  });
+
   test("a date today does not count down", () => {
     const receipt: NoteDraft = { title: "Lunch", paragraphs: [{ text: "Paid today.", values: [date("today", "2026-11-18", "paid_on")] }] };
     expect(keepLines(receipt, new Map(), new Date(2026, 10, 18))).toEqual([]);
@@ -158,7 +183,7 @@ describe("where values would be filed", () => {
 
   test("an unsure destination says it will ask", () => {
     const wheres = new Map([[2, { at: "collection", collection: "Runs", field: "Time", row: "Sun 15 Nov", sure: false } as const]]);
-    expect(keepLines(race, new Map(), today, wheres)).toEqual([{ kind: "filed", index: 2, also: [2], sign: "→", label: "Runs", how: "Asks before adding to Runs.", figure: "52:41" }]);
+    expect(keepLines(race, new Map(), today, wheres)).toEqual([{ kind: "filed", index: 2, also: [2], sign: "→", label: "Runs", how: "Asks before adding it as the time.", figure: "52:41" }]);
   });
 
   test("numbers are checked before dates and dates before text", () => {

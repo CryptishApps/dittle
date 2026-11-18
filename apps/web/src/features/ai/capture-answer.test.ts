@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { readRoute, readTidy, routePrompt, type CaptureShown } from "./capture-answer";
+import { onWordEdges, readRoute, readTidy, routePrompt, type CaptureShown } from "./capture-answer";
 
 const shown: CaptureShown = {
   collections: [
@@ -162,5 +162,16 @@ describe("reading a tidied paste", () => {
 
   test("an empty answer is an error", () => {
     expect(() => readTidy(JSON.stringify({ title: " ", paragraphs: [] }))).toThrow();
+  });
+});
+
+describe("onWordEdges", () => {
+  test("a value cut from the middle of a word is not kept", () => {
+    expect(onWordEdges("The Richmond Park 10K took place on Sunday.", "10")).toBe(false);
+  });
+
+  test("whole values with signs, units and punctuation are kept", () => {
+    const paragraph = "Booked at £920 for 3 nights, a pace of 5:16/km and 12.5% service, so £306.67 each.";
+    for (const quote of ["£920", "3 nights", "5:16/km", "12.5%", "£306.67", "Booked"]) expect(onWordEdges(paragraph, quote)).toBe(true);
   });
 });

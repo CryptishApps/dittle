@@ -24,7 +24,6 @@ const MAX_FILING_CHECKS = 8;
 const MAX_SPOT_INPUTS = 8;
 const CLOSE = 0.005;
 const SPOT_KINDS = new Set<DraftValue["kind"]>(["money", "number", "percent", "duration"]);
-const TRY_KINDS = new Set<DraftValue["kind"]>(["money", "count", "number", "percent", "duration"]);
 const LIST = new Intl.ListFormat("en-GB", { type: "conjunction" });
 
 export const valuesOf = (draft: NoteDraft): DraftValue[] => draft.paragraphs.flatMap((paragraph) => paragraph.values);
@@ -70,7 +69,7 @@ function filedLines(wheres: ReadonlyMap<number, Where>, textAt: (index: number) 
     if (where.at !== "collection" || where.day || !where.field) continue;
     const taken = [...groups.values()].some((group) => group.sure && group.collection === where.collection && group.row === where.row && group.fields.includes(where.field ?? ""));
     const sure = where.sure && Boolean(where.field) && !taken;
-    const key = JSON.stringify([where.collection, sure ? (where.row ?? "") : "", sure]);
+    const key = JSON.stringify(sure ? [where.collection, where.row ?? "", true] : [index]);
     const group = groups.get(key) ?? { collection: where.collection, row: sure ? where.row : undefined, sure, fields: [], indices: [] };
     if (where.field && !group.fields.includes(where.field)) group.fields.push(where.field);
     group.indices.push(index);
@@ -89,7 +88,7 @@ function filedLines(wheres: ReadonlyMap<number, Where>, textAt: (index: number) 
       also: group.indices,
       sign: "→",
       label: [group.collection, group.row].filter(Boolean).join(" · "),
-      how: group.sure ? `${capital(LIST.format(fields))} ${fields.length === 1 ? "goes" : "go"} in when you save.` : `Asks before adding to ${group.collection}.`,
+      how: group.sure ? `${capital(LIST.format(fields))} ${fields.length === 1 ? "goes" : "go"} in when you save.` : `Asks before adding it as the ${fields[0]}.`,
       figure: more > 0 ? `${shown.join(" · ")} +${more}` : shown.join(" · "),
     };
   });
@@ -189,13 +188,12 @@ export function tryItOf(draft: NoteDraft): TryIt | undefined {
   const options = [...inputs].flatMap((index): TryIt[] => {
     const value = values[index]!;
     const to = nextQuantity(value);
-    if (formulas.has(index) || !TRY_KINDS.has(value.kind) || to === undefined || quantityOf(value) === undefined) return [];
+    if (formulas.has(index) || value.kind !== "count" || to === undefined || quantityOf(value) === undefined) return [];
     const tried = triedFor(values, index, to);
     if (tried.size < 2 || !withTried(draft, tried)) return [];
     return [{ index, to, fromText: value.quote, toText: tried.get(index)!.text, followers: tried.size - 1 }];
   });
-  const rank = (option: TryIt) => (values[option.index]!.kind === "count" ? 0 : 1);
-  return options.sort((a, b) => rank(a) - rank(b) || b.followers - a.followers || a.index - b.index)[0];
+  return options.sort((a, b) => b.followers - a.followers || a.index - b.index)[0];
 }
 
 export const tryValues = (draft: NoteDraft, tryIt: TryIt): Tried => triedFor(valuesOf(draft), tryIt.index, tryIt.to);

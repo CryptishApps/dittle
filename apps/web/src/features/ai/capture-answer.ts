@@ -118,9 +118,19 @@ const indexIn = (keyList: string[], key: unknown, limit: number) => {
   return index >= 0 && index < limit ? index : null;
 };
 
+const words = new Intl.Segmenter("en", { granularity: "word" });
+
+export function onWordEdges(paragraph: string, quote: string): boolean {
+  const at = paragraph.indexOf(quote);
+  if (at < 0) return false;
+  const edges = new Set<number>([paragraph.length]);
+  for (const segment of words.segment(paragraph)) edges.add(segment.index);
+  return edges.has(at) && edges.has(at + quote.length);
+}
+
 function readValue(raw: Record<string, unknown>, paragraph: string, fields: number): DraftValue | undefined {
   const quote = text(raw.quote);
-  if (!quote || !paragraph.includes(quote)) return undefined;
+  if (!quote || !onWordEdges(paragraph, quote)) return undefined;
   const kind = TAG_KINDS.find((candidate) => candidate === raw.kind) ?? "text";
   const value: DraftValue = {
     quote,

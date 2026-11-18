@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { NoteDraft } from "@/features/ai/capture-answer";
 import { NumberRoll } from "@/features/what-if/NumberRoll";
 import type { Where } from "@/features/onboarding/practice";
-import { filingShelf, previewFiling, rawDraft, saveDraft, spotFormulas, tidy, type CaptureContext, type Outcome } from "./apply";
+import { filingShelf, previewFiling, rawDraft, saveDraft, spotFormulas, tidy, type CaptureContext, type Outcome, type PreviewedFiling } from "./apply";
 import { formulasFor, inlinesFor } from "./draft";
 import { CaptureIcon } from "./icons";
 import { keepLines, liveValues, spotsFor, tryItOf, tryValues, valuesOf, withTried, type KeepLine, type Tried, type TryIt } from "./keeps";
@@ -34,6 +34,7 @@ export function PasteView({ paste, context, onSample, onClose, onSaved }: PasteV
   const [made, setMade] = useState<Made>({ state: "working" });
   const [trying, setTrying] = useState(false);
   const [wheres, setWheres] = useState<ReadonlyMap<number, Where> | null>(NOWHERE);
+  const [previewed, setPreviewed] = useState<PreviewedFiling>();
 
   useEffect(() => {
     let live = true;
@@ -46,7 +47,11 @@ export function PasteView({ paste, context, onSample, onClose, onSaved }: PasteV
         if (shelf) {
           setWheres(null);
           previewFiling(shelf, draft).then(
-            (found) => live && setWheres(found),
+            (found) => {
+              if (!live) return;
+              setWheres(found.wheres);
+              setPreviewed(found);
+            },
             (error: unknown) => {
               console.warn("Dittle could not preview where a paste files", error);
               if (live) setWheres(NOWHERE);
@@ -78,7 +83,7 @@ export function PasteView({ paste, context, onSample, onClose, onSaved }: PasteV
 
   const save = (edit: boolean) => {
     if (!draft) return;
-    const outcome = saveDraft(context, (tried.size > 0 && withTried(draft, tried)) || draft, { file: true });
+    const outcome = saveDraft(context, (tried.size > 0 && withTried(draft, tried)) || draft, { file: true, previewed });
     onSaved(`${firstLine(paste.text)}…`, made.state === "failed" ? { ...outcome, details: [{ text: "Dittle couldn't tidy it, so it's saved as pasted" }] } : outcome, edit);
   };
 

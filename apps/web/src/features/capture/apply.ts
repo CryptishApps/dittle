@@ -10,7 +10,8 @@ import { changeEverywhere } from "@/features/editor/linking";
 import type { TrackedValue, ValueStore } from "@/features/editor/values";
 import { acceptFormula, quantityOf, withQuantity } from "@/features/formulas/apply";
 import { cachedThenLive, collectionsQuery, noteQuery, notesQuery, rowsQuery, startNote, writes } from "@/features/notes/api";
-import { createEditorServices, relabelNotesUsing } from "@/features/notes/editor-services";
+import { createEditorServices, placeShape, relabelNotesUsing } from "@/features/notes/editor-services";
+import type { PlaceAnswer } from "@/features/ai/place-answer";
 import type { Collection, CollectionField, StoredValue } from "@/features/notes/fact";
 import { EMPTY_NOTE, noteWith, type Block, type NoteDoc } from "@/features/notes/note-doc";
 import { blocksFor, factOf, formulasFor, shortTitle, type Placed } from "./draft";
@@ -58,11 +59,11 @@ function shownFor({ queryClient, uid, store }: CaptureContext) {
 }
 
 function withTimeout<T>(pending: Promise<T>, ms: number): Promise<T> {
-  let timer: number | undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
-    timer = window.setTimeout(() => reject(new Error(`No answer after ${ms / 1000} s`)), ms);
+    timer = setTimeout(() => reject(new Error(`No answer after ${ms / 1000} s`)), ms);
   });
-  return Promise.race([pending, timeout]).finally(() => window.clearTimeout(timer));
+  return Promise.race([pending, timeout]).finally(() => clearTimeout(timer));
 }
 
 function addValues(store: ValueStore, paragraphs: DraftParagraph[], noteId?: string): { placed: Placed[][]; created: TrackedValue[] } {
@@ -91,7 +92,9 @@ function comingUp(paragraphs: DraftParagraph[]): Detail[] {
   return [{ text: `in Coming up, ${days === 0 ? "today" : days === 1 ? "tomorrow" : `${days} days away`}` }];
 }
 
-function fileIntoCollections({ queryClient, uid, store }: CaptureContext, noteId: string, created: TrackedValue[]): () => void {
+export type PreviewedFiling = { wheres: Map<number, Where>; answers: Map<number, PlaceAnswer>; shape: string };
+
+function fileIntoCollections({ queryClient, uid, store }: CaptureContext, noteId: string, created: TrackedValue[], previewed?: PreviewedFiling): () => void {
   const undos: (() => void)[] = [];
   let undone = false;
   const services = createEditorServices({
@@ -102,6 +105,7 @@ function fileIntoCollections({ queryClient, uid, store }: CaptureContext, noteId
     valuesInNote: () => created.map((value) => value.id),
     findsFormulas: false,
     onPlaced: (undo) => (undone ? undo() : undos.push(undo)),
+    answers: previewed && { shape: previewed.shape, forValue: (valueId) => previewed.answers.get(created.findIndex((value) => value.id === valueId)) },
   });
   for (const value of created) services.onNewFact?.(value);
   return () => {
@@ -110,11 +114,11 @@ function fileIntoCollections({ queryClient, uid, store }: CaptureContext, noteId
   };
 }
 
-export function saveDraft(context: CaptureContext, draft: NoteDraft, { file = false } = {}): Outcome & { noteId: string } {
+export function saveDraft(context: CaptureContext, draft: NoteDraft, { file = false, previewed }: { file?: boolean; previewed?: PreviewedFiling } = {}): Outcome & { noteId: string } {
   const { queryClient, uid, store } = context;
   const noteId = startNote(queryClient, uid, null, noteWith(draft.title));
   const { placed, created } = addValues(store, draft.paragraphs, noteId);
-  const unfile = file ? fileIntoCollections(context, noteId, created) : () => undefined;
+  const unfile = file ? fileIntoCollections(context, noteId, created, previewed) : () => undefined;
   const blocks: Block[] = [{ t: "h", level: 1, c: draft.title ? [{ t: "text", text: draft.title }] : [] }, ...blocksFor(draft.paragraphs, placed)];
   const doc: NoteDoc = { v: 1, blocks: draft.paragraphs.length > 0 ? blocks : [...blocks, { t: "p", c: [] }] };
   queryClient.setQueryData(noteQuery(uid, noteId).queryKey, (current) => (current ? { ...current, doc, title: draft.title } : current));
@@ -296,7 +300,7 @@ export function filingShelf({ queryClient, uid }: CaptureContext): Shelf | undef
   return collections.length > 0 ? shelfOf(collections, queryClient.getQueryData(rowsQuery(uid).queryKey) ?? []) : undefined;
 }
 
-export async function previewFiling(shelf: Shelf, draft: NoteDraft, today = new Date()): Promise<Map<number, Where>> {
+export async function previewFiling(shelf: Shelf, draft: NoteDraft, today = new Date()): Promise<PreviewedFiling> {
   const { placeValue } = await import("@/features/ai/place");
   const values = valuesOf(draft);
   const sentenceOf = draft.paragraphs.flatMap((paragraph) => paragraph.values.map(() => paragraph.text));
@@ -305,10 +309,24 @@ export async function previewFiling(shelf: Shelf, draft: NoteDraft, today = new 
     filingCandidates(draft).map(async (index) => {
       const value = values[index]!;
       const answer = await withTimeout(placeValue({ sentence: sentenceOf[index]!, item: { text: value.quote, kind: value.kind, name: value.name, about: value.about }, collections }), SPOT_TIMEOUT_MS);
-      return [index, whereFrom(answer, shelf, value, today)] as const;
+      return { index, answer, where: whereFrom(answer, shelf, value, today) };
     }),
   );
-  return new Map(found.flatMap((result) => (result.status === "fulfilled" ? [result.value] : [])));
+  const done = found.flatMap((result) => (result.status === "fulfilled" ? [result.value] : [])).sort((a, b) => a.index - b.index);
+  const filled = new Set<string>();
+  const answers = new Map(
+    done.map(({ index, answer, where }) => {
+      const spot = where.at === "collection" && where.field ? JSON.stringify([where.collection, where.row ?? "", where.field]) : undefined;
+      const sure = answer.sure && !(spot && filled.has(spot));
+      if (spot && sure) filled.add(spot);
+      return [index, { collection: answer.collection, field: answer.field, row: answer.row, sure }] as const;
+    }),
+  );
+  return {
+    wheres: new Map(done.map(({ index, where }) => [index, where])),
+    answers,
+    shape: placeShape(shelf.collections, shelf.options),
+  };
 }
 
 export async function spotFormulas(draft: NoteDraft): Promise<NoteDraft> {

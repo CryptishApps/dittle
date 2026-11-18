@@ -47,7 +47,8 @@ mock.module("@/features/notes/api", () => ({
   },
 }));
 
-const { saveDraft } = await import("./apply");
+const { previewFiling, saveDraft } = await import("./apply");
+const { shelfOf } = await import("@/features/onboarding/practice");
 
 const runs: Collection = {
   id: "runs",
@@ -92,6 +93,37 @@ describe("saving a pasted note files its values like a typed note", () => {
     const time = store.list().find((value) => value.text === "52:41")!;
     expect(placed).toEqual([{ row: { id: "runs.2026-11-15", collectionId: "runs", label: "2026-11-15", period: "2026-11-15" }, newRow: true, valueId: time.id, fieldId: "time", replaces: undefined }]);
     expect(formulaChecks).toEqual([]);
+  });
+
+  test("saving files what the preview showed, without asking the model again", async () => {
+    answer = { collection: 0, field: 2, row: null, sure: false };
+    const { store, ...rest } = context();
+    const previewed = { wheres: new Map(), answers: new Map([[1, { collection: 0, field: 2, row: null, sure: true }]]), shape: JSON.stringify([["runs"]]) };
+    saveDraft({ ...rest, store }, race, { file: true, previewed });
+    await settle();
+    expect(placed.map((cell) => cell.fieldId)).toEqual(["time"]);
+    expect(asked).toEqual([]);
+  });
+
+  test("a second time for the same row and column asks on save, as the preview said, instead of replacing the first", async () => {
+    const gun: DraftValue = { ...chip, quote: "53:10", name: "gun_time", seconds: 3190 };
+    const both: NoteDraft = { title: "Richmond Park 10K", paragraphs: [{ text: "Chip time 52:41, gun time 53:10.", values: [chip, gun] }] };
+    const previewed = await previewFiling(shelfOf([runs], []), both, new Date(2026, 10, 18));
+    expect([...previewed.answers.values()].map((item) => item.sure)).toEqual([true, false]);
+    const { store, ...rest } = context();
+    saveDraft({ ...rest, store }, both, { file: true, previewed });
+    await settle();
+    expect(placed.map((cell) => store.get(cell.valueId)?.text)).toEqual(["52:41"]);
+    expect(asked.length).toBe(1);
+  });
+
+  test("a preview made before the collections changed is not reused", async () => {
+    answer = { collection: 0, field: 2, row: null, sure: false };
+    const previewed = { wheres: new Map(), answers: new Map([[1, { collection: 0, field: 2, row: null, sure: true }]]), shape: JSON.stringify([["other"]]) };
+    saveDraft(context(), race, { file: true, previewed });
+    await settle();
+    expect(placed).toEqual([]);
+    expect(asked).toEqual(["Add 52:41 to Runs?"]);
   });
 
   test("when the model is unsure it asks instead of filing", async () => {

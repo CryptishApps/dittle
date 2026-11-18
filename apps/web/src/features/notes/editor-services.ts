@@ -6,11 +6,26 @@ import { changeEverywhere, type Quantity } from "@/features/editor/linking";
 import { acceptFormula, describeFormula, inputsFor, quantityOf } from "@/features/formulas/apply";
 import type { EditorServices } from "@/features/editor/services";
 import type { TrackedValue, ValueStore } from "@/features/editor/values";
+import type { PlaceAnswer } from "@/features/ai/place-answer";
 import type { Collection, CollectionField, Row, StoredValue } from "./fact";
 import { collectionsQuery, noteQuery, notesQuery, rowsQuery, writes } from "./api";
 import { askToast, showToast } from "./toast";
 
-type ServiceInput = { queryClient: QueryClient; uid: string; noteId: string; store: ValueStore; valuesInNote: () => string[]; onPlaced?: (undo: () => void) => void; findsFormulas?: boolean };
+export type KnownAnswers = { shape: string; forValue: (valueId: string) => PlaceAnswer | undefined };
+
+type ServiceInput = {
+  queryClient: QueryClient;
+  uid: string;
+  noteId: string;
+  store: ValueStore;
+  valuesInNote: () => string[];
+  onPlaced?: (undo: () => void) => void;
+  findsFormulas?: boolean;
+  answers?: KnownAnswers;
+};
+
+export const placeShape = (collections: Pick<Collection, "id">[], options: Pick<Row, "id">[][]): string =>
+  JSON.stringify(collections.map((collection, index) => [collection.id, ...(options[index] ?? []).map((row) => row.id)]));
 
 export function relabelNotesUsing(queryClient: QueryClient, uid: string, factId: string, text: string, exceptNoteId?: string): void {
   const notes = queryClient.getQueryData(notesQuery(uid).queryKey) ?? [];
@@ -37,7 +52,7 @@ function fieldFor(collection: Collection, value: StoredValue, used: Set<string> 
   return collection.fields.find((field) => field.kind === value.kind && !used.has(field.id) && !(collection.key.by === "when" && field.kind === "date"));
 }
 
-export function createEditorServices({ queryClient, uid, noteId, store, valuesInNote, onPlaced, findsFormulas = true }: ServiceInput): EditorServices {
+export function createEditorServices({ queryClient, uid, noteId, store, valuesInNote, onPlaced, findsFormulas = true, answers }: ServiceInput): EditorServices {
   const notes = () => queryClient.getQueryData(notesQuery(uid).queryKey) ?? [];
   const collections = () => queryClient.getQueryData(collectionsQuery(uid).queryKey) ?? [];
   const created: Row[] = [];
@@ -123,8 +138,9 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
     const all = collections();
     if (fact.field || all.length === 0) return { kind: "none", fact };
     const options = all.map((collection) => (collection.key.by === "name" ? rowOptions(collection, rows()) : []));
+    const known = answers && answers.shape === placeShape(all, options) ? answers.forValue(value.id) : undefined;
     const { placeValue } = await import("@/features/ai/place");
-    const result = await placeValue({
+    const result = known ?? await placeValue({
       sentence: sentence ?? fact.origin?.sentence ?? fact.text,
       item: { text: fact.text, kind: fact.kind, name: fact.name, about: fact.subject?.label },
       collections: all.map((collection, index) => ({
