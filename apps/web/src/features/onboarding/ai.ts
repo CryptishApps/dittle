@@ -1,5 +1,6 @@
 import { InferenceMode } from "firebase/ai";
-import { datesLine, TAG_KINDS, type TagKind } from "@/features/ai/describe";
+import { datesLine } from "@/features/ai/describe";
+import { TAG_KINDS, type TagKind } from "@/features/ai/value-shapes";
 import { createHybrid } from "@/features/ai/hybrid";
 import { MEASURE_UNITS } from "@/features/formulas/units";
 import type { CollectionField } from "@/features/notes/fact";

@@ -1,4 +1,4 @@
-import type { Grain, TagKind } from "@/features/ai/describe";
+import type { Grain, TagKind } from "@/features/ai/value-shapes";
 import type { InferenceWhere } from "@/features/ai/hybrid";
 
 export type FactFields = {

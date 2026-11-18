@@ -7,9 +7,12 @@ import { glanceOf, type GlanceView } from "@/features/collections/glance";
 import { daysUntil, upcomingDates, type Upcoming } from "@/features/collections/summary";
 import { dayLabel } from "@/features/collections/format";
 import { Onboarding, useOnboardingView } from "@/features/onboarding/Onboarding";
+import { changeable } from "@/features/what-if/plan";
+import { WhatIf } from "@/features/what-if/WhatIf";
 import { Btn, MIcon } from "@/ui/kit";
 import { collectionsQuery, foldersQuery, notesQuery, rowsQuery, startNote, valuesQuery, writes } from "./api";
 import { noteWith, type NoteDoc } from "./note-doc";
+import { sampleTrip } from "./sample-trip";
 import { NoteTree } from "./NoteTree";
 import { useOnline } from "./NotesShell";
 import { showToast } from "./toast";
@@ -52,7 +55,7 @@ export function HomePage({ uid }: { uid: string }) {
     showToast(`Created ${collection.name} with ${newRows.length} rows`);
   };
 
-  if (onboardingView !== "home") return <Onboarding uid={uid} view={onboardingView} onStart={(title) => start(title)} onStartFrom={startFrom} />;
+  if (onboardingView !== "home") return <Onboarding uid={uid} view={onboardingView} onStart={(title) => start(title)} onStartFrom={startFrom} onSample={() => writes.createPlan(uid, sampleTrip())} />;
 
   const upcoming = upcomingDates(values, rows);
   const tracking = collections.length > 0 || upcoming.length > 0 || suggestions.suggestions.length > 0;
@@ -81,6 +84,7 @@ export function HomePage({ uid }: { uid: string }) {
           </section>
         )}
 
+        {changeable(values).length > 0 && <WhatIf uid={uid} values={values} notes={notes} />}
         {!tracking && values.length > 0 && <FoundHint values={values.slice(0, 3).map((value) => value.text)} count={values.length} />}
 
         <div className="mt-9 flex items-center justify-between">

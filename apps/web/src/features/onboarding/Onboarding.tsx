@@ -16,11 +16,15 @@ import { onboarding, type OnboardingView } from "./stage";
 
 export { useOnboardingView } from "./stage";
 
-type Props = { uid: string; view: OnboardingView; onStart: (title: string) => void; onStartFrom: (doc: NoteDoc) => void };
+type Props = { uid: string; view: OnboardingView; onStart: (title: string) => void; onStartFrom: (doc: NoteDoc) => void; onSample: () => void };
 
-export function Onboarding({ uid, view, onStart, onStartFrom }: Props) {
-  if (view === "start") return <QuietStart uid={uid} onStart={onStart} onStartFrom={onStartFrom} />;
-  return <Flow uid={uid} />;
+export function Onboarding({ uid, view, onStart, onStartFrom, onSample }: Props) {
+  const sample = () => {
+    onboarding.end(uid, "done");
+    onSample();
+  };
+  if (view === "start") return <QuietStart uid={uid} onStart={onStart} onStartFrom={onStartFrom} onSample={sample} />;
+  return <Flow uid={uid} onSample={sample} />;
 }
 
 type Topic = { recipe: Recipe } | { custom: string };
@@ -32,7 +36,7 @@ const enter = { initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 }, e
 
 const isEnter = (event: KeyboardEvent) => event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing;
 
-function Flow({ uid }: { uid: string }) {
+function Flow({ uid, onSample }: { uid: string; onSample: () => void }) {
   const [today] = useState(() => new Date());
   const [step, setStep] = useState<Step>({ at: "pick" });
   const [topics, setTopics] = useState<Topic[]>([]);
@@ -92,7 +96,7 @@ function Flow({ uid }: { uid: string }) {
       <AnimatePresence mode="wait" initial={false}>
         {step.at === "pick" && (
           <m.div key="pick" {...enter}>
-            <PickStep onContinue={start} />
+            <PickStep onContinue={start} onSample={onSample} />
           </m.div>
         )}
         {step.at === "entry" && (
@@ -147,7 +151,7 @@ function listOf(labels: string[]): string {
   return `${labels.slice(0, -1).join(", ")} and ${labels.at(-1)}`;
 }
 
-function PickStep({ onContinue }: { onContinue: (topics: Topic[]) => void }) {
+function PickStep({ onContinue, onSample }: { onContinue: (topics: Topic[]) => void; onSample: () => void }) {
   const [picked, setPicked] = useState<string[]>([]);
   const [other, setOther] = useState<string>();
   const continueRef = useRef<HTMLButtonElement>(null);
@@ -212,6 +216,9 @@ function PickStep({ onContinue }: { onContinue: (topics: Topic[]) => void }) {
         </button>
         <span className="min-w-0 truncate text-[14px] text-faint">{labels.length > 0 ? listOf(labels) : "Pick one or more"}</span>
       </div>
+      <button type="button" onClick={onSample} className="mt-8 text-[14px] text-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-ink">
+        Or look around a sample trip first
+      </button>
     </div>
   );
 }
@@ -581,7 +588,7 @@ function ChangeStep({ uid, written, today, onFinish }: { uid: string; written: W
   );
 }
 
-function QuietStart({ uid, onStart, onStartFrom }: { uid: string; onStart: (title: string) => void; onStartFrom: (doc: NoteDoc) => void }) {
+function QuietStart({ uid, onStart, onStartFrom, onSample }: { uid: string; onStart: (title: string) => void; onStartFrom: (doc: NoteDoc) => void; onSample: () => void }) {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto max-w-[760px] px-4 pt-10 pb-24 sm:px-8 sm:pt-16">
@@ -593,6 +600,12 @@ function QuietStart({ uid, onStart, onStartFrom }: { uid: string; onStart: (titl
           </button>
         </div>
         <ul className="mt-3 border-t border-line">
+          <li className="border-b border-line">
+            <button type="button" onClick={onSample} className="group flex w-full items-baseline gap-4 py-3.5 text-left">
+              <span className="w-44 shrink-0 text-[15px] font-medium text-ink">Sample trip</span>
+              <span className="min-w-0 flex-1 truncate text-[14px] text-faint group-hover:text-soft">A long weekend in Lisbon for 6 friends, already linked and added up.</span>
+            </button>
+          </li>
           {STARTERS.map((starter) => (
             <li key={starter.title} className="border-b border-line">
               <button type="button" onClick={() => onStartFrom(starter.doc)} className="group flex w-full items-baseline gap-4 py-3.5 text-left">

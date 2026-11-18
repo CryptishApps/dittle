@@ -1,4 +1,4 @@
-import type { TagKind } from "./describe";
+import type { TagKind } from "./value-shapes";
 
 export type ColumnDraft = { name: string; kind: TagKind; example?: string };
 

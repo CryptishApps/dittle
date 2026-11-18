@@ -1,4 +1,4 @@
-import type { TagKind } from "@/features/ai/describe";
+import type { TagKind } from "@/features/ai/value-shapes";
 import { parseIsoDuration } from "@/features/formulas/duration";
 import { isCurrency, isMeasure } from "@/features/formulas/units";
 import type { CollectionField } from "@/features/notes/fact";

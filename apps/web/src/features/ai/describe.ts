@@ -1,17 +1,11 @@
 import { InferenceMode } from "firebase/ai";
 import { parseIsoDuration } from "@/features/formulas/duration";
 import { isCurrency, isMeasure, MEASURE_UNITS } from "@/features/formulas/units";
-import { VALUE_KINDS } from "./kinds";
 import { nameOf, readFound, records, strings, type Filing } from "./find-answer";
 import { createHybrid, type InferenceWhere } from "./hybrid";
+import { GRAINS, plainAmount, TAG_KINDS, validWhen, VALUE_KINDS, type Grain, type TagKind } from "./value-shapes";
 
 export { DESCRIBE_PROMPT_VERSION } from "./prompt-versions";
-
-export const TAG_KINDS = [...VALUE_KINDS, "text"] as const;
-export type TagKind = (typeof TAG_KINDS)[number];
-
-export const GRAINS = ["time", "day", "month", "year"] as const;
-export type Grain = (typeof GRAINS)[number];
 
 export type ValueContext = {
   about: string;
@@ -195,20 +189,6 @@ export function datesLine(today: Date, span = 7): string {
   return `Dates: today ${at(0)}. ${around.join(", ")}.`;
 }
 
-const WHEN_SHAPE: Record<Grain, RegExp> = {
-  time: /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/,
-  day: /^\d{4}-\d{2}-\d{2}$/,
-  month: /^\d{4}-\d{2}$/,
-  year: /^\d{4}$/,
-};
-
-function validWhen(on: unknown, grain: unknown): ValueContext["when"] {
-  const found = GRAINS.find((candidate) => candidate === grain);
-  if (!found || typeof on !== "string" || !WHEN_SHAPE[found].test(on)) return undefined;
-  const probe = found === "year" ? `${on}-01-01` : found === "month" ? `${on}-01` : on;
-  return Number.isNaN(Date.parse(probe)) ? undefined : { on, grain: found };
-}
-
 function parseDescribed(text: string, quotes: string[]): DescribedValue[] {
   const raws = records((JSON.parse(text) as { values?: unknown }).values);
   return quotes.map((quote, index): DescribedValue => {
@@ -230,8 +210,8 @@ function parseDescribed(text: string, quotes: string[]): DescribedValue[] {
 }
 
 function amountOf(raw: Record<string, unknown>, quote: string): Pick<ValueContext, "amount" | "before" | "after"> {
-  const amount = typeof raw.amount === "string" && raw.amount.trim() !== "" ? Number(raw.amount) : Number.NaN;
-  if (!Number.isFinite(amount)) return {};
+  const amount = plainAmount(raw.amount);
+  if (amount === undefined) return {};
   const before = typeof raw.before === "string" && quote.startsWith(raw.before) ? raw.before : "";
   const after = typeof raw.after === "string" && quote.endsWith(raw.after) && quote.length >= before.length + raw.after.length ? raw.after : "";
   return { amount, before, after };

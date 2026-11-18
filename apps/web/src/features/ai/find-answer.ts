@@ -1,4 +1,4 @@
-import { VALUE_KINDS, type ValueKind } from "./kinds";
+import { VALUE_KINDS, type ValueKind } from "./value-shapes";
 
 export type SpottedValue = { quote: string; kind: ValueKind | "text"; name: string };
 export type Filing = { sentence: string; list: string };

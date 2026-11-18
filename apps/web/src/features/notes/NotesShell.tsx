@@ -4,6 +4,7 @@ import { AnimatePresence, m } from "motion/react";
 import { DropdownMenu } from "radix-ui";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import { useDeviceModel, type DeviceModelStatus } from "@/features/ai/device-model";
+import { usePasteAnywhere, type PasteInput } from "@/features/paste/files";
 import { loadAuth, type Account } from "@/lib/session";
 import { ease, Kbd, MIcon } from "@/ui/kit";
 import { Wordmark } from "@/ui/Wordmark";
@@ -13,6 +14,7 @@ import { OpenTabs } from "./OpenTabs";
 import { SearchDialog, useSearchShortcut } from "./Search";
 import { dismissToast, holdToast, useToast } from "./toast";
 
+const PasteDialog = lazy(() => import("@/features/paste/PasteDialog").then((module) => ({ default: module.PasteDialog })));
 const DeleteAccountDialog = lazy(() => import("./DeleteAccount").then((module) => ({ default: module.DeleteAccountDialog })));
 
 const subscribeOnline = (onChange: () => void) => {
@@ -39,6 +41,8 @@ export function NotesShell({ account }: { account: Account }) {
   const accountButton = useRef<HTMLButtonElement>(null);
   const openSearch = useCallback(() => setSearching(true), []);
   useSearchShortcut(openSearch);
+  const [pasted, setPasted] = useState<PasteInput>();
+  usePasteAnywhere(setPasted);
 
   const router = useRouter();
   useEffect(() => {
@@ -83,6 +87,16 @@ export function NotesShell({ account }: { account: Account }) {
               <Kbd>⌘K</Kbd>
             </span>
           </button>
+          <button
+            type="button"
+            onClick={() => setPasted({})}
+            aria-label="Paste or upload an update"
+            title="Paste an email or upload a quote to update your plan"
+            className="flex h-9 items-center gap-2 rounded-[9px] px-2.5 text-[14px] text-soft transition-colors hover:bg-chip hover:text-ink max-sm:w-9 max-sm:justify-center"
+          >
+            <MIcon name="file" className="size-4 shrink-0" />
+            <span className="hidden lg:inline">Paste or upload</span>
+          </button>
           <AccountMenu
             account={account}
             online={online}
@@ -99,6 +113,11 @@ export function NotesShell({ account }: { account: Account }) {
       </main>
 
       <SearchDialog uid={account.uid} open={searching} onOpenChange={setSearching} />
+      {pasted && (
+        <Suspense>
+          <PasteDialog uid={account.uid} input={pasted} onClose={() => setPasted(undefined)} />
+        </Suspense>
+      )}
       {deleteAccount !== "unopened" && (
         <Suspense>
           <DeleteAccountDialog

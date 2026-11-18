@@ -1,8 +1,7 @@
 import { parseIsoDuration } from "@/features/formulas/duration";
 import { isCurrency, isMeasure, MEASURE_UNITS } from "@/features/formulas/units";
-import type { Grain, TagKind } from "./describe";
 import { nameOf, records } from "./find-answer";
-import { VALUE_KINDS } from "./kinds";
+import { plainAmount, validWhen, VALUE_KINDS, type Grain, type TagKind } from "./value-shapes";
 
 export const MAX_COLLECTIONS = 8;
 export const MAX_FIELDS = 8;
@@ -22,7 +21,6 @@ export const CANDIDATE_KEYS = keys("c", MAX_CANDIDATES);
 export const NOTE_KEYS = keys("n", MAX_NOTES);
 
 const TAG_KINDS = [...VALUE_KINDS, "text"] as const;
-const GRAINS = ["time", "day", "month", "year"] as const;
 export const CAPTURE_ACTIONS = ["file", "update", "add", "note", "open"] as const;
 
 export type DraftValue = {
@@ -110,26 +108,10 @@ export const TIDY_SCHEMA = {
   required: ["title", "paragraphs"],
 };
 
-const WHEN_SHAPE: Record<Grain, RegExp> = {
-  time: /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/,
-  day: /^\d{4}-\d{2}-\d{2}$/,
-  month: /^\d{4}-\d{2}$/,
-  year: /^\d{4}$/,
-};
-
 const text = (value: unknown) => (typeof value === "string" ? value.trim() : "");
 
-function whenOf(on: unknown, grain: unknown): DraftValue["when"] {
-  const found = GRAINS.find((candidate) => candidate === grain);
-  if (!found || typeof on !== "string" || !WHEN_SHAPE[found].test(on)) return undefined;
-  const probe = found === "year" ? `${on}-01-01` : found === "month" ? `${on}-01` : on;
-  return Number.isNaN(Date.parse(probe)) ? undefined : { on, grain: found };
-}
+const whenOf = (on: unknown, grain: unknown): DraftValue["when"] => validWhen(on, grain);
 
-function numberOf(raw: unknown): number | undefined {
-  const value = typeof raw === "string" && raw.trim() !== "" ? Number(raw) : Number.NaN;
-  return Number.isFinite(value) ? value : undefined;
-}
 
 const indexIn = (keyList: string[], key: unknown, limit: number) => {
   const index = typeof key === "string" ? keyList.indexOf(key) : -1;
@@ -154,7 +136,7 @@ function readValue(raw: Record<string, unknown>, paragraph: string, fields: numb
     const seconds = typeof raw.duration === "string" ? parseIsoDuration(raw.duration.trim()) : undefined;
     if (seconds !== undefined) value.seconds = seconds;
   } else {
-    const amount = numberOf(raw.amount);
+    const amount = plainAmount(raw.amount);
     if (amount !== undefined) {
       const before = typeof raw.before === "string" && quote.startsWith(raw.before) ? raw.before : "";
       const after = typeof raw.after === "string" && quote.endsWith(raw.after) && quote.length >= before.length + raw.after.length ? raw.after : "";
@@ -217,7 +199,7 @@ export function readRoute(answer: string, shown: CaptureShown): CaptureRoute {
       case "update": {
         const target = indexIn(CANDIDATE_KEYS, data.target, shown.values.length);
         if (target === null) return asNote();
-        const amount = numberOf(data.amount);
+        const amount = plainAmount(data.amount);
         const seconds = typeof data.duration === "string" ? parseIsoDuration(data.duration.trim()) : undefined;
         const newText = text(data.text);
         if (amount === undefined && seconds === undefined && !newText) return asNote();

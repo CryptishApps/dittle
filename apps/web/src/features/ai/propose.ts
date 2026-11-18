@@ -1,5 +1,5 @@
 import { InferenceMode } from "firebase/ai";
-import { TAG_KINDS, type TagKind } from "./describe";
+import { TAG_KINDS, type TagKind } from "./value-shapes";
 import { createHybrid } from "./hybrid";
 
 export const PROPOSE_PROMPT_VERSION = "v1";
