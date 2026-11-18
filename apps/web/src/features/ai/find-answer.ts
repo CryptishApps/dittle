@@ -14,11 +14,11 @@ export const records = (value: unknown): Record<string, unknown>[] =>
 
 export const nameOf = (raw: Record<string, unknown>) => (typeof raw.name === "string" && raw.name.trim() ? raw.name.trim() : "value");
 
-export function readFound(text: string, paragraph: string): Found {
+export function readFound(text: string, paragraph: string, { tracked }: { tracked: boolean } = { tracked: false }): Found {
   const data = JSON.parse(text) as { values?: unknown; requests?: unknown; filings?: unknown };
   const values = records(data.values).flatMap((raw): SpottedValue[] => {
     const quote = typeof raw.quote === "string" ? raw.quote.trim() : "";
-    const kind = VALUE_KINDS.find((candidate): candidate is ValueKind => candidate === raw.kind);
+    const kind = tracked && raw.kind === "text" ? "text" : VALUE_KINDS.find((candidate): candidate is ValueKind => candidate === raw.kind);
     return quote && kind && paragraph.includes(quote) ? [{ quote, kind, name: nameOf(raw) }] : [];
   });
   const filings = records(data.filings).flatMap((raw): Filing[] => {

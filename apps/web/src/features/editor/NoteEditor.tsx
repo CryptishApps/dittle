@@ -29,8 +29,8 @@ const TAG_DESCRIBE_PAUSE_MS = 1500;
 
 const rememberedFind = remembered(
   `find:${DESCRIBE_PROMPT_VERSION}`,
-  (input: { paragraph: string; noteTitle: string }) => import("@/features/ai/describe").then(({ findValues }) => findValues(input)),
-  (input) => input.paragraph,
+  (input: { paragraph: string; noteTitle: string; tracked: string[] }) => import("@/features/ai/describe").then(({ findValues }) => findValues(input)),
+  (input) => [input.paragraph, input.tracked],
 );
 
 const rememberedDescribe = remembered(
@@ -103,7 +103,7 @@ export function useNoteEditor({ store, content, label, services = {}, autofocus 
         placeholder: ({ pos }) => (pos === 0 ? "Untitled" : placeholder),
       }),
       Spotting.configure({
-        find: rememberedFind,
+        find: (input) => rememberedFind({ ...input, tracked: services.trackedText?.() ?? [] }),
         describe: rememberedDescribe,
         continuous: () => deviceModelStatus() === "available",
         link: linkFound,

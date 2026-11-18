@@ -146,3 +146,7 @@ export function planFromProposal(proposal: ProposalShape, groups: FactGroup[]): 
     cells,
   };
 }
+
+export function trackedTextOf(collections: Pick<Collection, "name" | "fields">[]): string[] {
+  return collections.flatMap((collection) => collection.fields.filter((field) => field.kind === "text").map((field) => `${collection.name} (${field.name.toLowerCase()})`));
+}

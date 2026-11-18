@@ -67,7 +67,7 @@ const SCHEMA = {
   required: ["collection", "field", "row", "label", "sure"],
 };
 
-const placer = createHybrid("Place a value", InferenceMode.PREFER_ON_DEVICE, INSTRUCTIONS, SCHEMA);
+const placer = createHybrid("Place a value", InferenceMode.PREFER_IN_CLOUD, INSTRUCTIONS, SCHEMA);
 
 export async function placeValue({ sentence, item, collections }: { sentence: string; item: PlaceItem; collections: PlaceCollection[] }): Promise<PlaceResult> {
   const shown = collections.slice(0, MAX_COLLECTIONS);

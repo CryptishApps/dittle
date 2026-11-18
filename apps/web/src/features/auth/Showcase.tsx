@@ -64,7 +64,7 @@ const MOMENTS: Moment[] = [
     icon: "chip",
     label: "AI on your device",
     title: "It knows what each value is",
-    body: "Where your browser supports it, Gemini Nano runs on your device. It names each value and spots the ones worked out from others.",
+    body: "Where your browser supports it, Gemini Nano runs on your device. It spots values as you type and the ones worked out from others.",
     shot: "hover",
     focus: { x: 19, y: 9, zoom: 1.55 },
     card: (phase, still) => (

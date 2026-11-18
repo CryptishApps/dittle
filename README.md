@@ -10,7 +10,7 @@ It works for any plan with numbers in it: a trip, a wedding, an offsite, a train
 
 Dittle doesn't summarise your notes. The AI's job is to keep track of what the numbers in them mean.
 
-Gemini Nano, running in Chrome on your computer, reads each paragraph as you type and describes its values. Linking values across notes and suggesting tables go to the cloud model when you're online, because those need judgement across everything you've written. The cloud also covers for Nano on computers that can't run it.
+Gemini Nano, running in Chrome on your computer, reads each paragraph as you type and lights up its values. Describing those values, filing them into collections, linking them across notes and suggesting tables go to the cloud model first, because those decide where your values go. Nano takes them over when you're offline, and the cloud covers for Nano on computers that can't run it.
 
 Built for [#BuildHybridAI 2026](https://firebasehybridaihackathon.devpost.com). Live at [dittle.app](https://dittle.app).
 
@@ -37,9 +37,9 @@ Every call goes through [Firebase AI Logic](https://firebase.google.com/docs/ai-
 
 | Job | Runs | Why |
 |---|---|---|
-| Find values in a paragraph as you type | Nano first | It runs on every paragraph you finish, so it has to be free, fast and private. Nano finds 97% of values. |
-| Describe a value (what it measures, which day, what it belongs to, its number, unit and duration) | Nano first | Same reason. It only sees the one paragraph. |
-| Place a value in a collection | Nano first | Picks a collection, column and row from numbered options, and says whether it is sure. When it isn't, Dittle asks before filing. |
+| Find values in a paragraph as you type | Nano first | It runs on every paragraph you finish, so it has to be free, fast and private. Nano finds 97% of values. It also gets the plain-text columns you track, such as Dinners (dish), and picks out a phrase only when it fills one, so "chorizo pasta" lights up only if you keep a Dinners collection. |
+| Describe a value (what it measures, which day, what it belongs to, its number, unit and duration) | Cloud first, Nano offline | It writes a long answer for every value in the paragraph, which took Nano many seconds on a laptop. The cloud answers in about 2 seconds. It only sees the one paragraph. |
+| Place a value in a collection | Cloud first, Nano offline | Picks a collection, column and row from numbered options, and says whether it is sure. When it isn't, Dittle asks before filing. In testing Nano filed a meeting's time into Workouts, and the cloud filed nothing. A wrong filing puts a value in the wrong table, so this goes to the cloud when it can. |
 | Name a new collection's columns | Nano first | Turns names taken from the first entry ("palace ticket price") into ones that fit every row ("Price"). |
 | Spot a formula (£708 = 6 seats × £118) | Nano first | Suggests a formula; code checks it reproduces the number. |
 | Suggest a calculated column (price per person = total ÷ people, pace = time ÷ distance) | Nano first | Picks two columns of a collection; code checks the units fit and works out every row. |

@@ -3,11 +3,14 @@ import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { LazyMotion } from "motion/react";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { reloadOnStaleBuild } from "./lib/fresh-build";
 import { readSession, sessionHint } from "./lib/session";
 import { routeTree } from "./routeTree.gen";
 import "./styles/theme.css";
 
 const loadMotionFeatures = () => import("./ui/motion-features").then((module) => module.default);
+
+reloadOnStaleBuild();
 
 const queryClient = new QueryClient();
 

@@ -11,6 +11,7 @@ export type EditorServices = {
   startCollection?: (value: TrackedValue, name: string, per: RowsPer) => void;
   fileValues?: (values: TrackedValue[], list: string, sentence: string) => Promise<boolean>;
   ignoredRequests?: () => string[];
+  trackedText?: () => string[];
   ignoreRequest?: (text: string) => void;
   openValue?: (id: string, from: "pointer" | "keyboard") => void;
 };

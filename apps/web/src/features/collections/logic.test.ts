@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { Collection, Row, StoredValue } from "@/features/notes/fact";
-import { placeByDay, placeByName, planCollection, rowOptions } from "./logic";
+import { placeByDay, placeByName, planCollection, rowOptions, trackedTextOf } from "./logic";
 
 const runs: Collection = {
   id: "runs",
@@ -101,5 +101,12 @@ describe("planCollection", () => {
     expect(plan.rows).toEqual([{ id: expect.any(String), collectionId: plan.collection.id, label: "Sintra" }]);
     expect(plan.collection.fields.map((field) => field.id)).toEqual(["ticket_price", "visit_date"]);
     expect(plan.cells.map((cell) => cell.valueId)).toEqual(["price", "date"]);
+  });
+});
+
+describe("trackedTextOf", () => {
+  test("lists each collection's plain-text columns for Find, and nothing for numbers and dates", () => {
+    const dinners = { name: "Dinners", fields: [{ id: "date", name: "Date", kind: "date" as const }, { id: "dish", name: "Dish", kind: "text" as const }] };
+    expect(trackedTextOf([runs, dinners])).toEqual(["Dinners (dish)"]);
   });
 });

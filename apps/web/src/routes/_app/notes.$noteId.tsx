@@ -3,8 +3,9 @@ import { cachedThenLive, noteQuery, valuesQuery } from "@/features/notes/api";
 import { NotePage } from "@/features/notes/NotePage";
 
 export const Route = createFileRoute("/_app/notes/$noteId")({
-  loader: async ({ context: { queryClient, account }, params }) => {
-    await Promise.all([cachedThenLive(queryClient, noteQuery(account.uid, params.noteId)), cachedThenLive(queryClient, valuesQuery(account.uid))]);
+  loader: ({ context: { queryClient, account }, params }) => {
+    void cachedThenLive(queryClient, noteQuery(account.uid, params.noteId)).catch(() => undefined);
+    void cachedThenLive(queryClient, valuesQuery(account.uid)).catch(() => undefined);
   },
   component: NoteRoute,
 });
