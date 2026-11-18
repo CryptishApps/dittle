@@ -3,7 +3,7 @@ import type { Outcome } from "./apply";
 
 export type Receipt = { id: string; said: string; at: number; state: "working" | "done" | "undone"; outcome?: Outcome };
 
-const KEEP = 6;
+const KEEP = 8;
 
 let receipts: Receipt[] = [];
 const listeners = new Set<() => void>();

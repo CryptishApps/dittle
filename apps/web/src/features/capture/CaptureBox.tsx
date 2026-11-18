@@ -71,7 +71,8 @@ export function CaptureBox({ uid, onStartNote }: { uid: string; onStartNote: (ti
           Hold <span className="rounded-[5px] border border-line-strong px-1.5 text-[12px]">M</span> to talk
         </span>
       </p>
-      {receipts.length > 0 ? <Receipts receipts={receipts} /> : <Samples onSample={trySample} className="mt-4" />}
+      <Samples onSample={trySample} className="mt-1.5" />
+      {receipts.length > 0 && <Receipts receipts={receipts} />}
     </section>
   );
 }

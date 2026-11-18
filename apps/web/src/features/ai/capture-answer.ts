@@ -56,12 +56,12 @@ export type CaptureShown = { collections: ShownCollection[]; values: ShownValue[
 
 const VALUE_PROPERTIES = {
   quote: { type: "string" },
-  kind: { type: "string", enum: [...TAG_KINDS] },
+  kind: { type: "string" },
   name: { type: "string" },
   about: { type: "string" },
   event: { type: "boolean" },
   when: { type: "string" },
-  grain: { type: "string", enum: [...GRAINS, "none"] },
+  grain: { type: "string" },
   amount: { type: "string" },
   before: { type: "string" },
   after: { type: "string" },
@@ -71,15 +71,14 @@ const VALUE_PROPERTIES = {
 };
 
 function paragraphsSchema(withField: boolean) {
-  const properties = withField ? { ...VALUE_PROPERTIES, field: { type: "string", enum: [...FIELD_KEYS, "none"] } } : VALUE_PROPERTIES;
+  const properties = withField ? { ...VALUE_PROPERTIES, field: { type: "string" } } : VALUE_PROPERTIES;
   return {
     type: "array",
-    maxItems: MAX_PARAGRAPHS,
     items: {
       type: "object",
       properties: {
         text: { type: "string" },
-        values: { type: "array", maxItems: MAX_VALUES, items: { type: "object", properties, required: Object.keys(properties) } },
+        values: { type: "array", items: { type: "object", properties, required: Object.keys(properties) } },
       },
       required: ["text", "values"],
     },
@@ -90,15 +89,15 @@ export const ROUTE_SCHEMA = {
   type: "object",
   properties: {
     action: { type: "string", enum: [...CAPTURE_ACTIONS] },
-    collection: { type: "string", enum: [...COLLECTION_KEYS, "new", "none"] },
+    collection: { type: "string" },
     list: { type: "string" },
-    row: { type: "string", enum: [...ROW_KEYS, "new", "none"] },
+    row: { type: "string" },
     label: { type: "string" },
-    target: { type: "string", enum: [...CANDIDATE_KEYS, "none"] },
+    target: { type: "string" },
     amount: { type: "string" },
     duration: { type: "string" },
     text: { type: "string" },
-    note: { type: "string", enum: [...NOTE_KEYS, "none"] },
+    note: { type: "string" },
     title: { type: "string" },
     paragraphs: paragraphsSchema(true),
   },
@@ -174,7 +173,7 @@ function readParagraphs(raw: unknown, fields = 0): DraftParagraph[] {
       const paragraph = text(item.text);
       if (!paragraph) return [];
       const seen = new Set<string>();
-      const values = records(item.values).flatMap((entry) => {
+      const values = records(item.values).slice(0, MAX_VALUES).flatMap((entry) => {
         const value = readValue(entry, paragraph, fields);
         if (!value || seen.has(value.quote)) return [];
         seen.add(value.quote);
@@ -261,7 +260,7 @@ Actions:
 - "note": anything else worth keeping, such as a plan, a reminder or an idea. Give a short title in sentence case.
 - "open": it is only a title for a note they want to start writing, such as "Garden plans", with no details. Give it as "title".
 
-For file, add and note, write "paragraphs": the entry as tidy sentences in the person's own voice. Fix typos, spell out shorthand ("6k" becomes "6 km", "31 mins" becomes "31 minutes", "3 dec" becomes "3 December"), and never add facts. For a note, leave the title out of the paragraphs. For file, write one paragraph and give each value's "field" in the chosen collection, or none. For a collection with one row per named thing, pick the row in "row", or "new" with the thing's name in "label". For a collection with one row per day, answer none for row.
+For file, add and note, write "paragraphs": the entry as tidy sentences in the person's own voice. Fix typos, spell out shorthand ("6k" becomes "6 km", "31 mins" becomes "31 minutes", "3 dec" becomes "3 December"), keep clock-style times such as 27:40 as written, and never add facts. For a note, leave the title out of the paragraphs. For file, write one paragraph and give each value's "field" in the chosen collection, or none. For a collection with one row per named thing, pick the row in "row", or "new" with the thing's name in "label". For a collection with one row per day, answer none for row.
 
 ${VALUE_RULES}
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { NoteDraft } from "@/features/ai/capture-answer";
 import { dayLabel } from "@/features/collections/format";
+import { daysUntil } from "@/features/collections/summary";
 import { rawDraft, saveDraft, tidy, type CaptureContext, type Outcome } from "./apply";
 import { formulasFor, inlinesFor } from "./draft";
 import { CaptureIcon } from "./icons";
@@ -131,7 +132,7 @@ function DraftNote({ draft }: { draft: NoteDraft }) {
     offset += paragraph.values.length;
     return { text: paragraph.text, inlines: inlinesFor(paragraph.text, paragraph.values.map((value, index) => ({ id: String(start + index), quote: value.quote }))) };
   });
-  const dated = all.find((value) => value.kind === "date" && value.when && (value.when.grain === "day" || value.when.grain === "time"));
+  const dated = all.find((value) => value.kind === "date" && value.when && (value.when.grain === "day" || value.when.grain === "time") && daysUntil(value.when.on.slice(0, 10)) >= 0);
   const notes = [
     ...(dated?.when ? [`Adds ${dayLabel(dated.when.on.slice(0, 10))} to Coming up`] : []),
     ...[...formulas].map(([index, formula]) => `${all[index]!.quote} follows ${formula.inputs.map((input) => all[Number(input)]!.name.replaceAll("_", " ")).join(" and ")}`),
