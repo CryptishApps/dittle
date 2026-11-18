@@ -14,10 +14,16 @@ const asked: Asked[] = [];
 const shown: string[] = [];
 const order: string[] = [];
 
+const seenFields: string[][] = [];
+let columnNames: Promise<string[] | undefined> = Promise.resolve(undefined);
+
 mock.module("@/features/ai/place", () => ({
-  placeValue: async () => ({ ...(answers.shift() ?? { collection: null, field: null, row: null, sure: false }), where: "in_cloud", ms: 1 }),
+  placeValue: async (input: { collections: { fields: { name: string }[] }[] }) => {
+    seenFields.push(input.collections[0]?.fields.map((field) => field.name) ?? []);
+    return { ...(answers.shift() ?? { collection: null, field: null, row: null, sure: false }), where: "in_cloud", ms: 1 };
+  },
 }));
-mock.module("@/features/collections/name-columns", () => ({ tidyColumnNames: async () => undefined, columnsSettled: async () => undefined }));
+mock.module("@/features/ai/columns", () => ({ nameColumns: () => columnNames }));
 mock.module("./toast", () => ({
   askToast: (text: string, actions: Asked["actions"]) => {
     asked.push({ text, actions });
@@ -40,11 +46,13 @@ mock.module("./api", () => ({
     },
     createCollection: (_uid: string, collection: Collection) => created.push(collection.name),
     relabelNotes: () => undefined,
+    renameFields: () => undefined,
     ignoreRequest: () => undefined,
   },
 }));
 
 const { createEditorServices } = await import("./editor-services");
+const { tidyColumnNames } = await import("@/features/collections/name-columns");
 
 const things: Collection = {
   id: "c1",
@@ -101,6 +109,8 @@ const settle = async () => {
 };
 
 beforeEach(() => {
+  seenFields.length = 0;
+  columnNames = Promise.resolve(undefined);
   answers.length = 0;
   placed.length = 0;
   created.length = 0;
@@ -280,5 +290,26 @@ describe("filing a sentence's values into a collection", () => {
     const filing = services();
     await filing.fileValues?.([price], "Cruises", "Sunset cruise on the Tagus, €40 each.");
     expect(created).toEqual(["Cruises"]);
+  });
+});
+
+describe("filing while a new collection's columns are being renamed", () => {
+  test("waits for the rename and asks with the tidied column names", async () => {
+    const raw: Collection = { ...things, fields: [{ id: "price", name: "Pena Palace with the train there price", kind: "money" }, things.fields[1]!] };
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(["collections", "u1"], [raw]);
+    queryClient.setQueryData(["rows", "u1"], []);
+    queryClient.setQueryData(["notes", "u1"], []);
+    const filing = createEditorServices({ queryClient, uid: "u1", noteId: "n1", store: createValueStore([price, day]), valuesInNote: () => [] });
+    let finish!: (names: string[]) => void;
+    columnNames = new Promise((resolve) => (finish = resolve));
+    void tidyColumnNames(queryClient, "u1", raw);
+    answers.push(sure(0));
+    filing.onNewFact?.(price);
+    await settle();
+    expect(seenFields).toEqual([]);
+    finish(["Price", "Date"]);
+    await settle();
+    expect(seenFields).toEqual([["Price", "Date"]]);
   });
 });
