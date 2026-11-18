@@ -559,8 +559,7 @@
 .note-editor > h1:first-child + p.is-empty:last-child::before {
   content: attr(data-placeholder);
   position: absolute;
-  inset: 0 auto auto 0;
-  white-space: nowrap;
+  inset: 0 0 auto 0;
   color: var(--faint);
   pointer-events: none;
 }
