@@ -56,12 +56,36 @@ const day: TrackedValue = { id: "v2", text: "Sun 13 December", kind: "date", nam
 
 const sure = (field: number, label = "Sunset cruise"): Answer => ({ collection: 0, field, row: { label }, sure: true });
 
-function services() {
+const runs: Collection = {
+  id: "c2",
+  name: "Runs",
+  rowLabel: "run",
+  fields: [
+    { id: "date", name: "Date", kind: "date" },
+    { id: "distance", name: "Distance", kind: "number" },
+    { id: "time", name: "Time", kind: "duration" },
+  ],
+  key: { by: "when", grain: "day" },
+  createdAt: 0,
+};
+
+const today = { on: "2026-11-18", grain: "day" as const };
+const loggedRow = { id: "c2.2026-11-18", collectionId: "c2", label: "2026-11-18", period: "2026-11-18", createdAt: 0 };
+const logged: TrackedValue[] = [
+  { id: "r1", text: "5 km", kind: "number", amount: 5, field: "distance", subject: { label: "run", entityId: loggedRow.id }, event: true, when: today, naming: false },
+  { id: "r2", text: "27:40", kind: "duration", seconds: 1660, field: "time", subject: { label: "run", entityId: loggedRow.id }, event: true, when: today, naming: false },
+];
+const walk: TrackedValue[] = [
+  { id: "w1", text: "4k", kind: "number", amount: 4, subject: { label: "walk" }, event: true, when: today, naming: false },
+  { id: "w2", text: "50 mins", kind: "duration", seconds: 3000, subject: { label: "walk" }, event: true, when: today, naming: false },
+];
+
+function services(collection: Collection = things) {
   const queryClient = new QueryClient();
-  queryClient.setQueryData(["collections", "u1"], [things]);
-  queryClient.setQueryData(["rows", "u1"], []);
+  queryClient.setQueryData(["collections", "u1"], [collection]);
+  queryClient.setQueryData(["rows", "u1"], collection === runs ? [loggedRow] : []);
   queryClient.setQueryData(["notes", "u1"], []);
-  const store = createValueStore([price, day]);
+  const store = createValueStore(collection === runs ? [...logged, ...walk] : [price, day]);
   return createEditorServices({ queryClient, uid: "u1", noteId: "n1", store, valuesInNote: () => [] });
 }
 
@@ -116,9 +140,24 @@ describe("filing a sentence's values into a collection", () => {
   test("asking to file a paragraph asks about an existing list instead of starting another", async () => {
     answers.push({ ...sure(0), sure: false });
     const filing = services();
-    await filing.fileValues?.([price], "Things to do", "Sunset cruise on the Tagus, €40 each.");
+    expect(await filing.fileValues?.([price], "Things to do", "Sunset cruise on the Tagus, €40 each.")).toBe(false);
     expect(created).toEqual([]);
     expect(asked.at(-1)?.text).toBe("Add €40 to Things to do?");
+  });
+
+  test("a paragraph for a day that already has an entry asks once and adds every value to one new row", async () => {
+    answers.push({ collection: 0, field: 1, row: null, sure: true }, { collection: 0, field: 2, row: null, sure: true });
+    const filing = services(runs);
+    expect(await filing.fileValues?.(walk, "Runs", "Walked 4k with the dog in 50 mins. Add this to my runs.")).toBe(false);
+    expect(placed).toEqual([]);
+    expect(asked).toHaveLength(1);
+    expect(asked[0]!.text).toStartWith("Runs already has 5 km and 27:40 on ");
+    asked[0]!.actions.find((action) => action.label === "Add another")!.run!();
+    await settle();
+    expect(placed.map((cell) => cell.fieldId)).toEqual(["distance", "time"]);
+    expect(placed[1]!.row.id).toBe(placed[0]!.row.id);
+    expect(placed[0]!.row.id).not.toBe(loggedRow.id);
+    expect(placed.map((cell) => cell.newRow)).toEqual([true, false]);
   });
 
   test("asking to file a paragraph with no list that fits starts one", async () => {

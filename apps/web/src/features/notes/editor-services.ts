@@ -24,6 +24,8 @@ export function changeOutsideEditor(queryClient: QueryClient, uid: string, store
 
 const OFFER_GROUP_MS = 6000;
 
+type Clash = { collection: Collection; day?: string; occupied: string[]; target: Pick<Placement, "row" | "newRow">; cells: { valueId: string; field: CollectionField }[] };
+
 type Offer = { collection: Collection; values: TrackedValue[]; label: string; row?: Omit<Row, "createdAt">; at: number };
 
 function fieldFor(collection: Collection, value: StoredValue, used: Set<string> = new Set()): CollectionField | undefined {
@@ -104,7 +106,7 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
     held = { collectionId: collection.id, values: [...heldFor(collection.id), fact], at: Date.now() };
   };
 
-  const place = async (value: TrackedValue, sentence?: string, declinedInto?: (collection: Collection) => void): Promise<boolean> => {
+  const place = async (value: TrackedValue, sentence?: string, declinedInto?: (collection: Collection) => void, clash?: { current?: Clash }): Promise<boolean> => {
     const fact = { ...store.get(value.id), ...value };
     const all = collections();
     if (fact.field || all.length === 0) return false;
@@ -141,6 +143,14 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
       : result.row && placeByName(collection, result.row, options[result.collection!]!, fact, field.id, store.list());
     if (!placement) return declined();
     const { occupant, another } = placement;
+    if (clash && byDay && (clash.current || (occupant && another))) {
+      if (!clash.current && occupant && another) clash.current = { collection, day: placement.row.period, occupied: [], target: another, cells: [] };
+      if (clash.current?.collection.id === collection.id) {
+        if (occupant) clash.current.occupied.push(occupant.text);
+        clash.current.cells.push({ valueId: fact.id, field });
+      }
+      return false;
+    }
     if (!occupant) {
       await put(collection, fact.id, field, placement);
       if (!byDay) {
@@ -180,11 +190,28 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
     let placed = false;
     const asked = offer;
     const picked: Collection[] = [];
-    for (const value of values) placed = (await place(value, sentence, (collection) => picked.push(collection))) || placed;
+    const clash: { current?: Clash } = {};
+    for (const value of values) placed = (await place(value, sentence, (collection) => picked.push(collection), clash)) || placed;
+    if (clash.current) {
+      const { collection, day, occupied, target, cells } = clash.current;
+      askToast(`${collection.name} already has ${occupied.join(" and ")}${day ? ` on ${dayLabel(day)}` : ""}`, [
+        { label: "Skip" },
+        {
+          label: "Add another",
+          primary: true,
+          run: () =>
+            void cells.reduce(
+              (previous, cell, index) => previous.then(() => put(collection, cell.valueId, cell.field, { row: target.row, newRow: target.newRow && index === 0 })),
+              Promise.resolve(),
+            ),
+        },
+      ]);
+      return placed;
+    }
     if (placed) return true;
     if (picked.length > 0) {
       if (offer === asked) showToast(`${picked[0]!.name} has no column for ${values.map((value) => value.text).join(" and ")}`);
-      return true;
+      return false;
     }
     const lead = values.find((value) => value.event) ?? values[0]!;
     const known = new Map(store.list().map((value) => [value.id, value]));
