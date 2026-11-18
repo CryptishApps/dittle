@@ -12,7 +12,7 @@ export const ROW_KEYS = Array.from({ length: MAX_ROWS }, (_, index) => `r${index
 export type PlaceItem = { text: string; kind?: TagKind; name?: string; about?: string };
 export type PlaceCollection = { name: string; per: "day" | "name"; fields: { name: string; kind: TagKind }[]; rows: string[] };
 export type PlaceRow = { row: number } | { label: string };
-export type PlaceAnswer = { collection: number | null; field: number | null; row: PlaceRow | null };
+export type PlaceAnswer = { collection: number | null; field: number | null; row: PlaceRow | null; sure: boolean };
 
 const indexIn = (keys: string[], key: unknown, limit: number) => {
   const index = typeof key === "string" ? keys.indexOf(key) : -1;
@@ -37,11 +37,11 @@ function quoteIn(sentence: string, label: string): string | undefined {
 }
 
 export function readPlaceAnswer(text: string, shown: PlaceCollection[], sentence: string): PlaceAnswer {
-  const data = JSON.parse(text) as { collection?: unknown; field?: unknown; row?: unknown; label?: unknown };
+  const data = JSON.parse(text) as { collection?: unknown; field?: unknown; row?: unknown; label?: unknown; sure?: unknown };
   const collection = indexIn(COLLECTION_KEYS, data.collection, shown.length);
-  if (collection === null) return { collection: null, field: null, row: null };
+  if (collection === null) return { collection: null, field: null, row: null, sure: false };
   const chosen = shown[collection]!;
-  return { collection, field: indexIn(FIELD_KEYS, data.field, Math.min(MAX_FIELDS, chosen.fields.length)), row: rowFrom(data, chosen, sentence) };
+  return { collection, field: indexIn(FIELD_KEYS, data.field, Math.min(MAX_FIELDS, chosen.fields.length)), row: rowFrom(data, chosen, sentence), sure: data.sure !== false };
 }
 
 export function placePrompt(sentence: string, item: PlaceItem, shown: PlaceCollection[]): string {

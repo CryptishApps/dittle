@@ -21,6 +21,15 @@ export function changeOutsideEditor(queryClient: QueryClient, uid: string, store
   for (const change of changeEverywhere(store, factId, text, quantity)) relabelNotesUsing(queryClient, uid, change.id, change.text);
 }
 
+const OFFER_GROUP_MS = 6000;
+
+type Offer = { collection: Collection; values: TrackedValue[]; label: string; row?: Omit<Row, "createdAt">; at: number };
+
+function fieldFor(collection: Collection, value: StoredValue, used: Set<string> = new Set()): CollectionField | undefined {
+  if (!value.kind || value.field) return undefined;
+  return collection.fields.find((field) => field.kind === value.kind && !used.has(field.id) && !(collection.key.by === "when" && field.kind === "date"));
+}
+
 export function createEditorServices({ queryClient, uid, noteId, store, valuesInNote }: ServiceInput): EditorServices {
   const notes = () => queryClient.getQueryData(notesQuery(uid).queryKey) ?? [];
   const collections = () => queryClient.getQueryData(collectionsQuery(uid).queryKey) ?? [];
@@ -41,6 +50,59 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
     });
   };
 
+  let offer: Offer | undefined;
+  let settled: { collectionId: string; row: Omit<Row, "createdAt">; at: number } | undefined;
+  let held: { collectionId: string; values: TrackedValue[]; at: number } | undefined;
+  const fresh = (at: number) => Date.now() - at < OFFER_GROUP_MS;
+  const recent = (collectionId: string) => (settled && settled.collectionId === collectionId && fresh(settled.at) ? settled.row : undefined);
+  const heldFor = (collectionId: string) => (held && held.collectionId === collectionId && fresh(held.at) ? held.values : []);
+
+  const accept = async ({ collection, values, label, row }: Offer) => {
+    offer = undefined;
+    const used = new Set<string>();
+    let target: Pick<Placement, "row" | "newRow"> | undefined;
+    for (const value of values) {
+      const fact = { ...store.get(value.id), ...value };
+      const field = fieldFor(collection, fact, used);
+      if (!field || fact.field) continue;
+      used.add(field.id);
+      if (collection.key.by === "when") {
+        const placement = placeByDay(collection, fact, field.id, store.list(), rows());
+        await put(collection, fact.id, field, placement.occupant && placement.another ? placement.another : placement);
+        continue;
+      }
+      target ??= row ? { row, newRow: false } : (placeByName(collection, { label }, [], fact, field.id, store.list()) ?? undefined);
+      if (!target) continue;
+      await put(collection, fact.id, field, target);
+      target = { row: target.row, newRow: false };
+    }
+  };
+
+  const ask = (next: Offer) => {
+    offer = next;
+    askToast(`Add ${next.values.map((item) => item.text).join(" and ")} to ${next.collection.name}?`, [
+      { label: "Not now", run: () => (offer = undefined) },
+      { label: "Add", primary: true, run: () => void accept(next) },
+    ]);
+  };
+
+  const suggest = (fact: TrackedValue, collection: Collection, pick?: { label?: string; row?: Omit<Row, "createdAt"> }) => {
+    if (!fieldFor(collection, fact)) return;
+    const joins = offer && offer.collection.id === collection.id && fresh(offer.at) && !offer.values.some((item) => item.id === fact.id);
+    if (joins && offer) return ask({ ...offer, values: [...offer.values, fact], at: Date.now() });
+    const waiting = heldFor(collection.id);
+    held = undefined;
+    const label = pick?.label ?? fact.subject?.label ?? notes().find((note) => note.id === noteId)?.title ?? collection.rowLabel;
+    ask({ collection, values: [fact, ...waiting], label, row: pick?.row, at: Date.now() });
+  };
+
+  const follow = (fact: TrackedValue, collection: Collection) => {
+    const sibling = recent(collection.id);
+    if (sibling) return void accept({ collection, values: [fact], label: sibling.label, row: sibling, at: Date.now() });
+    if (offer && offer.collection.id === collection.id && fresh(offer.at)) return suggest(fact, collection);
+    held = { collectionId: collection.id, values: [...heldFor(collection.id), fact], at: Date.now() };
+  };
+
   const place = async (value: TrackedValue, sentence?: string): Promise<boolean> => {
     const fact = { ...store.get(value.id), ...value };
     const all = collections();
@@ -57,18 +119,34 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
         rows: options[index]!.map((row) => row.label),
       })),
     });
-    if (result.collection === null || result.field === null) return false;
-    const collection = all[result.collection]!;
-    const field = collection.fields[result.field]!;
+    const collection = result.collection === null ? undefined : all[result.collection];
+    if (!collection) return false;
     const byDay = collection.key.by === "when";
-    if ((byDay && field.kind === "date") || (fact.kind && field.kind !== "text" && field.kind !== fact.kind)) return false;
+    const existing = result.row && "row" in result.row ? options[result.collection!]![result.row.row] : undefined;
+    if (!sentence && !byDay && fact.kind === "date" && !(existing && result.sure)) {
+      follow(fact, collection);
+      return false;
+    }
+    const declined = () => {
+      if (!sentence) suggest(fact, collection, result.row && "label" in result.row ? { label: result.row.label } : { row: existing });
+      return false;
+    };
+    if (result.field === null || !result.sure) return declined();
+    const field = collection.fields[result.field]!;
+    if ((byDay && field.kind === "date") || (fact.kind && field.kind !== "text" && field.kind !== fact.kind)) return declined();
     const placement = byDay
       ? placeByDay(collection, fact, field.id, store.list(), rows())
-      : result.row && placeByName(collection, result.row, options[result.collection]!, fact, field.id, store.list());
-    if (!placement) return false;
+      : result.row && placeByName(collection, result.row, options[result.collection!]!, fact, field.id, store.list());
+    if (!placement) return declined();
     const { occupant, another } = placement;
     if (!occupant) {
       await put(collection, fact.id, field, placement);
+      if (!byDay) {
+        settled = { collectionId: collection.id, row: placement.row, at: Date.now() };
+        const waiting = heldFor(collection.id);
+        held = undefined;
+        if (waiting.length > 0) await accept({ collection, values: waiting, label: placement.row.label, row: placement.row, at: Date.now() });
+      }
       return true;
     }
     if (byDay && another) {
