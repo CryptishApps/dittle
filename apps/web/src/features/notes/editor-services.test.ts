@@ -80,12 +80,12 @@ const walk: TrackedValue[] = [
   { id: "w2", text: "50 mins", kind: "duration", seconds: 3000, subject: { label: "walk" }, event: true, when: today, naming: false },
 ];
 
-function services(collection: Collection = things) {
+function services(collection: Collection = things, known?: TrackedValue[], rows?: { id: string; collectionId: string; label: string; period?: string; createdAt: number }[]) {
   const queryClient = new QueryClient();
   queryClient.setQueryData(["collections", "u1"], [collection]);
-  queryClient.setQueryData(["rows", "u1"], collection === runs ? [loggedRow] : []);
+  queryClient.setQueryData(["rows", "u1"], rows ?? (collection === runs ? [loggedRow] : []));
   queryClient.setQueryData(["notes", "u1"], []);
-  const store = createValueStore(collection === runs ? [...logged, ...walk] : [price, day]);
+  const store = createValueStore(collection === runs ? [...(known ?? logged), ...walk] : (known ?? [price, day]));
   return createEditorServices({ queryClient, uid: "u1", noteId: "n1", store, valuesInNote: () => [] });
 }
 
@@ -158,6 +158,43 @@ describe("filing a sentence's values into a collection", () => {
     expect(placed[1]!.row.id).toBe(placed[0]!.row.id);
     expect(placed[0]!.row.id).not.toBe(loggedRow.id);
     expect(placed.map((cell) => cell.newRow)).toEqual([true, false]);
+  });
+
+  test("a paragraph for a day whose row has some of its columns filled still lands in one new row", async () => {
+    answers.push({ collection: 0, field: 1, row: null, sure: true }, { collection: 0, field: 2, row: null, sure: true });
+    const filing = services(runs, [logged[1]!]);
+    expect(await filing.fileValues?.(walk, "Runs", "Walked 4k with the dog in 50 mins. Add this to my runs.")).toBe(false);
+    expect(placed).toEqual([]);
+    expect(asked[0]!.text).toStartWith("Runs already has 27:40 on ");
+    asked[0]!.actions.find((action) => action.label === "Add another")!.run!();
+    await settle();
+    expect(placed.map((cell) => cell.fieldId)).toEqual(["distance", "time"]);
+    expect(placed[1]!.row.id).toBe(placed[0]!.row.id);
+    expect(placed[0]!.row.id).not.toBe(loggedRow.id);
+  });
+
+  test("a paragraph for a day with an empty row fills that row", async () => {
+    answers.push({ collection: 0, field: 1, row: null, sure: true }, { collection: 0, field: 2, row: null, sure: true });
+    const filing = services(runs, []);
+    expect(await filing.fileValues?.(walk, "Runs", "Walked 4k with the dog in 50 mins. Add this to my runs.")).toBe(true);
+    expect(asked).toEqual([]);
+    expect(placed.map((cell) => cell.fieldId)).toEqual(["distance", "time"]);
+    expect(placed[1]!.row.id).toBe(placed[0]!.row.id);
+  });
+
+  test("a paragraph whose list row already has that column asks, and files nothing until Use", async () => {
+    const palace = { id: "c1.palace", collectionId: "c1", label: "Pena Palace", createdAt: 0 };
+    const old: TrackedValue = { id: "old", text: "€30", kind: "money", field: "price", subject: { label: "Pena Palace", entityId: palace.id }, naming: false };
+    const newer: TrackedValue = { ...price, id: "new", text: "€32", subject: { label: "Pena Palace" } };
+    answers.push({ collection: 0, field: 0, row: { row: 0 }, sure: true });
+    const filing = services(things, [old, newer], [palace]);
+    expect(await filing.fileValues?.([newer], "Things to do", "Pena Palace is €32 each.")).toBe(false);
+    expect(placed).toEqual([]);
+    expect(asked[0]!.text).toBe("Things to do already has €30 for Pena Palace");
+    asked[0]!.actions.find((action) => action.label === "Use €32")!.run!();
+    await settle();
+    expect(placed).toHaveLength(1);
+    expect(placed[0]!.replaces).toBe("old");
   });
 
   test("asking to file a paragraph with no list that fits starts one", async () => {

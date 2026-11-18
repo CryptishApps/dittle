@@ -24,7 +24,10 @@ export function changeOutsideEditor(queryClient: QueryClient, uid: string, store
 
 const OFFER_GROUP_MS = 6000;
 
-type Clash = { collection: Collection; day?: string; occupied: string[]; target: Pick<Placement, "row" | "newRow">; cells: { valueId: string; field: CollectionField }[] };
+type Fits = { kind: "fits"; fact: TrackedValue; collection: Collection; field: CollectionField; placement: Placement };
+type Declined = { kind: "declined"; fact: TrackedValue; collection: Collection; pick: { label?: string; row?: Omit<Row, "createdAt"> } };
+type Decision = { kind: "none"; fact: TrackedValue } | { kind: "follows"; fact: TrackedValue; collection: Collection } | Declined | Fits;
+type Entry = { fact: TrackedValue; field: CollectionField; occupant?: StoredValue };
 
 type Offer = { collection: Collection; values: TrackedValue[]; label: string; row?: Omit<Row, "createdAt">; at: number };
 
@@ -106,10 +109,10 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
     held = { collectionId: collection.id, values: [...heldFor(collection.id), fact], at: Date.now() };
   };
 
-  const place = async (value: TrackedValue, sentence?: string, declinedInto?: (collection: Collection) => void, clash?: { current?: Clash }): Promise<boolean> => {
+  const decide = async (value: TrackedValue, sentence?: string): Promise<Decision> => {
     const fact = { ...store.get(value.id), ...value };
     const all = collections();
-    if (fact.field || all.length === 0) return false;
+    if (fact.field || all.length === 0) return { kind: "none", fact };
     const options = all.map((collection) => (collection.key.by === "name" ? rowOptions(collection, rows()) : []));
     const { placeValue } = await import("@/features/ai/place");
     const result = await placeValue({
@@ -123,34 +126,29 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
       })),
     });
     const collection = result.collection === null ? undefined : all[result.collection];
-    if (!collection) return false;
+    if (!collection) return { kind: "none", fact };
     const byDay = collection.key.by === "when";
     const existing = result.row && "row" in result.row ? options[result.collection!]![result.row.row] : undefined;
-    if (!sentence && !byDay && fact.kind === "date" && !(existing && result.sure)) {
-      follow(fact, collection);
-      return false;
-    }
-    const declined = () => {
-      declinedInto?.(collection);
-      suggest(fact, collection, result.row && "label" in result.row ? { label: result.row.label } : { row: existing });
-      return false;
-    };
-    if (result.field === null || !result.sure) return declined();
+    const pick = result.row && "label" in result.row ? { label: result.row.label } : { row: existing };
+    if (!sentence && !byDay && fact.kind === "date" && !(existing && result.sure)) return { kind: "follows", fact, collection };
+    const declined: Decision = { kind: "declined", fact, collection, pick };
+    if (result.field === null || !result.sure) return declined;
     const field = collection.fields[result.field]!;
-    if ((byDay && field.kind === "date") || (fact.kind && field.kind !== "text" && field.kind !== fact.kind)) return declined();
+    if ((byDay && field.kind === "date") || (fact.kind && field.kind !== "text" && field.kind !== fact.kind)) return declined;
     const placement = byDay
       ? placeByDay(collection, fact, field.id, store.list(), rows())
       : result.row && placeByName(collection, result.row, options[result.collection!]!, fact, field.id, store.list());
-    if (!placement) return declined();
+    return placement ? { kind: "fits", fact, collection, field, placement } : declined;
+  };
+
+  const place = async (value: TrackedValue): Promise<void> => {
+    const decision = await decide(value);
+    if (decision.kind === "none") return;
+    if (decision.kind === "follows") return follow(decision.fact, decision.collection);
+    if (decision.kind === "declined") return suggest(decision.fact, decision.collection, decision.pick);
+    const { fact, collection, field, placement } = decision;
+    const byDay = collection.key.by === "when";
     const { occupant, another } = placement;
-    if (clash && byDay && (clash.current || (occupant && another))) {
-      if (!clash.current && occupant && another) clash.current = { collection, day: placement.row.period, occupied: [], target: another, cells: [] };
-      if (clash.current?.collection.id === collection.id) {
-        if (occupant) clash.current.occupied.push(occupant.text);
-        clash.current.cells.push({ valueId: fact.id, field });
-      }
-      return false;
-    }
     if (!occupant) {
       await put(collection, fact.id, field, placement);
       if (!byDay) {
@@ -159,20 +157,63 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
         held = undefined;
         if (waiting.length > 0) await accept({ collection, values: waiting, label: placement.row.label, row: placement.row, at: Date.now() });
       }
-      return true;
+      return;
     }
     if (byDay && another) {
       askToast(`${collection.name} already has ${occupant.text} on ${dayLabel(placement.row.period)}`, [
         { label: "Skip" },
         { label: "Add another", primary: true, run: () => void put(collection, fact.id, field, another) },
       ]);
-      return true;
+      return;
     }
     askToast(`${collection.name} already has ${occupant.text} for ${placement.row.label}`, [
       { label: "Skip" },
       { label: `Use ${fact.text}`, primary: true, run: () => void put(collection, fact.id, field, placement, occupant.id) },
     ]);
-    return true;
+  };
+
+  const fillRow = async (collection: Collection, entries: Entry[], target: Pick<Placement, "row" | "newRow">, replace: boolean) => {
+    for (const [index, { fact, field, occupant }] of entries.entries()) {
+      await put(collection, fact.id, field, { row: target.row, newRow: target.newRow && index === 0 }, replace ? occupant?.id : undefined);
+    }
+  };
+
+  const fileGroup = async (collection: Collection, fits: Fits[], extra: TrackedValue[]): Promise<boolean> => {
+    const lead = fits.find((item) => item.fact.kind !== "date") ?? fits[0]!;
+    const byDay = collection.key.by === "when";
+    const used = new Set(fits.map((item) => item.field.id));
+    const entries: Entry[] = [
+      ...fits.map(({ fact, field }) => ({ fact, field })),
+      ...extra.flatMap((fact) => {
+        const field = fieldFor(collection, fact, used);
+        if (!field) return [];
+        used.add(field.id);
+        return [{ fact, field }];
+      }),
+    ];
+    const row = lead.placement.row;
+    const occupantOf = (entry: Entry) => store.list().find((other) => other.id !== entry.fact.id && other.subject?.entityId === row.id && other.field === entry.field.id);
+    const withOccupants = entries.map((entry) => ({ ...entry, occupant: lead.placement.newRow ? undefined : occupantOf(entry) }));
+    const occupied = withOccupants.flatMap((entry) => (entry.occupant ? [entry.occupant.text] : []));
+    if (occupied.length === 0) {
+      await fillRow(collection, withOccupants, lead.placement, false);
+      return true;
+    }
+    const texts = entries.map((entry) => entry.fact.text).join(" and ");
+    if (byDay) {
+      const clashing = withOccupants.find((entry) => entry.occupant)!;
+      const another = placeByDay(collection, clashing.fact, clashing.field.id, store.list(), rows()).another;
+      askToast(`${collection.name} already has ${occupied.join(" and ")} on ${dayLabel(row.period)}`, [
+        { label: "Skip" },
+        { label: "Add another", primary: true, run: () => void (another && fillRow(collection, entries, another, false)) },
+      ]);
+      return false;
+    }
+    askToast(`${collection.name} already has ${occupied.join(" and ")} for ${row.label}`, [
+      { label: "Skip" },
+      { label: `Use ${texts}`, primary: true, run: () => void fillRow(collection, withOccupants, { row, newRow: false }, true) },
+    ]);
+    return false;
   };
 
   const fileValues = async (values: TrackedValue[], list: string, sentence: string): Promise<boolean> => {
@@ -187,30 +228,20 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
       showToast(`Already in ${home.name} · ${rowLabel(row)}`);
       return true;
     }
-    let placed = false;
-    const asked = offer;
-    const picked: Collection[] = [];
-    const clash: { current?: Clash } = {};
-    for (const value of values) placed = (await place(value, sentence, (collection) => picked.push(collection), clash)) || placed;
-    if (clash.current) {
-      const { collection, day, occupied, target, cells } = clash.current;
-      askToast(`${collection.name} already has ${occupied.join(" and ")}${day ? ` on ${dayLabel(day)}` : ""}`, [
-        { label: "Skip" },
-        {
-          label: "Add another",
-          primary: true,
-          run: () =>
-            void cells.reduce(
-              (previous, cell, index) => previous.then(() => put(collection, cell.valueId, cell.field, { row: target.row, newRow: target.newRow && index === 0 })),
-              Promise.resolve(),
-            ),
-        },
-      ]);
-      return placed;
+    const decisions: Decision[] = [];
+    for (const value of values) decisions.push(await decide(value, sentence));
+    const fits = decisions.filter((decision): decision is Fits => decision.kind === "fits");
+    const declined = decisions.filter((decision): decision is Declined => decision.kind === "declined");
+    if (fits.length > 0) {
+      const collection = fits[0]!.collection;
+      const together = fits.filter((item) => item.collection.id === collection.id);
+      const extra = declined.filter((item) => item.collection.id === collection.id).map((item) => item.fact);
+      return fileGroup(collection, together, extra);
     }
-    if (placed) return true;
-    if (picked.length > 0) {
-      if (offer === asked) showToast(`${picked[0]!.name} has no column for ${values.map((value) => value.text).join(" and ")}`);
+    if (declined.length > 0) {
+      const asked = offer;
+      for (const item of declined) suggest(item.fact, item.collection, item.pick);
+      if (offer === asked) showToast(`${declined[0]!.collection.name} has no column for ${values.map((value) => value.text).join(" and ")}`);
       return false;
     }
     const lead = values.find((value) => value.event) ?? values[0]!;
