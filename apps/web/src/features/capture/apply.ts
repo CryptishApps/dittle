@@ -8,12 +8,14 @@ import { scalesOf, withUnits } from "@/features/collections/scale";
 import { daysUntil } from "@/features/collections/summary";
 import { changeEverywhere } from "@/features/editor/linking";
 import type { TrackedValue, ValueStore } from "@/features/editor/values";
-import { withQuantity } from "@/features/formulas/apply";
+import { acceptFormula, quantityOf, withQuantity } from "@/features/formulas/apply";
 import { cachedThenLive, collectionsQuery, noteQuery, notesQuery, rowsQuery, startNote, writes } from "@/features/notes/api";
-import { relabelNotesUsing } from "@/features/notes/editor-services";
+import { createEditorServices, relabelNotesUsing } from "@/features/notes/editor-services";
 import type { Collection, CollectionField, StoredValue } from "@/features/notes/fact";
 import { EMPTY_NOTE, noteWith, type Block, type NoteDoc } from "@/features/notes/note-doc";
 import { blocksFor, factOf, formulasFor, shortTitle, type Placed } from "./draft";
+import { placeCollections, shelfOf, whereFrom, type Shelf, type Where } from "@/features/onboarding/practice";
+import { filingCandidates, spotsFor, storedOf, valuesOf, withSpotted } from "./keeps";
 
 export type CaptureContext = { queryClient: QueryClient; uid: string; store: ValueStore };
 
@@ -89,10 +91,30 @@ function comingUp(paragraphs: DraftParagraph[]): Detail[] {
   return [{ text: `in Coming up, ${days === 0 ? "today" : days === 1 ? "tomorrow" : `${days} days away`}` }];
 }
 
-export function saveDraft(context: CaptureContext, draft: NoteDraft): Outcome & { noteId: string } {
+function fileIntoCollections({ queryClient, uid, store }: CaptureContext, noteId: string, created: TrackedValue[]): () => void {
+  const undos: (() => void)[] = [];
+  let undone = false;
+  const services = createEditorServices({
+    queryClient,
+    uid,
+    noteId,
+    store,
+    valuesInNote: () => created.map((value) => value.id),
+    findsFormulas: false,
+    onPlaced: (undo) => (undone ? undo() : undos.push(undo)),
+  });
+  for (const value of created) services.onNewFact?.(value);
+  return () => {
+    undone = true;
+    undos.reverse().forEach((undo) => undo());
+  };
+}
+
+export function saveDraft(context: CaptureContext, draft: NoteDraft, { file = false } = {}): Outcome & { noteId: string } {
   const { queryClient, uid, store } = context;
   const noteId = startNote(queryClient, uid, null, noteWith(draft.title));
   const { placed, created } = addValues(store, draft.paragraphs, noteId);
+  const unfile = file ? fileIntoCollections(context, noteId, created) : () => undefined;
   const blocks: Block[] = [{ t: "h", level: 1, c: draft.title ? [{ t: "text", text: draft.title }] : [] }, ...blocksFor(draft.paragraphs, placed)];
   const doc: NoteDoc = { v: 1, blocks: draft.paragraphs.length > 0 ? blocks : [...blocks, { t: "p", c: [] }] };
   queryClient.setQueryData(noteQuery(uid, noteId).queryKey, (current) => (current ? { ...current, doc, title: draft.title } : current));
@@ -105,6 +127,7 @@ export function saveDraft(context: CaptureContext, draft: NoteDraft): Outcome & 
     to: { note: noteId },
     details: comingUp(draft.paragraphs),
     undo: () => {
+      unfile();
       void writes.deleteNote(uid, noteId);
       created.forEach((value) => store.remove(value.id));
     },
@@ -264,6 +287,52 @@ const TIDY_TIMEOUT_MS = 25_000;
 export async function tidy(paste: string): Promise<NoteDraft> {
   const { tidyPaste } = await import("@/features/ai/capture");
   return (await withTimeout(tidyPaste(paste), TIDY_TIMEOUT_MS)).draft;
+}
+
+const SPOT_TIMEOUT_MS = 12_000;
+
+export function filingShelf({ queryClient, uid }: CaptureContext): Shelf | undefined {
+  const collections = queryClient.getQueryData(collectionsQuery(uid).queryKey) ?? [];
+  return collections.length > 0 ? shelfOf(collections, queryClient.getQueryData(rowsQuery(uid).queryKey) ?? []) : undefined;
+}
+
+export async function previewFiling(shelf: Shelf, draft: NoteDraft, today = new Date()): Promise<Map<number, Where>> {
+  const { placeValue } = await import("@/features/ai/place");
+  const values = valuesOf(draft);
+  const sentenceOf = draft.paragraphs.flatMap((paragraph) => paragraph.values.map(() => paragraph.text));
+  const collections = placeCollections(shelf);
+  const found = await Promise.allSettled(
+    filingCandidates(draft).map(async (index) => {
+      const value = values[index]!;
+      const answer = await withTimeout(placeValue({ sentence: sentenceOf[index]!, item: { text: value.quote, kind: value.kind, name: value.name, about: value.about }, collections }), SPOT_TIMEOUT_MS);
+      return [index, whereFrom(answer, shelf, value, today)] as const;
+    }),
+  );
+  return new Map(found.flatMap((result) => (result.status === "fulfilled" ? [result.value] : [])));
+}
+
+export async function spotFormulas(draft: NoteDraft): Promise<NoteDraft> {
+  const spots = spotsFor(draft);
+  if (spots.length === 0) return draft;
+  const { suggestFormula } = await import("@/features/ai/formula");
+  const values = valuesOf(draft);
+  const stored = storedOf(values);
+  const sentenceOf = draft.paragraphs.flatMap((paragraph) => paragraph.values.map(() => paragraph.text));
+  const asInput = (value: StoredValue) => ({ name: value.name ?? "value", text: value.text, number: quantityOf(value)!, seconds: value.amount === undefined });
+  const found = await Promise.allSettled(
+    spots.map(async ({ index, inputs }) => {
+      const shown = inputs.map((input) => stored[input]!);
+      const suggested = await withTimeout(suggestFormula({ sentence: sentenceOf[index]!, value: asInput(stored[index]!), inputs: shown.map(asInput) }), SPOT_TIMEOUT_MS);
+      return { index, formula: acceptFormula(suggested, quantityOf(stored[index]!)!, shown) };
+    }),
+  );
+  return found.reduce((next, result) => {
+    if (result.status === "rejected") {
+      console.warn("Dittle could not check a pasted value for a formula", result.reason);
+      return next;
+    }
+    return result.value.formula ? withSpotted(next, result.value.index, result.value.formula) : next;
+  }, draft);
 }
 
 export function rawDraft(entry: string): NoteDraft {

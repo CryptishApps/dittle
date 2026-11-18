@@ -10,7 +10,7 @@ import type { Collection, CollectionField, Row, StoredValue } from "./fact";
 import { collectionsQuery, noteQuery, notesQuery, rowsQuery, writes } from "./api";
 import { askToast, showToast } from "./toast";
 
-type ServiceInput = { queryClient: QueryClient; uid: string; noteId: string; store: ValueStore; valuesInNote: () => string[] };
+type ServiceInput = { queryClient: QueryClient; uid: string; noteId: string; store: ValueStore; valuesInNote: () => string[]; onPlaced?: (undo: () => void) => void; findsFormulas?: boolean };
 
 export function relabelNotesUsing(queryClient: QueryClient, uid: string, factId: string, text: string, exceptNoteId?: string): void {
   const notes = queryClient.getQueryData(notesQuery(uid).queryKey) ?? [];
@@ -37,7 +37,7 @@ function fieldFor(collection: Collection, value: StoredValue, used: Set<string> 
   return collection.fields.find((field) => field.kind === value.kind && !used.has(field.id) && !(collection.key.by === "when" && field.kind === "date"));
 }
 
-export function createEditorServices({ queryClient, uid, noteId, store, valuesInNote }: ServiceInput): EditorServices {
+export function createEditorServices({ queryClient, uid, noteId, store, valuesInNote, onPlaced, findsFormulas = true }: ServiceInput): EditorServices {
   const notes = () => queryClient.getQueryData(notesQuery(uid).queryKey) ?? [];
   const collections = () => queryClient.getQueryData(collectionsQuery(uid).queryKey) ?? [];
   const created: Row[] = [];
@@ -49,7 +49,14 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
 
   const put = async (collection: Collection, valueId: string, field: CollectionField, target: Pick<Placement, "row" | "newRow">, replaces?: string) => {
     if (target.newRow) created.push({ ...target.row, createdAt: Date.now() });
-    const undo = await writes.placeCell(uid, { row: target.row, newRow: target.newRow, valueId, fieldId: field.id, replaces });
+    const placed = await writes.placeCell(uid, { row: target.row, newRow: target.newRow, valueId, fieldId: field.id, replaces });
+    let undone = false;
+    const undo = () => {
+      if (undone) return;
+      undone = true;
+      placed();
+    };
+    onPlaced?.(undo);
     showToast(`Added to ${collection.name} · ${rowLabel(target.row)}`, () => {
       const index = created.findIndex((row) => row.id === target.row.id);
       if (index >= 0) created.splice(index, 1);
@@ -309,7 +316,7 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
           () => undefined,
           (error: unknown) => console.warn("Dittle could not place a value in a collection", error),
         );
-      void findFormula(value).catch((error: unknown) => console.warn("Dittle could not check for a formula", error));
+      if (findsFormulas) void findFormula(value).catch((error: unknown) => console.warn("Dittle could not check for a formula", error));
     },
     placementOf: (value) => {
       const row = rows().find((item) => item.id === value.subject?.entityId);
