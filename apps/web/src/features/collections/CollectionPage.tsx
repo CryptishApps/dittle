@@ -13,7 +13,7 @@ import type { CalculatedColumn, Glance } from "@/features/notes/fact";
 import { btnClass, ease, MIcon } from "@/ui/kit";
 import { AddColumn } from "./AddColumn";
 import { columnValue, describeColumn, type RowCells } from "./columns";
-import { GLANCES } from "./glance";
+import { GLANCES, glanceHint } from "./glance";
 import { rowLabel } from "./format";
 import { scalesOf, withUnits } from "./scale";
 import { summariseRows, type FieldTotal } from "./summary";
@@ -100,7 +100,7 @@ export function CollectionPage({ uid, collectionId }: { uid: string; collectionI
               Delete collection
             </button>
           </div>
-          <GlanceChoice glance={collection.glance ?? "total"} onChange={(glance) => writes.setGlance(uid, collection.id, glance)} />
+          <GlanceChoice glance={collection.glance ?? "total"} byDay={collection.key.by === "when"} onChange={(glance) => writes.setGlance(uid, collection.id, glance)} />
 
           {mine.length === 0 ? (
             <p className="mt-8 border-t border-line py-5 text-[15px] text-faint">No rows yet. Values you write about in any note land here.</p>
@@ -272,7 +272,7 @@ function Cell({ value, notes, editing, onEdit, onClose, onChange }: CellProps) {
   );
 }
 
-function GlanceChoice({ glance, onChange }: { glance: Glance; onChange: (glance: Glance) => void }) {
+function GlanceChoice({ glance, byDay, onChange }: { glance: Glance; byDay: boolean; onChange: (glance: Glance) => void }) {
   return (
     <fieldset className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-2">
       <legend className="float-left mr-1 text-[13.5px] text-faint">Show on home</legend>
@@ -280,7 +280,7 @@ function GlanceChoice({ glance, onChange }: { glance: Glance; onChange: (glance:
         {GLANCES.map((option) => (
           <label
             key={option.glance}
-            title={option.hint}
+            title={glanceHint(option.glance, byDay)}
             className={`cursor-pointer rounded-lg px-2.5 py-1 text-[13.5px] transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ink ${glance === option.glance ? "bg-ink font-medium text-page" : "text-soft hover:bg-chip hover:text-ink"}`}
           >
             <input type="radio" name="glance" value={option.glance} checked={glance === option.glance} onChange={() => onChange(option.glance)} className="sr-only" />
@@ -288,7 +288,7 @@ function GlanceChoice({ glance, onChange }: { glance: Glance; onChange: (glance:
           </label>
         ))}
       </div>
-      <span className="text-[13px] text-faint">{GLANCES.find((option) => option.glance === glance)?.hint}</span>
+      <span className="text-[13px] text-faint">{glanceHint(glance, byDay)}</span>
     </fieldset>
   );
 }

@@ -13,12 +13,19 @@ export type GlanceView = {
   line?: number[];
 };
 
-export const GLANCES: { glance: Glance; label: string; hint: string }[] = [
-  { glance: "total", label: "Total", hint: "Sum this month" },
-  { glance: "count", label: "Count", hint: "Entries this week" },
-  { glance: "average", label: "Average", hint: "Average per entry" },
-  { glance: "countdown", label: "Countdown", hint: "Days to the next date" },
+export const GLANCES: { glance: Glance; label: string }[] = [
+  { glance: "total", label: "Total" },
+  { glance: "count", label: "Count" },
+  { glance: "average", label: "Average" },
+  { glance: "countdown", label: "Countdown" },
 ];
+
+export function glanceHint(glance: Glance, byDay: boolean): string {
+  if (glance === "total") return byDay ? "Sum this month" : "Sum of every row";
+  if (glance === "count") return byDay ? "Entries this week" : "Rows added this week";
+  if (glance === "average") return byDay ? "Average per entry" : "Average per row";
+  return "Days to the next date";
+}
 
 const MAX_MARKS = 12;
 
