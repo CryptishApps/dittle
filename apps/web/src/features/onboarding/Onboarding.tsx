@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { AnimatePresence, m } from "motion/react";
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { AnimatePresence, m, MotionConfig } from "motion/react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { CaptureBox } from "@/features/capture/CaptureBox";
 import { createSyncedValueStore } from "@/features/editor/values";
 import { writes } from "@/features/notes/api";
@@ -10,6 +11,8 @@ import type { NoteDoc } from "@/features/notes/note-doc";
 import { STARTERS } from "@/features/notes/starters";
 import { ease } from "@/ui/kit";
 import { Icon, type IconName } from "./icons";
+import { liveReader } from "./live-read";
+import { enter, Heading, isEnter, PRIMARY } from "./parts";
 import { MAX_INTERACTIVE, RECIPES, sentenceOf, type GlanceOption, type Recipe, type Sample } from "./recipes";
 import { buildSeed, glanceValue, previewChange, tableOf, type ChangeLine, type PlannedChange, type Seed } from "./seed";
 import { onboarding, type OnboardingView } from "./stage";
@@ -29,12 +32,10 @@ export function Onboarding({ uid, view, onStart, onStartFrom, onSample }: Props)
 
 type Topic = { recipe: Recipe } | { custom: string };
 type Written = { recipe: Recipe; seed: Seed; glance?: GlanceOption };
-type Step = { at: "pick" } | { at: "entry"; index: number } | { at: "change" };
+type PracticeView = (typeof import("./PracticeStep"))["default"];
+const loadPractice = () => import("./PracticeStep").then((module) => module.default);
 
-const PRIMARY = "inline-flex h-11 items-center gap-2.5 rounded-xl bg-ink px-4.5 text-[15px] font-semibold text-page transition-opacity hover:opacity-90 disabled:opacity-40";
-const enter = { initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -6 }, transition: { duration: 0.22, ease } };
-
-const isEnter = (event: KeyboardEvent) => event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing;
+type Step = { at: "pick" } | { at: "entry"; index: number } | { at: "change" } | { at: "practice" };
 
 function Flow({ uid, onSample }: { uid: string; onSample: () => void }) {
   const [today] = useState(() => new Date());
@@ -48,19 +49,35 @@ function Flow({ uid, onSample }: { uid: string; onSample: () => void }) {
   const interactive = topics.slice(0, MAX_INTERACTIVE);
   const changeable = written.find((item) => item.seed.changes.length > 0);
 
-  const finish = async (done: Written[]) => {
+  const navigate = useNavigate();
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [Practice, setPractice] = useState<PracticeView>();
+
+  const practise = async (done: Written[]) => {
     const silent = topics.slice(MAX_INTERACTIVE);
+    const seeded: Recipe[] = [];
     for (const topic of silent) {
       const recipe = "recipe" in topic ? topic.recipe : await custom?.catch(() => undefined);
       if (!recipe?.samples[0]) continue;
       if (done.some((item) => item.recipe.id === recipe.id)) continue;
+      seeded.push(recipe);
       void writes.seedStarter(uid, buildSeed(recipe, [recipe.samples[0], ...recipe.extras], recipe.glances[0]?.glance, today));
     }
+    setRecipes([...done.map((item) => item.recipe), ...seeded]);
+    const view = await loadPractice().catch(() => undefined);
+    if (!view) return finish();
+    setPractice(() => view);
+    setStep({ at: "practice" });
+  };
+
+  const finish = (noteId?: string) => {
+    if (noteId) void navigate({ to: "/notes/$noteId", params: { noteId } });
     onboarding.end(uid, "done");
   };
 
   const start = (chosen: Topic[]) => {
     setTopics(chosen);
+    void loadPractice().catch(() => undefined);
     const topic = chosen.find((item) => "custom" in item);
     if (topic && "custom" in topic) setCustom(import("./ai").then(({ proposeRecipe }) => proposeRecipe(topic.custom, today)).catch(() => undefined));
     setStep({ at: "entry", index: 0 });
@@ -74,59 +91,57 @@ function Flow({ uid, onSample }: { uid: string; onSample: () => void }) {
     }
     if (index + 1 < interactive.length) setStep({ at: "entry", index: index + 1 });
     else if (next.some((entry) => entry.seed.changes.length > 0)) setStep({ at: "change" });
-    else void finish(next);
+    else void practise(next);
   };
 
-  const dots = ["pick", ...interactive.map((_, index) => `entry${index}`), "change"];
+  const withChange = step.at !== "practice" || Boolean(changeable);
+  const dots = ["pick", ...(step.at === "pick" ? ["entry0"] : interactive.map((_, index) => `entry${index}`)), ...(withChange ? ["change"] : []), "practice"];
   const current = step.at === "entry" ? `entry${step.index}` : step.at;
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto bg-page">
-      <div className="mx-auto flex max-w-[1080px] items-center justify-between px-5 pt-5 sm:px-8">
-        <span className="w-16" />
-        <ol aria-label="Progress" className="flex items-center gap-1.5">
-          {(step.at === "pick" ? ["pick", "entry0", "change"] : dots).map((dot) => (
-            <li key={dot} aria-current={dot === current ? "step" : undefined} className={`h-1.5 rounded-full transition-all duration-300 ${dot === current ? "w-5 bg-ink" : "w-1.5 bg-line-strong"}`} />
-          ))}
-        </ol>
-        <button type="button" onClick={() => onboarding.end(uid, "skipped")} className="w-16 text-right text-[14px] text-faint transition-colors hover:text-ink">
-          Skip
-        </button>
+    <MotionConfig reducedMotion="user">
+      <div className="min-h-0 flex-1 overflow-y-auto bg-page">
+        <div className="mx-auto flex max-w-[1080px] items-center justify-between px-5 pt-5 sm:px-8">
+          <span className="w-16" />
+          <ol aria-label="Progress" className="flex items-center gap-1.5">
+            {dots.map((dot) => (
+              <li key={dot} aria-current={dot === current ? "step" : undefined} className={`h-1.5 rounded-full transition-all duration-300 ${dot === current ? "w-5 bg-ink" : "w-1.5 bg-line-strong"}`} />
+            ))}
+          </ol>
+          <button type="button" onClick={() => onboarding.end(uid, "skipped")} className="w-16 text-right text-[14px] text-faint transition-colors hover:text-ink">
+            Skip
+          </button>
+        </div>
+        <AnimatePresence mode="wait" initial={false}>
+          {step.at === "pick" && (
+            <m.div key="pick" {...enter}>
+              <PickStep onContinue={start} onSample={onSample} />
+            </m.div>
+          )}
+          {step.at === "entry" && (
+            <m.div key={`entry${step.index}`} {...enter}>
+              <EntryLoader
+                topic={interactive[step.index]!}
+                custom={custom}
+                position={`${step.index + 1} of ${interactive.length}`}
+                today={today}
+                onAdd={(item) => added(item, step.index)}
+              />
+            </m.div>
+          )}
+          {step.at === "change" && changeable && (
+            <m.div key="change" {...enter}>
+              <ChangeStep uid={uid} written={changeable} today={today} onFinish={() => void practise(written)} />
+            </m.div>
+          )}
+          {step.at === "practice" && Practice && (
+            <m.div key="practice" {...enter}>
+              <Practice uid={uid} recipes={recipes} today={today} onDone={finish} />
+            </m.div>
+          )}
+        </AnimatePresence>
       </div>
-      <AnimatePresence mode="wait" initial={false}>
-        {step.at === "pick" && (
-          <m.div key="pick" {...enter}>
-            <PickStep onContinue={start} onSample={onSample} />
-          </m.div>
-        )}
-        {step.at === "entry" && (
-          <m.div key={`entry${step.index}`} {...enter}>
-            <EntryLoader
-              topic={interactive[step.index]!}
-              custom={custom}
-              position={`${step.index + 1} of ${interactive.length}`}
-              today={today}
-              onAdd={(item) => added(item, step.index)}
-            />
-          </m.div>
-        )}
-        {step.at === "change" && changeable && (
-          <m.div key="change" {...enter}>
-            <ChangeStep uid={uid} written={changeable} today={today} onFinish={() => void finish(written)} />
-          </m.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-function Heading({ eyebrow, title, sub }: { eyebrow: ReactNode; title: string; sub?: string }) {
-  return (
-    <>
-      <p className="flex items-center gap-1.5 text-[13.5px] text-faint">{eyebrow}</p>
-      <h1 className="mt-2 text-[34px] leading-[1.1] font-semibold tracking-[-0.03em] text-ink sm:text-[40px]">{title}</h1>
-      {sub && <p className="mt-2.5 text-[16px] leading-[1.55] text-soft">{sub}</p>}
-    </>
+    </MotionConfig>
   );
 }
 
@@ -223,6 +238,8 @@ function PickStep({ onContinue, onSample }: { onContinue: (topics: Topic[]) => v
   );
 }
 
+const LIVE_READ_WAIT_MS = 650;
+
 type EntryProps = { topic: Topic; custom?: Promise<Recipe | undefined>; position: string; today: Date; onAdd: (item: Written | undefined) => void };
 
 function EntryLoader({ topic, custom, ...rest }: EntryProps) {
@@ -262,9 +279,34 @@ function EntryStep({ recipe, position, today, onAdd }: Omit<EntryProps, "topic" 
   const [glance, setGlance] = useState<Glance | undefined>(recipe.glances[0]?.glance);
   const [reading, setReading] = useState(false);
   const [problem, setProblem] = useState<string>();
+  const [missed, setMissed] = useState<string>();
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const pressed = useRef<string>(undefined);
+  const [reader] = useState(() =>
+    liveReader<Sample | undefined>({
+      wait: LIVE_READ_WAIT_MS,
+      read: (sentence) => import("./ai").then(({ readEntry }) => readEntry(sentence, recipe, today)),
+      onResult: (sentence, found) => {
+        if (found) {
+          setSample(found);
+          setMissed(undefined);
+          setProblem(undefined);
+        } else if (pressed.current === sentence) setProblem("Dittle couldn't find anything to file in that. Try adding a number or a day.");
+        else setMissed(sentence);
+      },
+      onError: (sentence, error) => {
+        console.warn("Dittle could not read an onboarding entry", error);
+        if (pressed.current === sentence) setProblem("Dittle couldn't read that just now. Try again, or pick an example.");
+      },
+      onBusy: setReading,
+    }),
+  );
 
-  const parsed = text === sentenceOf(sample.parts);
+  useEffect(() => () => reader.cancel(), [reader]);
+
+  const read = sentenceOf(sample.parts);
+  const parsed = text.trim() === read;
+  const lit = text.startsWith(read);
   const seed = useMemo(
     () => buildSeed(recipe, [sample, ...extras.map((index) => recipe.extras[index]!)], glance, today),
     [recipe, sample, extras, glance, today],
@@ -279,36 +321,29 @@ function EntryStep({ recipe, position, today, onAdd }: Omit<EntryProps, "topic" 
   }, []);
 
   const choose = (next: Sample) => {
+    reader.cancel();
     setSample(next);
     setText(sentenceOf(next.parts));
     setProblem(undefined);
+    setMissed(undefined);
     inputRef.current?.focus();
   };
 
-  const read = async () => {
-    const sentence = text.trim();
-    if (!sentence || reading) return;
-    setReading(true);
+  const write = (next: string) => {
+    setText(next);
     setProblem(undefined);
-    try {
-      const { readEntry } = await import("./ai");
-      const found = await readEntry(sentence, recipe, today);
-      if (found) {
-        setSample(found);
-        setText(sentenceOf(found.parts));
-      } else setProblem("Dittle couldn't find anything to file in that. Try adding a number or a day.");
-    } catch (error) {
-      console.warn("Dittle could not read an onboarding entry", error);
-      setProblem("Dittle couldn't read that just now. Try again, or pick an example.");
-    } finally {
-      setReading(false);
-    }
+    const sentence = next.trim();
+    if (sentence && sentence !== read) reader.type(sentence);
+    else reader.cancel();
   };
 
   const advance = () => {
-    if (reading) return;
-    if (!parsed) return void read();
-    onAdd({ recipe, seed, glance: recipe.glances.find((option) => option.glance === glance) });
+    const sentence = text.trim();
+    if (!sentence) return;
+    if (parsed) return onAdd({ recipe, seed, glance: recipe.glances.find((option) => option.glance === glance) });
+    pressed.current = sentence;
+    setProblem(undefined);
+    void reader.now(sentence);
   };
 
   const others = recipe.samples.filter((item) => item !== sample);
@@ -327,7 +362,7 @@ function EntryStep({ recipe, position, today, onAdd }: Omit<EntryProps, "topic" 
         <div className="mt-7 rounded-2xl border border-line bg-page px-5 pt-4 pb-3.5 transition-colors focus-within:border-line-strong">
           <div className="relative text-[18px] leading-[1.7]">
             <div aria-hidden className="pointer-events-none break-words whitespace-pre-wrap text-ink">
-              {parsed
+              {lit
                 ? sample.parts.map((part, index) =>
                     typeof part === "string" ? (
                       <span key={index}>{part}</span>
@@ -344,6 +379,7 @@ function EntryStep({ recipe, position, today, onAdd }: Omit<EntryProps, "topic" 
                     ),
                   )
                 : text}
+              {lit && text.slice(read.length)}
               {"​"}
             </div>
             <textarea
@@ -352,10 +388,7 @@ function EntryStep({ recipe, position, today, onAdd }: Omit<EntryProps, "topic" 
               rows={1}
               spellCheck={false}
               aria-label={recipe.prompt}
-              onChange={(event) => {
-                setText(event.target.value);
-                setProblem(undefined);
-              }}
+              onChange={(event) => write(event.target.value)}
               className="absolute inset-0 resize-none overflow-hidden bg-transparent text-transparent caret-ink outline-none"
               style={{ font: "inherit", lineHeight: "inherit" }}
             />
@@ -366,7 +399,7 @@ function EntryStep({ recipe, position, today, onAdd }: Omit<EntryProps, "topic" 
                 Reading what you wrote
               </span>
             ) : !parsed ? (
-              <span>Press Enter and Dittle will file it</span>
+              <span>{missed === text.trim() ? "Nothing to file yet. Try adding a number or a day." : "Keep typing. Dittle reads it when you pause."}</span>
             ) : (
               others.length > 0 && (
                 <>
@@ -444,7 +477,7 @@ function EntryStep({ recipe, position, today, onAdd }: Omit<EntryProps, "topic" 
           )}
         </div>
 
-        <button type="button" onClick={advance} disabled={reading || !text.trim()} className={`${PRIMARY} mt-9`}>
+        <button type="button" onClick={advance} disabled={!text.trim() || (reading && parsed)} className={`${PRIMARY} mt-9`}>
           {parsed ? `Add to ${recipe.collection.name}` : reading ? "Reading…" : "File it"}
           <Icon name="enter" className="size-4 opacity-70" />
         </button>

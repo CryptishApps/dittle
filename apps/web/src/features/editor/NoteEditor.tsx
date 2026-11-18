@@ -45,10 +45,11 @@ type NoteEditorOptions = {
   label: string;
   services?: EditorServices;
   autofocus?: "start" | "end" | false;
+  placeholder?: string;
   onUpdate?: (editor: Editor) => void;
 };
 
-export function useNoteEditor({ store, content, label, services = {}, autofocus = false, onUpdate }: NoteEditorOptions): Editor | null {
+export function useNoteEditor({ store, content, label, services = {}, autofocus = false, placeholder = "Write here. Type / for commands.", onUpdate }: NoteEditorOptions): Editor | null {
   const { noteId, noteTitleOf = () => undefined } = services;
   const holder = useRef<Editor | null>(null);
 
@@ -99,7 +100,7 @@ export function useNoteEditor({ store, content, label, services = {}, autofocus 
       TaskItem.configure({ nested: false }),
       Placeholder.configure({
         showOnlyCurrent: false,
-        placeholder: ({ pos }) => (pos === 0 ? "Untitled" : "Write here. Type / for commands."),
+        placeholder: ({ pos }) => (pos === 0 ? "Untitled" : placeholder),
       }),
       Spotting.configure({
         find: rememberedFind,

@@ -123,6 +123,20 @@ export function foundValueAt(state: EditorState, id: string): { value: FoundValu
   return value && decoration ? { value, from: decoration.from, to: decoration.to } : undefined;
 }
 
+export type Spotted = { value: FoundValue; from: number; to: number; sentence: string };
+
+export function spottedValues(state: EditorState): Spotted[] {
+  const plugin = spottingKey.getState(state);
+  if (!plugin) return [];
+  return plugin.decorations
+    .find()
+    .flatMap((decoration) => {
+      const value = plugin.found.get(decoration.spec.id as string);
+      return value ? [{ value, from: decoration.from, to: decoration.to, sentence: state.doc.resolve(decoration.from).parent.textContent }] : [];
+    })
+    .sort((a, b) => a.from - b.from);
+}
+
 const sentenceSplitter = typeof Intl.Segmenter === "function" ? new Intl.Segmenter("en", { granularity: "sentence" }) : undefined;
 
 function endsSentence(textBeforeCaret: string): boolean {
