@@ -10,7 +10,7 @@ import { changeEverywhere } from "@/features/editor/linking";
 import type { TrackedValue, ValueStore } from "@/features/editor/values";
 import { acceptFormula, quantityOf, withQuantity } from "@/features/formulas/apply";
 import { cachedThenLive, collectionsQuery, noteQuery, notesQuery, rowsQuery, startNote, writes } from "@/features/notes/api";
-import { createEditorServices, placeShape, relabelNotesUsing } from "@/features/notes/editor-services";
+import { createEditorServices, NOT_PLACED, placeShape, relabelNotesUsing } from "@/features/notes/editor-services";
 import type { PlaceAnswer } from "@/features/ai/place-answer";
 import type { Collection, CollectionField, Row, StoredValue } from "@/features/notes/fact";
 import { EMPTY_NOTE, noteWith, type Block, type NoteDoc } from "@/features/notes/note-doc";
@@ -94,8 +94,6 @@ function comingUp(paragraphs: DraftParagraph[]): Detail[] {
 
 export type PreviewedFiling = { wheres: Map<number, Where>; answers: Map<number, PlaceAnswer>; shape: string };
 
-const NOT_FILED: PlaceAnswer = { collection: null, field: null, row: null, sure: false };
-
 export function shownFiling(previewed: PreviewedFiling, lines: KeepLine[]): PreviewedFiling {
   const shown = new Set(lines.flatMap((line) => (line.kind === "filed" ? (line.also ?? [line.index]) : [])));
   return { ...previewed, answers: new Map([...previewed.answers].filter(([index]) => shown.has(index))) };
@@ -112,7 +110,7 @@ function fileIntoCollections({ queryClient, uid, store }: CaptureContext, noteId
     valuesInNote: () => created.map((value) => value.id),
     findsFormulas: false,
     onPlaced: (undo) => (undone ? undo() : undos.push(undo)),
-    answers: { shape: previewed.shape, forValue: (valueId) => previewed.answers.get(created.findIndex((value) => value.id === valueId)) ?? NOT_FILED },
+    answers: { shape: previewed.shape, forValue: (valueId) => previewed.answers.get(created.findIndex((value) => value.id === valueId)) ?? NOT_PLACED },
   });
   for (const value of created) services.onNewFact?.(value);
   return () => {

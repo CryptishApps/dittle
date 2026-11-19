@@ -11,6 +11,8 @@ import type { Collection, CollectionField, Row, StoredValue } from "./fact";
 import { collectionsQuery, noteQuery, notesQuery, rowsQuery, writes } from "./api";
 import { askToast, showToast } from "./toast";
 
+export const NOT_PLACED: PlaceAnswer = { collection: null, field: null, row: null, sure: false };
+
 export type KnownAnswers = { shape: string; forValue: (valueId: string) => PlaceAnswer };
 
 type ServiceInput = {
@@ -140,7 +142,7 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
     const optionsFrom = (list: Row[]) => all.map((collection) => (collection.key.by === "name" ? rowOptions(collection, list) : []));
     const madeHere = new Set(created.map((row) => row.id));
     const before = optionsFrom(rows().filter((row) => !madeHere.has(row.id)));
-    const known = answers && answers.shape === placeShape(all, before) ? answers.forValue(value.id) : undefined;
+    const known = answers && (answers.shape === placeShape(all, before) ? answers.forValue(value.id) : NOT_PLACED);
     const options = known ? before : optionsFrom(rows());
     const { placeValue } = await import("@/features/ai/place");
     const result = known ?? await placeValue({

@@ -330,13 +330,13 @@ describe("saving a pasted note files its values like a typed note", () => {
     });
   });
 
-  test("a preview made before the collections changed is not reused", async () => {
-    answer = { collection: 0, field: 2, row: null, sure: false };
+  test("a preview made before the collections changed files nothing, without asking the model again", async () => {
     const previewed = { wheres: new Map(), answers: new Map([[1, { collection: 0, field: 2, row: null, sure: true }]]), shape: JSON.stringify([["other"]]) };
     saveDraft(context(), race, previewed);
     await settle();
+    expect(modelCalls).toBe(0);
     expect(placed).toEqual([]);
-    expect(asked).toEqual(["Add 52:41 to Runs?"]);
+    expect(asked).toEqual([]);
   });
 
   test("undo removes the note, its values and the cells it filed", async () => {
