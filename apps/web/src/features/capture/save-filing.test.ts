@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 import { QueryClient } from "@tanstack/react-query";
 import type { DraftValue, NoteDraft } from "@/features/ai/capture-answer";
+import type { PlaceAnswer } from "@/features/ai/place-answer";
 import { createValueStore } from "@/features/editor/values";
 import type { Collection } from "@/features/notes/fact";
 import type { CellPlacement } from "@/features/notes/store";
@@ -11,9 +12,15 @@ const deleted: string[] = [];
 const asked: string[] = [];
 const formulaChecks: string[] = [];
 let answer = { collection: 0, field: 2, row: null, sure: true };
+let byKind: Record<string, PlaceAnswer> = {};
+let modelCalls = 0;
 
 mock.module("@/features/ai/place", () => ({
-  placeValue: async (input: { item: { kind?: string } }) => ({ ...(input.item.kind === "duration" ? answer : { collection: null, field: null, row: null, sure: false }), where: "in_cloud", ms: 1 }),
+  placeValue: async (input: { item: { kind?: string } }) => {
+    modelCalls += 1;
+    const kind = input.item.kind ?? "";
+    return { ...(byKind[kind] ?? (kind === "duration" ? answer : { collection: null, field: null, row: null, sure: false })), where: "in_cloud", ms: 1 };
+  },
 }));
 mock.module("@/features/ai/formula", () => ({
   suggestFormula: async ({ value }: { value: { text: string } }) => {
@@ -83,6 +90,8 @@ function context() {
 beforeEach(() => {
   for (const list of [placed, unplaced, deleted, asked, formulaChecks]) list.length = 0;
   answer = { collection: 0, field: 2, row: null, sure: true };
+  byKind = {};
+  modelCalls = 0;
 });
 
 describe("saving a pasted note files its values like a typed note", () => {
@@ -115,6 +124,41 @@ describe("saving a pasted note files its values like a typed note", () => {
     await settle();
     expect(placed.map((cell) => store.get(cell.valueId)?.text)).toEqual(["52:41"]);
     expect(asked.length).toBe(1);
+  });
+
+  test("two values the preview put in one new named row are saved into that one row", async () => {
+    const trips: Collection = {
+      id: "trips",
+      name: "Trips",
+      rowLabel: "trip",
+      fields: [
+        { id: "cost", name: "Cost", kind: "money" },
+        { id: "nights", name: "Nights", kind: "count" },
+      ],
+      key: { by: "name" },
+      createdAt: 0,
+    };
+    const porto = { id: "trips.porto", collectionId: "trips", label: "Porto", createdAt: 1 };
+    byKind = {
+      money: { collection: 0, field: 0, row: { label: "Lisbon" }, sure: true },
+      count: { collection: 0, field: 1, row: { label: "Lisbon" }, sure: true },
+    };
+    const cost: DraftValue = { quote: "£640", kind: "money", name: "cost", about: "Lisbon", event: false, amount: 640, before: "£", after: "", formula: "", field: null };
+    const nights: DraftValue = { quote: "4", kind: "count", name: "nights", about: "Lisbon", event: false, amount: 4, before: "", after: " nights", formula: "", field: null };
+    const lisbon: NoteDraft = { title: "Lisbon", paragraphs: [{ text: "£640 for 4 nights.", values: [cost, nights] }] };
+    const previewed = await previewFiling(shelfOf([trips], [porto]), lisbon, new Date(2026, 10, 18));
+    modelCalls = 0;
+    const { queryClient, store } = context();
+    queryClient.setQueryData(["collections", "u1"], [trips]);
+    queryClient.setQueryData(["rows", "u1"], [porto]);
+    saveDraft({ queryClient, uid: "u1", store }, lisbon, { file: true, previewed });
+    await settle();
+    expect(modelCalls).toBe(0);
+    expect(placed.map((cell) => [cell.fieldId, cell.row.label, cell.newRow])).toEqual([
+      ["cost", "Lisbon", true],
+      ["nights", "Lisbon", false],
+    ]);
+    expect(new Set(placed.map((cell) => cell.row.id)).size).toBe(1);
   });
 
   test("a preview made before the collections changed is not reused", async () => {

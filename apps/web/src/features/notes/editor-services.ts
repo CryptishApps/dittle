@@ -137,8 +137,11 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
     const fact = { ...store.get(value.id), ...value };
     const all = collections();
     if (fact.field || all.length === 0) return { kind: "none", fact };
-    const options = all.map((collection) => (collection.key.by === "name" ? rowOptions(collection, rows()) : []));
-    const known = answers && answers.shape === placeShape(all, options) ? answers.forValue(value.id) : undefined;
+    const optionsFrom = (list: Row[]) => all.map((collection) => (collection.key.by === "name" ? rowOptions(collection, list) : []));
+    const madeHere = new Set(created.map((row) => row.id));
+    const before = optionsFrom(rows().filter((row) => !madeHere.has(row.id)));
+    const known = answers && answers.shape === placeShape(all, before) ? answers.forValue(value.id) : undefined;
+    const options = known ? before : optionsFrom(rows());
     const { placeValue } = await import("@/features/ai/place");
     const result = known ?? await placeValue({
       sentence: sentence ?? fact.origin?.sentence ?? fact.text,
@@ -153,8 +156,10 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
     const collection = result.collection === null ? undefined : all[result.collection];
     if (!collection) return { kind: "none", fact };
     const byDay = collection.key.by === "when";
-    const existing = result.row && "row" in result.row ? options[result.collection!]![result.row.row] : undefined;
-    const pick = result.row && "label" in result.row ? { label: result.row.label } : { row: existing };
+    const named = result.row && "label" in result.row ? result.row.label : undefined;
+    const startedHere = named === undefined ? undefined : created.find((row) => row.collectionId === collection.id && row.label === named);
+    const existing = startedHere ?? (result.row && "row" in result.row ? options[result.collection!]![result.row.row] : undefined);
+    const pick = named !== undefined && !startedHere ? { label: named } : { row: existing };
     if (!sentence && !byDay && fact.kind === "date" && !(existing && result.sure)) return { kind: "follows", fact, collection };
     const declined: Decision = { kind: "declined", fact, collection, pick };
     if (result.field === null || !result.sure) return declined;
@@ -162,7 +167,9 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
     if ((byDay && field.kind === "date") || (fact.kind && field.kind !== "text" && field.kind !== fact.kind)) return declined;
     const placement = byDay
       ? placeByDay(collection, fact, field.id, store.list(), rows())
-      : result.row && placeByName(collection, result.row, options[result.collection!]!, fact, field.id, store.list());
+      : startedHere
+        ? placeByName(collection, { row: 0 }, [startedHere], fact, field.id, store.list())
+        : result.row && placeByName(collection, result.row, options[result.collection!]!, fact, field.id, store.list());
     return placement ? { kind: "fits", fact, collection, field, placement } : declined;
   };
 
