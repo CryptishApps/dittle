@@ -16,7 +16,7 @@ import type { Collection, CollectionField, StoredValue } from "@/features/notes/
 import { EMPTY_NOTE, noteWith, type Block, type NoteDoc } from "@/features/notes/note-doc";
 import { blocksFor, factOf, formulasFor, shortTitle, type Placed } from "./draft";
 import { placeCollections, shelfOf, whereFrom, type Shelf, type Where } from "@/features/onboarding/practice";
-import { filingCandidates, spotsFor, storedOf, valuesOf, withSpotted } from "./keeps";
+import { filingCandidates, spotsFor, storedOf, valuesOf, withSpotted, type KeepLine } from "./keeps";
 
 export type CaptureContext = { queryClient: QueryClient; uid: string; store: ValueStore };
 
@@ -95,6 +95,11 @@ function comingUp(paragraphs: DraftParagraph[]): Detail[] {
 export type PreviewedFiling = { wheres: Map<number, Where>; answers: Map<number, PlaceAnswer>; shape: string };
 
 const NOT_FILED: PlaceAnswer = { collection: null, field: null, row: null, sure: false };
+
+export function shownFiling(previewed: PreviewedFiling, lines: KeepLine[]): PreviewedFiling {
+  const shown = new Set(lines.flatMap((line) => (line.kind === "filed" ? (line.also ?? [line.index]) : [])));
+  return { ...previewed, answers: new Map([...previewed.answers].filter(([index]) => shown.has(index))) };
+}
 
 function fileIntoCollections({ queryClient, uid, store }: CaptureContext, noteId: string, created: TrackedValue[], previewed?: PreviewedFiling): () => void {
   const undos: (() => void)[] = [];

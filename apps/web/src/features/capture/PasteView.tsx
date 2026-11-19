@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { NoteDraft } from "@/features/ai/capture-answer";
 import { NumberRoll } from "@/features/what-if/NumberRoll";
 import type { Where } from "@/features/onboarding/practice";
-import { filingShelf, previewFiling, rawDraft, saveDraft, spotFormulas, tidy, type CaptureContext, type Outcome, type PreviewedFiling } from "./apply";
+import { filingShelf, previewFiling, rawDraft, saveDraft, shownFiling, spotFormulas, tidy, type CaptureContext, type Outcome, type PreviewedFiling } from "./apply";
 import { formulasFor, inlinesFor } from "./draft";
 import { CaptureIcon } from "./icons";
 import { keepLines, liveValues, spotsFor, tryItOf, tryValues, valuesOf, withTried, type KeepLine, type Tried, type TryIt } from "./keeps";
@@ -83,7 +83,8 @@ export function PasteView({ paste, context, onSample, onClose, onSaved }: PasteV
 
   const save = (edit: boolean) => {
     if (!draft) return;
-    const outcome = saveDraft(context, (tried.size > 0 && withTried(draft, tried)) || draft, { file: true, previewed });
+    const filing = previewed && shownFiling(previewed, keepLines(draft, tried, undefined, previewed.wheres));
+    const outcome = saveDraft(context, (tried.size > 0 && withTried(draft, tried)) || draft, { file: true, previewed: filing });
     onSaved(`${firstLine(paste.text)}…`, made.state === "failed" ? { ...outcome, details: [{ text: "Dittle couldn't tidy it, so it's saved as pasted" }] } : outcome, edit);
   };
 

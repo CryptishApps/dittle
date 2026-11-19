@@ -16,10 +16,10 @@ let byKind: Record<string, PlaceAnswer> = {};
 let modelCalls = 0;
 
 mock.module("@/features/ai/place", () => ({
-  placeValue: async (input: { item: { kind?: string } }) => {
+  placeValue: async (input: { item: { kind?: string; text: string } }) => {
     modelCalls += 1;
     const kind = input.item.kind ?? "";
-    return { ...(byKind[kind] ?? (kind === "duration" ? answer : { collection: null, field: null, row: null, sure: false })), where: "in_cloud", ms: 1 };
+    return { ...(byKind[input.item.text] ?? byKind[kind] ?? (kind === "duration" ? answer : { collection: null, field: null, row: null, sure: false })), where: "in_cloud", ms: 1 };
   },
 }));
 mock.module("@/features/ai/formula", () => ({
@@ -54,7 +54,8 @@ mock.module("@/features/notes/api", () => ({
   },
 }));
 
-const { previewFiling, saveDraft } = await import("./apply");
+const { previewFiling, saveDraft, shownFiling } = await import("./apply");
+const { keepLines } = await import("./keeps");
 const { shelfOf } = await import("@/features/onboarding/practice");
 
 const runs: Collection = {
@@ -169,6 +170,25 @@ describe("saving a pasted note files its values like a typed note", () => {
       ["nights", "Lisbon", false],
     ]);
     expect(new Set(placed.map((cell) => cell.row.id)).size).toBe(1);
+  });
+
+  test("save files only into the places the list showed", async () => {
+    const shop = (id: string, name: string): Collection => ({ id, name, rowLabel: name, fields: [{ id: "cost", name: "Cost", kind: "money" }], key: { by: "name" }, createdAt: 0 });
+    const shelves = [shop("trips", "Trips"), shop("dinners", "Dinners"), shop("gear", "Gear")];
+    const spend = (quote: string, about: string, amount: number): DraftValue => ({ quote, kind: "money", name: "cost", about, event: false, amount, before: "£", after: "", formula: "", field: null });
+    const values = [spend("£920", "Lisbon", 920), spend("£45", "Dishoom", 45), spend("£120", "shoes", 120)];
+    values.forEach((value, index) => (byKind[value.quote] = { collection: index, field: 0, row: { label: value.about }, sure: true }));
+    const spent: NoteDraft = { title: "Spent", paragraphs: [{ text: "Lisbon £920, Dishoom £45, shoes £120.", values }] };
+    const previewed = await previewFiling(shelfOf(shelves, []), spent, new Date(2026, 10, 18));
+    const lines = keepLines(spent, new Map(), new Date(2026, 10, 18), previewed.wheres).filter((line) => line.kind === "filed");
+    expect(lines.map((line) => line.label)).toEqual(["Trips · Lisbon", "Dinners · Dishoom"]);
+    modelCalls = 0;
+    const { queryClient, store } = context();
+    queryClient.setQueryData(["collections", "u1"], shelves);
+    saveDraft({ queryClient, uid: "u1", store }, spent, { file: true, previewed: shownFiling(previewed, lines) });
+    await settle();
+    expect(modelCalls).toBe(0);
+    expect(placed.map((cell) => cell.row.collectionId)).toEqual(["trips", "dinners"]);
   });
 
   test("a preview made before the collections changed is not reused", async () => {
