@@ -131,7 +131,7 @@ describe("where values would be filed", () => {
     ],
   };
 
-  test("values that would be filed sum up by destination, a second value for a field already taken asks, and values that stay in the note or only name the day give nothing", () => {
+  test("values that would be filed sum up by destination, and a second value for a field already taken, an unsure value, a value that stays in the note or one that only names the day give nothing", () => {
     const wheres = new Map([
       [0, { at: "collection", collection: "Runs", row: "Sun 15 Nov", day: true, sure: true } as const],
       [1, { at: "note" } as const],
@@ -139,11 +139,9 @@ describe("where values would be filed", () => {
       [3, { at: "collection", collection: "Runs", field: "Time", row: "Sun 15 Nov", sure: true } as const],
     ]);
     const lines = keepLines(race, new Map(), today, wheres);
-    expect(lines).toEqual([
-      { kind: "filed", index: 2, also: [2], sign: "→", label: "Runs · Sun 15 Nov", how: "Time goes in when you save.", figure: "52:41" },
-      { kind: "filed", index: 3, also: [3], sign: "→", label: "Runs", how: "Asks before adding it.", figure: "53:10" },
-    ]);
-    expect([...liveValues(race, lines)].sort()).toEqual([2, 3]);
+    expect(lines).toEqual([{ kind: "filed", index: 2, also: [2], sign: "→", label: "Runs · Sun 15 Nov", how: "Time goes in when you save.", figure: "52:41" }]);
+    expect([...liveValues(race, lines)].sort()).toEqual([2]);
+    expect(keepLines(race, new Map(), today, new Map([[2, { ...wheres.get(2)!, sure: false }]]))).toEqual([]);
   });
 
   test("a value with no column that fits gives no line, so a bib number never shows as something to ask about", () => {
@@ -168,22 +166,9 @@ describe("where values would be filed", () => {
     expect(tryItOf(tenK)).toBeUndefined();
   });
 
-  test("two unsure values get a line each, never joined into one figure", () => {
-    const wheres = new Map([
-      [2, { at: "collection", collection: "Runs", field: "Time", row: "Sun 15 Nov", sure: false } as const],
-      [3, { at: "collection", collection: "Runs", field: "Time", row: "Sun 15 Nov", sure: false } as const],
-    ]);
-    expect(keepLines(race, new Map(), today, wheres).map((line) => line.figure)).toEqual(["52:41", "53:10"]);
-  });
-
   test("a date today does not count down", () => {
     const receipt: NoteDraft = { title: "Lunch", paragraphs: [{ text: "Paid today.", values: [date("today", "2026-11-18", "paid_on")] }] };
     expect(keepLines(receipt, new Map(), new Date(2026, 10, 18))).toEqual([]);
-  });
-
-  test("an unsure destination says it will ask", () => {
-    const wheres = new Map([[2, { at: "collection", collection: "Runs", field: "Time", row: "Sun 15 Nov", sure: false } as const]]);
-    expect(keepLines(race, new Map(), today, wheres)).toEqual([{ kind: "filed", index: 2, also: [2], sign: "→", label: "Runs", how: "Asks before adding it.", figure: "52:41" }]);
   });
 
   test("numbers are checked before dates and dates before text", () => {

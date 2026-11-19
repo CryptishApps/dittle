@@ -5,7 +5,7 @@ import { rowOptions } from "@/features/collections/logic";
 import type { Collection, Row } from "@/features/notes/fact";
 import { sentenceOf, type Recipe } from "./recipes";
 
-export type Where = { at: "note" } | { at: "collection"; collection: string; field?: string; row?: string; day?: true; sure: boolean; taken?: string };
+export type Where = { at: "note" } | { at: "collection"; collection: string; field?: string; row?: string; day?: true; sure: boolean };
 
 export type Shelf = { collections: Collection[]; options: Row[][] };
 

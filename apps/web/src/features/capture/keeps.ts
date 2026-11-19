@@ -64,21 +64,17 @@ export function filingCandidates(draft: NoteDraft, limit = MAX_FILING_CHECKS): n
 }
 
 function filedLines(wheres: ReadonlyMap<number, Where>, textAt: (index: number) => string): KeepLine[] {
-  const groups = new Map<string, { collection: string; row?: string; sure: boolean; taken?: string; fields: string[]; indices: number[] }>();
+  const groups = new Map<string, { collection: string; row?: string; fields: string[]; indices: number[] }>();
   for (const [index, where] of [...wheres].sort(([a], [b]) => a - b)) {
-    if (where.at !== "collection" || where.day || !where.field) continue;
-    const taken = [...groups.values()].some((group) => group.sure && group.collection === where.collection && group.row === where.row && group.fields.includes(where.field ?? ""));
-    const sure = where.sure && Boolean(where.field) && !taken && !where.taken;
-    const key = JSON.stringify(sure ? [where.collection, where.row ?? "", true] : [index]);
-    const group = groups.get(key) ?? { collection: where.collection, row: sure || where.taken ? where.row : undefined, sure, taken: where.taken, fields: [], indices: [] };
-    if (where.field && !group.fields.includes(where.field)) group.fields.push(where.field);
+    if (where.at !== "collection" || where.day || !where.field || !where.sure) continue;
+    const key = JSON.stringify([where.collection, where.row ?? ""]);
+    const group = groups.get(key) ?? { collection: where.collection, row: where.row, fields: [], indices: [] };
+    if (group.fields.includes(where.field)) continue;
+    group.fields.push(where.field);
     group.indices.push(index);
     groups.set(key, group);
   }
-  return [...groups.values()]
-    .sort((a, b) => Number(b.sure) - Number(a.sure))
-    .slice(0, MAX_FILED)
-    .map((group): KeepLine => {
+  return [...groups.values()].slice(0, MAX_FILED).map((group): KeepLine => {
     const shown = group.indices.slice(0, 2).map(textAt);
     const more = group.indices.length - shown.length;
     const fields = group.fields.map((field) => field.toLowerCase());
@@ -88,11 +84,7 @@ function filedLines(wheres: ReadonlyMap<number, Where>, textAt: (index: number) 
       also: group.indices,
       sign: "→",
       label: [group.collection, group.row].filter(Boolean).join(" · "),
-      how: group.sure
-        ? `${capital(LIST.format(fields))} ${fields.length === 1 ? "goes" : "go"} in when you save.`
-        : group.taken
-          ? `Already has ${group.taken}, so it asks first.`
-          : "Asks before adding it.",
+      how: `${capital(LIST.format(fields))} ${fields.length === 1 ? "goes" : "go"} in when you save.`,
       figure: more > 0 ? `${shown.join(" · ")} +${more}` : shown.join(" · "),
     };
   });

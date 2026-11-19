@@ -10,7 +10,7 @@ import { changeEverywhere } from "@/features/editor/linking";
 import type { TrackedValue, ValueStore } from "@/features/editor/values";
 import { acceptFormula, quantityOf, withQuantity } from "@/features/formulas/apply";
 import { cachedThenLive, collectionsQuery, noteQuery, notesQuery, rowsQuery, startNote, writes } from "@/features/notes/api";
-import { createEditorServices, fieldFor, placeShape, relabelNotesUsing } from "@/features/notes/editor-services";
+import { createEditorServices, placeShape, relabelNotesUsing } from "@/features/notes/editor-services";
 import type { PlaceAnswer } from "@/features/ai/place-answer";
 import type { Collection, CollectionField, Row, StoredValue } from "@/features/notes/fact";
 import { EMPTY_NOTE, noteWith, type Block, type NoteDoc } from "@/features/notes/note-doc";
@@ -310,25 +310,25 @@ export function filingShelf({ queryClient, uid, store }: CaptureContext): Filing
   return collections.length > 0 ? { ...shelfOf(collections, rows), rows, values: store.list() } : undefined;
 }
 
-type Placing = { collection?: Collection; fact: StoredValue; placeable: boolean; occupant?: StoredValue; day?: string };
+type Placing = { placeable: boolean; occupant?: StoredValue; day?: string };
 
 function placing(answer: PlaceAnswer, shelf: FilingShelf, value: DraftValue, sentence: string): Placing {
   const fact: StoredValue = { id: "", text: value.quote, ...factOf(value, sentence) };
   const collection = answer.collection === null ? undefined : shelf.collections[answer.collection];
   const field = collection && answer.field !== null ? collection.fields[answer.field] : undefined;
-  if (!collection || !field) return { collection, fact, placeable: true };
+  if (!collection || !field) return { placeable: true };
   if (collection.key.by === "when") {
     const placement = placeByDay(collection, fact, field.id, shelf.values ?? [], shelf.rows ?? []);
-    return { collection, fact, placeable: true, occupant: placement.occupant, day: placement.row.period };
+    return { placeable: true, occupant: placement.occupant, day: placement.row.period };
   }
   const placement = answer.row && placeByName(collection, answer.row, shelf.options[answer.collection!] ?? [], fact, field.id, shelf.values ?? []);
-  return placement ? { collection, fact, placeable: true, occupant: placement.occupant } : { collection, fact, placeable: false };
+  return placement ? { placeable: true, occupant: placement.occupant } : { placeable: false };
 }
 
-function shownWhere(where: Where, answer: PlaceAnswer, { collection, fact, occupant, day }: Placing): Where {
-  if (where.at !== "collection" || where.day || !collection) return where;
-  if (!answer.sure) return fieldFor(collection, fact) ? where : { at: "note" };
-  return { ...where, ...(day && { row: dayLabel(day) }), ...(occupant && { taken: occupant.text }) };
+function filedWhere(where: Where, answer: PlaceAnswer, { occupant, day }: Placing): Where {
+  if (where.at !== "collection" || where.day) return where;
+  if (!answer.sure || occupant) return { at: "note" };
+  return day ? { ...where, row: dayLabel(day) } : where;
 }
 
 export async function previewFiling(shelf: FilingShelf, draft: NoteDraft, today = new Date()): Promise<PreviewedFiling> {
@@ -342,22 +342,13 @@ export async function previewFiling(shelf: FilingShelf, draft: NoteDraft, today 
       const given = await withTimeout(placeValue({ sentence: sentenceOf[index]!, item: { text: value.quote, kind: value.kind, name: value.name, about: value.about }, collections }), SPOT_TIMEOUT_MS);
       const found = placing(given, shelf, value, sentenceOf[index]!);
       const answer = found.placeable ? given : { ...given, sure: false };
-      return { index, answer, where: shownWhere(whereFrom(answer, shelf, value, today), answer, found) };
+      return { index, answer, where: filedWhere(whereFrom(answer, shelf, value, today), answer, found) };
     }),
   );
   const done = found.flatMap((result) => (result.status === "fulfilled" ? [result.value] : [])).sort((a, b) => a.index - b.index);
-  const filled = new Set<string>();
-  const answers = new Map(
-    done.map(({ index, answer, where }) => {
-      const spot = where.at === "collection" && where.field ? JSON.stringify([where.collection, where.row ?? "", where.field]) : undefined;
-      const sure = answer.sure && !(spot && filled.has(spot));
-      if (spot && sure) filled.add(spot);
-      return [index, { collection: answer.collection, field: answer.field, row: answer.row, sure }] as const;
-    }),
-  );
   return {
     wheres: new Map(done.map(({ index, where }) => [index, where])),
-    answers,
+    answers: new Map(done.map(({ index, answer }) => [index, answer])),
     shape: placeShape(shelf.collections, shelf.options),
   };
 }

@@ -131,16 +131,15 @@ describe("saving a pasted note files its values like a typed note", () => {
     expect(placed.map((cell) => store.get(cell.valueId)?.text)).toEqual(["52:41"]);
   });
 
-  test("a second time for the same row and column asks on save, as the preview said, instead of replacing the first", async () => {
+  test("a second time for the same row and column stays in the note instead of replacing the first", async () => {
     const gun: DraftValue = { ...chip, quote: "53:10", name: "gun_time", seconds: 3190 };
     const both: NoteDraft = { title: "Richmond Park 10K", paragraphs: [{ text: "Chip time 52:41, gun time 53:10.", values: [chip, gun] }] };
-    const previewed = await previewFiling(shelfOf([runs], []), both, today);
-    expect([...previewed.answers.values()].map((item) => item.sure)).toEqual([true, false]);
+    const filing = await shown(both);
     const { store, ...rest } = context();
-    saveDraft({ ...rest, store }, both, previewed);
+    saveDraft({ ...rest, store }, both, filing);
     await settle();
     expect(placed.map((cell) => store.get(cell.valueId)?.text)).toEqual(["52:41"]);
-    expect(asked.length).toBe(1);
+    expect(asked).toEqual([]);
   });
 
   test("two values the preview put in one new named row are saved into that one row", async () => {
@@ -197,7 +196,7 @@ describe("saving a pasted note files its values like a typed note", () => {
     expect(placed.map((cell) => cell.row.collectionId)).toEqual(["trips", "dinners"]);
   });
 
-  describe("the list says it will ask when save would ask", () => {
+  describe("a value save would not file straight in is left off the list and stays in the note", () => {
     const trips: Collection = { id: "trips", name: "Trips", rowLabel: "trip", fields: [{ id: "cost", name: "Cost", kind: "money" }], key: { by: "name" }, createdAt: 0 };
     const porto = { id: "trips.porto", collectionId: "trips", label: "Porto", createdAt: 1 };
     const cost: DraftValue = { quote: "£640", kind: "money", name: "cost", about: "Porto", event: false, amount: 640, before: "£", after: "", formula: "", field: null };
@@ -205,8 +204,8 @@ describe("saving a pasted note files its values like a typed note", () => {
     const heldFields = { kind: "money" as const, amount: 500, before: "£", after: "", field: "cost", subject: { label: "Porto", entityId: "trips.porto" } };
     const held = { id: "old", text: "£500", ...heldFields };
 
-    const check = async (answerRow: PlaceAnswer["row"], values: typeof held[]) => {
-      byKind = { money: { collection: 0, field: 0, row: answerRow, sure: true } };
+    const check = async (given: PlaceAnswer, values: typeof held[]) => {
+      byKind = { money: given };
       const previewed = await previewFiling({ ...shelfOf([trips], [porto]), values }, paid, today);
       const lines = keepLines(paid, new Map(), today, previewed.wheres);
       const { queryClient, store } = context();
@@ -215,13 +214,25 @@ describe("saving a pasted note files its values like a typed note", () => {
       for (const value of values) store.add(value.text, heldFields);
       saveDraft({ queryClient, uid: "u1", store }, paid, shownFiling(previewed, lines));
       await settle();
-      return lines.map((line) => `${line.label}: ${line.how}`);
+      return lines;
     };
 
     test("a cell that already holds a value", async () => {
-      expect(await check({ row: 0 }, [held])).toEqual(["Trips · Porto: Already has £500, so it asks first."]);
+      expect(await check({ collection: 0, field: 0, row: { row: 0 }, sure: true }, [held])).toEqual([]);
       expect(placed).toEqual([]);
-      expect(asked).toEqual(["Trips already has £500 for Porto"]);
+      expect(asked).toEqual([]);
+    });
+
+    test("a collection picked without a row", async () => {
+      expect(await check({ collection: 0, field: 0, row: null, sure: true }, [])).toEqual([]);
+      expect(placed).toEqual([]);
+      expect(asked).toEqual([]);
+    });
+
+    test("an answer the model is unsure of", async () => {
+      expect(await check({ collection: 0, field: 0, row: { row: 0 }, sure: false }, [])).toEqual([]);
+      expect(placed).toEqual([]);
+      expect(asked).toEqual([]);
     });
 
     test("a day that already has a time", async () => {
@@ -229,37 +240,15 @@ describe("saving a pasted note files its values like a typed note", () => {
       const day = { id: "runs.2026-11-15", collectionId: "runs", label: "2026-11-15", period: "2026-11-15", createdAt: 1 };
       const previewed = await previewFiling({ ...shelfOf([runs], [day]), rows: [day], values: [{ id: "old", text: "50:02", ...earlier }] }, race, today);
       const lines = keepLines(race, new Map(), today, previewed.wheres);
-      expect(lines.map((line) => `${line.label}: ${line.how}`)).toEqual(["Runs · Sun 15 Nov: Already has 50:02, so it asks first."]);
+      expect(lines).toEqual([]);
       const { queryClient, store } = context();
       queryClient.setQueryData(["rows", "u1"], [day]);
       store.add("50:02", earlier);
       saveDraft({ queryClient, uid: "u1", store }, race, shownFiling(previewed, lines));
       await settle();
       expect(placed).toEqual([]);
-      expect(asked).toEqual(["Runs already has 50:02 on Sun 15 Nov"]);
+      expect(asked).toEqual([]);
     });
-
-    test("a collection picked without a row", async () => {
-      expect(await check(null, [])).toEqual(["Trips: Asks before adding it."]);
-      expect(placed).toEqual([]);
-      expect(asked).toEqual(["Add £640 to Trips?"]);
-    });
-  });
-
-  test("an unsure value save could not offer anywhere is left off the list", async () => {
-    const trips: Collection = { id: "trips", name: "Trips", rowLabel: "trip", fields: [{ id: "where", name: "Destination", kind: "text" }], key: { by: "name" }, createdAt: 0 };
-    const lisbon: DraftValue = { quote: "Lisbon", kind: "place", name: "destination", about: "trip", event: false, formula: "", field: null };
-    const draft: NoteDraft = { title: "Trip", paragraphs: [{ text: "Off to Lisbon.", values: [lisbon] }] };
-    byKind = { place: { collection: 0, field: 0, row: { label: "Lisbon" }, sure: false } };
-    const previewed = await previewFiling(shelfOf([trips], []), draft, today);
-    const lines = keepLines(draft, new Map(), today, previewed.wheres);
-    expect(lines).toEqual([]);
-    const { queryClient, store } = context();
-    queryClient.setQueryData(["collections", "u1"], [trips]);
-    saveDraft({ queryClient, uid: "u1", store }, draft, shownFiling(previewed, lines));
-    await settle();
-    expect(placed).toEqual([]);
-    expect(asked).toEqual([]);
   });
 
   describe("with two columns of the same kind", () => {
@@ -288,26 +277,15 @@ describe("saving a pasted note files its values like a typed note", () => {
       return shown.map((line) => `${line.label}: ${line.how} ${line.figure}`);
     };
 
-    test("unsure values never name a column the question might not use", async () => {
-      byKind = {
-        "£200": { collection: 0, field: 0, row: { row: 0 }, sure: false },
-        "£300": { collection: 0, field: 1, row: { row: 0 }, sure: false },
-      };
-      const draft = { title: "Lisbon", paragraphs: [{ text: "Flight £200, hotel £300.", values: [spend("£200", "flight", 200), spend("£300", "hotel", 300)] }] };
-      expect(await lines(draft)).toEqual(["Trips: Asks before adding it. £200", "Trips: Asks before adding it. £300"]);
-      expect(placed).toEqual([]);
-      expect(asked.at(-1)).toBe("Add £200 and £300 to Trips?");
-    });
-
-    test("a second value for a filled cell asks without naming a column", async () => {
+    test("a second value for a filled cell stays in the note", async () => {
       byKind = {
         "£300": { collection: 0, field: 1, row: { row: 0 }, sure: true },
         "£50": { collection: 0, field: 1, row: { row: 0 }, sure: true },
       };
       const draft = { title: "Lisbon", paragraphs: [{ text: "Hotel £300, hotel extras £50.", values: [spend("£300", "hotel", 300), spend("£50", "hotel_extras", 50)] }] };
-      expect(await lines(draft)).toEqual(["Trips · Lisbon: Hotel goes in when you save. £300", "Trips: Asks before adding it. £50"]);
+      expect(await lines(draft)).toEqual(["Trips · Lisbon: Hotel goes in when you save. £300"]);
       expect(placed.map((cell) => cell.fieldId)).toEqual(["hotel"]);
-      expect(asked).toEqual(["Add £50 to Trips?"]);
+      expect(asked).toEqual([]);
     });
   });
 
@@ -356,14 +334,6 @@ describe("saving a pasted note files its values like a typed note", () => {
     answer = { collection: 0, field: 2, row: null, sure: false };
     const previewed = { wheres: new Map(), answers: new Map([[1, { collection: 0, field: 2, row: null, sure: true }]]), shape: JSON.stringify([["other"]]) };
     saveDraft(context(), race, previewed);
-    await settle();
-    expect(placed).toEqual([]);
-    expect(asked).toEqual(["Add 52:41 to Runs?"]);
-  });
-
-  test("when the model is unsure it asks instead of filing", async () => {
-    answer = { collection: 0, field: 2, row: null, sure: false };
-    saveDraft(context(), race, await shown(race));
     await settle();
     expect(placed).toEqual([]);
     expect(asked).toEqual(["Add 52:41 to Runs?"]);

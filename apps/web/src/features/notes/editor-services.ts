@@ -47,7 +47,7 @@ type Group = { collection: Collection; key: string; target: Pick<Placement, "row
 
 type Offer = { collection: Collection; values: TrackedValue[]; label: string; row?: Omit<Row, "createdAt">; at: number };
 
-export function fieldFor(collection: Collection, value: StoredValue, used: Set<string> = new Set()): CollectionField | undefined {
+function fieldFor(collection: Collection, value: StoredValue, used: Set<string> = new Set()): CollectionField | undefined {
   if (!value.kind || value.field) return undefined;
   return collection.fields.find((field) => field.kind === value.kind && !used.has(field.id) && !(collection.key.by === "when" && field.kind === "date"));
 }
