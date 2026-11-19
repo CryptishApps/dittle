@@ -11,7 +11,7 @@ import type { Collection, CollectionField, Row, StoredValue } from "./fact";
 import { collectionsQuery, noteQuery, notesQuery, rowsQuery, writes } from "./api";
 import { askToast, showToast } from "./toast";
 
-export type KnownAnswers = { shape: string; forValue: (valueId: string) => PlaceAnswer | undefined };
+export type KnownAnswers = { shape: string; forValue: (valueId: string) => PlaceAnswer };
 
 type ServiceInput = {
   queryClient: QueryClient;

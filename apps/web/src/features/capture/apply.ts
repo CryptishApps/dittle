@@ -94,6 +94,8 @@ function comingUp(paragraphs: DraftParagraph[]): Detail[] {
 
 export type PreviewedFiling = { wheres: Map<number, Where>; answers: Map<number, PlaceAnswer>; shape: string };
 
+const NOT_FILED: PlaceAnswer = { collection: null, field: null, row: null, sure: false };
+
 function fileIntoCollections({ queryClient, uid, store }: CaptureContext, noteId: string, created: TrackedValue[], previewed?: PreviewedFiling): () => void {
   const undos: (() => void)[] = [];
   let undone = false;
@@ -105,7 +107,7 @@ function fileIntoCollections({ queryClient, uid, store }: CaptureContext, noteId
     valuesInNote: () => created.map((value) => value.id),
     findsFormulas: false,
     onPlaced: (undo) => (undone ? undo() : undos.push(undo)),
-    answers: previewed && { shape: previewed.shape, forValue: (valueId) => previewed.answers.get(created.findIndex((value) => value.id === valueId)) },
+    answers: previewed && { shape: previewed.shape, forValue: (valueId) => previewed.answers.get(created.findIndex((value) => value.id === valueId)) ?? NOT_FILED },
   });
   for (const value of created) services.onNewFact?.(value);
   return () => {

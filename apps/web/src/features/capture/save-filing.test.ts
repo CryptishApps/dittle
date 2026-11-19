@@ -114,6 +114,16 @@ describe("saving a pasted note files its values like a typed note", () => {
     expect(asked).toEqual([]);
   });
 
+  test("a value the preview did not place is not filed on save", async () => {
+    byKind = { number: { collection: 0, field: 1, row: null, sure: true } };
+    const { store, ...rest } = context();
+    const previewed = { wheres: new Map(), answers: new Map([[1, { collection: 0, field: 2, row: null, sure: true }]]), shape: JSON.stringify([["runs"]]) };
+    saveDraft({ ...rest, store }, race, { file: true, previewed });
+    await settle();
+    expect(modelCalls).toBe(0);
+    expect(placed.map((cell) => store.get(cell.valueId)?.text)).toEqual(["52:41"]);
+  });
+
   test("a second time for the same row and column asks on save, as the preview said, instead of replacing the first", async () => {
     const gun: DraftValue = { ...chip, quote: "53:10", name: "gun_time", seconds: 3190 };
     const both: NoteDraft = { title: "Richmond Park 10K", paragraphs: [{ text: "Chip time 52:41, gun time 53:10.", values: [chip, gun] }] };
