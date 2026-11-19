@@ -1,6 +1,6 @@
 import { tidyColumnNames } from "@/features/collections/name-columns";
 import type { QueryClient } from "@tanstack/react-query";
-import type { CaptureRoute, CaptureShown, DraftParagraph, NoteDraft } from "@/features/ai/capture-answer";
+import type { CaptureRoute, CaptureShown, DraftParagraph, DraftValue, NoteDraft } from "@/features/ai/capture-answer";
 import { columnValue } from "@/features/collections/columns";
 import { dayLabel, rowLabel } from "@/features/collections/format";
 import { placeByDay, placeByName, rowOptions, type NewRow } from "@/features/collections/logic";
@@ -12,7 +12,7 @@ import { acceptFormula, quantityOf, withQuantity } from "@/features/formulas/app
 import { cachedThenLive, collectionsQuery, noteQuery, notesQuery, rowsQuery, startNote, writes } from "@/features/notes/api";
 import { createEditorServices, placeShape, relabelNotesUsing } from "@/features/notes/editor-services";
 import type { PlaceAnswer } from "@/features/ai/place-answer";
-import type { Collection, CollectionField, StoredValue } from "@/features/notes/fact";
+import type { Collection, CollectionField, Row, StoredValue } from "@/features/notes/fact";
 import { EMPTY_NOTE, noteWith, type Block, type NoteDoc } from "@/features/notes/note-doc";
 import { blocksFor, factOf, formulasFor, shortTitle, type Placed } from "./draft";
 import { placeCollections, shelfOf, whereFrom, type Shelf, type Where } from "@/features/onboarding/practice";
@@ -302,12 +302,25 @@ export async function tidy(paste: string): Promise<NoteDraft> {
 
 const SPOT_TIMEOUT_MS = 12_000;
 
-export function filingShelf({ queryClient, uid }: CaptureContext): Shelf | undefined {
+export type FilingShelf = Shelf & { rows?: Row[]; values?: StoredValue[] };
+
+export function filingShelf({ queryClient, uid, store }: CaptureContext): FilingShelf | undefined {
   const collections = queryClient.getQueryData(collectionsQuery(uid).queryKey) ?? [];
-  return collections.length > 0 ? shelfOf(collections, queryClient.getQueryData(rowsQuery(uid).queryKey) ?? []) : undefined;
+  const rows = queryClient.getQueryData(rowsQuery(uid).queryKey) ?? [];
+  return collections.length > 0 ? { ...shelfOf(collections, rows), rows, values: store.list() } : undefined;
 }
 
-export async function previewFiling(shelf: Shelf, draft: NoteDraft, today = new Date()): Promise<PreviewedFiling> {
+function placing(answer: PlaceAnswer, shelf: FilingShelf, value: DraftValue, sentence: string): { placeable: boolean; occupant?: StoredValue } {
+  const collection = answer.collection === null ? undefined : shelf.collections[answer.collection];
+  const field = collection && answer.field !== null ? collection.fields[answer.field] : undefined;
+  if (!collection || !field) return { placeable: true };
+  const fact: StoredValue = { id: "", text: value.quote, ...factOf(value, sentence) };
+  if (collection.key.by === "when") return { placeable: true, occupant: placeByDay(collection, fact, field.id, shelf.values ?? [], shelf.rows ?? []).occupant };
+  const placement = answer.row && placeByName(collection, answer.row, shelf.options[answer.collection!] ?? [], fact, field.id, shelf.values ?? []);
+  return placement ? { placeable: true, occupant: placement.occupant } : { placeable: false };
+}
+
+export async function previewFiling(shelf: FilingShelf, draft: NoteDraft, today = new Date()): Promise<PreviewedFiling> {
   const { placeValue } = await import("@/features/ai/place");
   const values = valuesOf(draft);
   const sentenceOf = draft.paragraphs.flatMap((paragraph) => paragraph.values.map(() => paragraph.text));
@@ -315,8 +328,11 @@ export async function previewFiling(shelf: Shelf, draft: NoteDraft, today = new 
   const found = await Promise.allSettled(
     filingCandidates(draft).map(async (index) => {
       const value = values[index]!;
-      const answer = await withTimeout(placeValue({ sentence: sentenceOf[index]!, item: { text: value.quote, kind: value.kind, name: value.name, about: value.about }, collections }), SPOT_TIMEOUT_MS);
-      return { index, answer, where: whereFrom(answer, shelf, value, today) };
+      const given = await withTimeout(placeValue({ sentence: sentenceOf[index]!, item: { text: value.quote, kind: value.kind, name: value.name, about: value.about }, collections }), SPOT_TIMEOUT_MS);
+      const { placeable, occupant } = placing(given, shelf, value, sentenceOf[index]!);
+      const answer = placeable ? given : { ...given, sure: false };
+      const where = whereFrom(answer, shelf, value, today);
+      return { index, answer, where: where.at === "collection" && occupant ? { ...where, taken: occupant.text } : where };
     }),
   );
   const done = found.flatMap((result) => (result.status === "fulfilled" ? [result.value] : [])).sort((a, b) => a.index - b.index);

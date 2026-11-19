@@ -197,6 +197,55 @@ describe("saving a pasted note files its values like a typed note", () => {
     expect(placed.map((cell) => cell.row.collectionId)).toEqual(["trips", "dinners"]);
   });
 
+  describe("the list says it will ask when save would ask", () => {
+    const trips: Collection = { id: "trips", name: "Trips", rowLabel: "trip", fields: [{ id: "cost", name: "Cost", kind: "money" }], key: { by: "name" }, createdAt: 0 };
+    const porto = { id: "trips.porto", collectionId: "trips", label: "Porto", createdAt: 1 };
+    const cost: DraftValue = { quote: "£640", kind: "money", name: "cost", about: "Porto", event: false, amount: 640, before: "£", after: "", formula: "", field: null };
+    const paid: NoteDraft = { title: "Porto", paragraphs: [{ text: "Porto was £640.", values: [cost] }] };
+    const heldFields = { kind: "money" as const, amount: 500, before: "£", after: "", field: "cost", subject: { label: "Porto", entityId: "trips.porto" } };
+    const held = { id: "old", text: "£500", ...heldFields };
+
+    const check = async (answerRow: PlaceAnswer["row"], values: typeof held[]) => {
+      byKind = { money: { collection: 0, field: 0, row: answerRow, sure: true } };
+      const previewed = await previewFiling({ ...shelfOf([trips], [porto]), values }, paid, today);
+      const lines = keepLines(paid, new Map(), today, previewed.wheres);
+      const { queryClient, store } = context();
+      queryClient.setQueryData(["collections", "u1"], [trips]);
+      queryClient.setQueryData(["rows", "u1"], [porto]);
+      for (const value of values) store.add(value.text, heldFields);
+      saveDraft({ queryClient, uid: "u1", store }, paid, shownFiling(previewed, lines));
+      await settle();
+      return lines.map((line) => `${line.label}: ${line.how}`);
+    };
+
+    test("a cell that already holds a value", async () => {
+      expect(await check({ row: 0 }, [held])).toEqual(["Trips · Porto: Already has £500, so it asks first."]);
+      expect(placed).toEqual([]);
+      expect(asked).toEqual(["Trips already has £500 for Porto"]);
+    });
+
+    test("a day that already has a time", async () => {
+      const earlier = { kind: "duration" as const, seconds: 3002, field: "time", subject: { label: "2026-11-15", entityId: "runs.2026-11-15" } };
+      const day = { id: "runs.2026-11-15", collectionId: "runs", label: "2026-11-15", period: "2026-11-15", createdAt: 1 };
+      const previewed = await previewFiling({ ...shelfOf([runs], [day]), rows: [day], values: [{ id: "old", text: "50:02", ...earlier }] }, race, today);
+      const lines = keepLines(race, new Map(), today, previewed.wheres);
+      expect(lines.map((line) => `${line.label}: ${line.how}`)).toEqual(["Runs · Sun 15 Nov: Already has 50:02, so it asks first."]);
+      const { queryClient, store } = context();
+      queryClient.setQueryData(["rows", "u1"], [day]);
+      store.add("50:02", earlier);
+      saveDraft({ queryClient, uid: "u1", store }, race, shownFiling(previewed, lines));
+      await settle();
+      expect(placed).toEqual([]);
+      expect(asked).toEqual(["Runs already has 50:02 on Sun 15 Nov"]);
+    });
+
+    test("a collection picked without a row", async () => {
+      expect(await check(null, [])).toEqual(["Trips: Asks before adding it as the cost."]);
+      expect(placed).toEqual([]);
+      expect(asked).toEqual(["Add £640 to Trips?"]);
+    });
+  });
+
   test("a preview made before the collections changed is not reused", async () => {
     answer = { collection: 0, field: 2, row: null, sure: false };
     const previewed = { wheres: new Map(), answers: new Map([[1, { collection: 0, field: 2, row: null, sure: true }]]), shape: JSON.stringify([["other"]]) };
