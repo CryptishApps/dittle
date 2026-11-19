@@ -141,7 +141,7 @@ describe("where values would be filed", () => {
     const lines = keepLines(race, new Map(), today, wheres);
     expect(lines).toEqual([
       { kind: "filed", index: 2, also: [2], sign: "→", label: "Runs · Sun 15 Nov", how: "Time goes in when you save.", figure: "52:41" },
-      { kind: "filed", index: 3, also: [3], sign: "→", label: "Runs", how: "Asks before adding it as the time.", figure: "53:10" },
+      { kind: "filed", index: 3, also: [3], sign: "→", label: "Runs", how: "Asks before adding it.", figure: "53:10" },
     ]);
     expect([...liveValues(race, lines)].sort()).toEqual([2, 3]);
   });
@@ -183,7 +183,7 @@ describe("where values would be filed", () => {
 
   test("an unsure destination says it will ask", () => {
     const wheres = new Map([[2, { at: "collection", collection: "Runs", field: "Time", row: "Sun 15 Nov", sure: false } as const]]);
-    expect(keepLines(race, new Map(), today, wheres)).toEqual([{ kind: "filed", index: 2, also: [2], sign: "→", label: "Runs", how: "Asks before adding it as the time.", figure: "52:41" }]);
+    expect(keepLines(race, new Map(), today, wheres)).toEqual([{ kind: "filed", index: 2, also: [2], sign: "→", label: "Runs", how: "Asks before adding it.", figure: "52:41" }]);
   });
 
   test("numbers are checked before dates and dates before text", () => {

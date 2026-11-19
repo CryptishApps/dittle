@@ -327,10 +327,7 @@ function placing(answer: PlaceAnswer, shelf: FilingShelf, value: DraftValue, sen
 
 function shownWhere(where: Where, answer: PlaceAnswer, { collection, fact, occupant, day }: Placing): Where {
   if (where.at !== "collection" || where.day || !collection) return where;
-  if (!answer.sure) {
-    const offered = fieldFor(collection, fact);
-    return offered ? { ...where, field: offered.name } : { at: "note" };
-  }
+  if (!answer.sure) return fieldFor(collection, fact) ? where : { at: "note" };
   return { ...where, ...(day && { row: dayLabel(day) }), ...(occupant && { taken: occupant.text }) };
 }
 

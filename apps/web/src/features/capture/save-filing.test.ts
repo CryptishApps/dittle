@@ -240,7 +240,7 @@ describe("saving a pasted note files its values like a typed note", () => {
     });
 
     test("a collection picked without a row", async () => {
-      expect(await check(null, [])).toEqual(["Trips: Asks before adding it as the cost."]);
+      expect(await check(null, [])).toEqual(["Trips: Asks before adding it."]);
       expect(placed).toEqual([]);
       expect(asked).toEqual(["Add £640 to Trips?"]);
     });
@@ -260,6 +260,55 @@ describe("saving a pasted note files its values like a typed note", () => {
     await settle();
     expect(placed).toEqual([]);
     expect(asked).toEqual([]);
+  });
+
+  describe("with two columns of the same kind", () => {
+    const trips: Collection = {
+      id: "trips",
+      name: "Trips",
+      rowLabel: "trip",
+      fields: [
+        { id: "flight", name: "Flight", kind: "money" },
+        { id: "hotel", name: "Hotel", kind: "money" },
+      ],
+      key: { by: "name" },
+      createdAt: 0,
+    };
+    const lisbon = { id: "trips.lisbon", collectionId: "trips", label: "Lisbon", createdAt: 1 };
+    const spend = (quote: string, name: string, amount: number): DraftValue => ({ quote, kind: "money", name, about: "Lisbon", event: false, amount, before: "£", after: "", formula: "", field: null });
+
+    const lines = async (draft: NoteDraft) => {
+      const previewed = await previewFiling(shelfOf([trips], [lisbon]), draft, today);
+      const shown = keepLines(draft, new Map(), today, previewed.wheres);
+      const { queryClient, store } = context();
+      queryClient.setQueryData(["collections", "u1"], [trips]);
+      queryClient.setQueryData(["rows", "u1"], [lisbon]);
+      saveDraft({ queryClient, uid: "u1", store }, draft, shownFiling(previewed, shown));
+      await settle();
+      return shown.map((line) => `${line.label}: ${line.how} ${line.figure}`);
+    };
+
+    test("unsure values never name a column the question might not use", async () => {
+      byKind = {
+        "£200": { collection: 0, field: 0, row: { row: 0 }, sure: false },
+        "£300": { collection: 0, field: 1, row: { row: 0 }, sure: false },
+      };
+      const draft = { title: "Lisbon", paragraphs: [{ text: "Flight £200, hotel £300.", values: [spend("£200", "flight", 200), spend("£300", "hotel", 300)] }] };
+      expect(await lines(draft)).toEqual(["Trips: Asks before adding it. £200", "Trips: Asks before adding it. £300"]);
+      expect(placed).toEqual([]);
+      expect(asked.at(-1)).toBe("Add £200 and £300 to Trips?");
+    });
+
+    test("a second value for a filled cell asks without naming a column", async () => {
+      byKind = {
+        "£300": { collection: 0, field: 1, row: { row: 0 }, sure: true },
+        "£50": { collection: 0, field: 1, row: { row: 0 }, sure: true },
+      };
+      const draft = { title: "Lisbon", paragraphs: [{ text: "Hotel £300, hotel extras £50.", values: [spend("£300", "hotel", 300), spend("£50", "hotel_extras", 50)] }] };
+      expect(await lines(draft)).toEqual(["Trips · Lisbon: Hotel goes in when you save. £300", "Trips: Asks before adding it. £50"]);
+      expect(placed.map((cell) => cell.fieldId)).toEqual(["hotel"]);
+      expect(asked).toEqual(["Add £50 to Trips?"]);
+    });
   });
 
   describe("a date the list files goes into the row it named", () => {

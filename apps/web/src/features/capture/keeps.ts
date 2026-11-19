@@ -92,7 +92,7 @@ function filedLines(wheres: ReadonlyMap<number, Where>, textAt: (index: number) 
         ? `${capital(LIST.format(fields))} ${fields.length === 1 ? "goes" : "go"} in when you save.`
         : group.taken
           ? `Already has ${group.taken}, so it asks first.`
-          : `Asks before adding it as the ${fields[0]}.`,
+          : "Asks before adding it.",
       figure: more > 0 ? `${shown.join(" · ")} +${more}` : shown.join(" · "),
     };
   });
