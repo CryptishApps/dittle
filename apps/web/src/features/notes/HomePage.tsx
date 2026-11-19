@@ -64,7 +64,7 @@ export function HomePage({ uid }: { uid: string }) {
   const noteTitle = (noteId: string | undefined) => notes.find((note) => note.id === noteId)?.title || "Untitled";
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
+    <div className="@container/home min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto max-w-[760px] px-4 pt-8 pb-24 sm:px-8 sm:pt-12">
         <h1 className="sr-only">Your notes</h1>
         <p className="mb-3.5 text-[14px] text-faint">{TODAY.format(new Date())}</p>

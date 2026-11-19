@@ -6,11 +6,28 @@ import { changeEverywhere, type Quantity } from "@/features/editor/linking";
 import { acceptFormula, describeFormula, inputsFor, quantityOf } from "@/features/formulas/apply";
 import type { EditorServices } from "@/features/editor/services";
 import type { TrackedValue, ValueStore } from "@/features/editor/values";
+import type { PlaceAnswer } from "@/features/ai/place-answer";
 import type { Collection, CollectionField, Row, StoredValue } from "./fact";
 import { collectionsQuery, noteQuery, notesQuery, rowsQuery, writes } from "./api";
 import { askToast, showToast } from "./toast";
 
-type ServiceInput = { queryClient: QueryClient; uid: string; noteId: string; store: ValueStore; valuesInNote: () => string[] };
+export const NOT_PLACED: PlaceAnswer = { collection: null, field: null, row: null, sure: false };
+
+export type KnownAnswers = { shape: string; forValue: (valueId: string) => PlaceAnswer };
+
+type ServiceInput = {
+  queryClient: QueryClient;
+  uid: string;
+  noteId: string;
+  store: ValueStore;
+  valuesInNote: () => string[];
+  onPlaced?: (undo: () => void) => void;
+  findsFormulas?: boolean;
+  answers?: KnownAnswers;
+};
+
+export const placeShape = (collections: Pick<Collection, "id">[], options: Pick<Row, "id">[][]): string =>
+  JSON.stringify(collections.map((collection, index) => [collection.id, ...(options[index] ?? []).map((row) => row.id)]));
 
 export function relabelNotesUsing(queryClient: QueryClient, uid: string, factId: string, text: string, exceptNoteId?: string): void {
   const notes = queryClient.getQueryData(notesQuery(uid).queryKey) ?? [];
@@ -37,7 +54,7 @@ function fieldFor(collection: Collection, value: StoredValue, used: Set<string> 
   return collection.fields.find((field) => field.kind === value.kind && !used.has(field.id) && !(collection.key.by === "when" && field.kind === "date"));
 }
 
-export function createEditorServices({ queryClient, uid, noteId, store, valuesInNote }: ServiceInput): EditorServices {
+export function createEditorServices({ queryClient, uid, noteId, store, valuesInNote, onPlaced, findsFormulas = true, answers }: ServiceInput): EditorServices {
   const notes = () => queryClient.getQueryData(notesQuery(uid).queryKey) ?? [];
   const collections = () => queryClient.getQueryData(collectionsQuery(uid).queryKey) ?? [];
   const created: Row[] = [];
@@ -49,7 +66,14 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
 
   const put = async (collection: Collection, valueId: string, field: CollectionField, target: Pick<Placement, "row" | "newRow">, replaces?: string) => {
     if (target.newRow) created.push({ ...target.row, createdAt: Date.now() });
-    const undo = await writes.placeCell(uid, { row: target.row, newRow: target.newRow, valueId, fieldId: field.id, replaces });
+    const placed = await writes.placeCell(uid, { row: target.row, newRow: target.newRow, valueId, fieldId: field.id, replaces });
+    let undone = false;
+    const undo = () => {
+      if (undone) return;
+      undone = true;
+      placed();
+    };
+    onPlaced?.(undo);
     showToast(`Added to ${collection.name} · ${rowLabel(target.row)}`, () => {
       const index = created.findIndex((row) => row.id === target.row.id);
       if (index >= 0) created.splice(index, 1);
@@ -115,9 +139,13 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
     const fact = { ...store.get(value.id), ...value };
     const all = collections();
     if (fact.field || all.length === 0) return { kind: "none", fact };
-    const options = all.map((collection) => (collection.key.by === "name" ? rowOptions(collection, rows()) : []));
+    const optionsFrom = (list: Row[]) => all.map((collection) => (collection.key.by === "name" ? rowOptions(collection, list) : []));
+    const madeHere = new Set(created.map((row) => row.id));
+    const before = optionsFrom(rows().filter((row) => !madeHere.has(row.id)));
+    const known = answers && (answers.shape === placeShape(all, before) ? answers.forValue(value.id) : NOT_PLACED);
+    const options = known ? before : optionsFrom(rows());
     const { placeValue } = await import("@/features/ai/place");
-    const result = await placeValue({
+    const result = known ?? await placeValue({
       sentence: sentence ?? fact.origin?.sentence ?? fact.text,
       item: { text: fact.text, kind: fact.kind, name: fact.name, about: fact.subject?.label },
       collections: all.map((collection, index) => ({
@@ -130,16 +158,20 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
     const collection = result.collection === null ? undefined : all[result.collection];
     if (!collection) return { kind: "none", fact };
     const byDay = collection.key.by === "when";
-    const existing = result.row && "row" in result.row ? options[result.collection!]![result.row.row] : undefined;
-    const pick = result.row && "label" in result.row ? { label: result.row.label } : { row: existing };
-    if (!sentence && !byDay && fact.kind === "date" && !(existing && result.sure)) return { kind: "follows", fact, collection };
+    const named = result.row && "label" in result.row ? result.row.label : undefined;
+    const startedHere = named === undefined ? undefined : created.find((row) => row.collectionId === collection.id && row.label === named);
+    const existing = startedHere ?? (result.row && "row" in result.row ? options[result.collection!]![result.row.row] : undefined);
+    const pick = named !== undefined && !startedHere ? { label: named } : { row: existing };
+    if (!known && !sentence && !byDay && fact.kind === "date" && !(existing && result.sure)) return { kind: "follows", fact, collection };
     const declined: Decision = { kind: "declined", fact, collection, pick };
     if (result.field === null || !result.sure) return declined;
     const field = collection.fields[result.field]!;
     if ((byDay && field.kind === "date") || (fact.kind && field.kind !== "text" && field.kind !== fact.kind)) return declined;
     const placement = byDay
       ? placeByDay(collection, fact, field.id, store.list(), rows())
-      : result.row && placeByName(collection, result.row, options[result.collection!]!, fact, field.id, store.list());
+      : startedHere
+        ? placeByName(collection, { row: 0 }, [startedHere], fact, field.id, store.list())
+        : result.row && placeByName(collection, result.row, options[result.collection!]!, fact, field.id, store.list());
     return placement ? { kind: "fits", fact, collection, field, placement } : declined;
   };
 
@@ -309,7 +341,7 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
           () => undefined,
           (error: unknown) => console.warn("Dittle could not place a value in a collection", error),
         );
-      void findFormula(value).catch((error: unknown) => console.warn("Dittle could not check for a formula", error));
+      if (findsFormulas) void findFormula(value).catch((error: unknown) => console.warn("Dittle could not check for a formula", error));
     },
     placementOf: (value) => {
       const row = rows().find((item) => item.id === value.subject?.entityId);

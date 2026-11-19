@@ -1,6 +1,6 @@
 import { tidyColumnNames } from "@/features/collections/name-columns";
 import type { QueryClient } from "@tanstack/react-query";
-import type { CaptureRoute, CaptureShown, DraftParagraph, NoteDraft } from "@/features/ai/capture-answer";
+import type { CaptureRoute, CaptureShown, DraftParagraph, DraftValue, NoteDraft } from "@/features/ai/capture-answer";
 import { columnValue } from "@/features/collections/columns";
 import { dayLabel, rowLabel } from "@/features/collections/format";
 import { placeByDay, placeByName, rowOptions, type NewRow } from "@/features/collections/logic";
@@ -8,12 +8,15 @@ import { scalesOf, withUnits } from "@/features/collections/scale";
 import { daysUntil } from "@/features/collections/summary";
 import { changeEverywhere } from "@/features/editor/linking";
 import type { TrackedValue, ValueStore } from "@/features/editor/values";
-import { withQuantity } from "@/features/formulas/apply";
+import { acceptFormula, quantityOf, withQuantity } from "@/features/formulas/apply";
 import { cachedThenLive, collectionsQuery, noteQuery, notesQuery, rowsQuery, startNote, writes } from "@/features/notes/api";
-import { relabelNotesUsing } from "@/features/notes/editor-services";
-import type { Collection, CollectionField, StoredValue } from "@/features/notes/fact";
+import { createEditorServices, NOT_PLACED, placeShape, relabelNotesUsing } from "@/features/notes/editor-services";
+import type { PlaceAnswer } from "@/features/ai/place-answer";
+import type { Collection, CollectionField, Row, StoredValue } from "@/features/notes/fact";
 import { EMPTY_NOTE, noteWith, type Block, type NoteDoc } from "@/features/notes/note-doc";
 import { blocksFor, factOf, formulasFor, shortTitle, type Placed } from "./draft";
+import { placeCollections, shelfOf, whereFrom, type Shelf, type Where } from "@/features/onboarding/practice";
+import { filingCandidates, spotsFor, storedOf, valuesOf, withSpotted, type KeepLine } from "./keeps";
 
 export type CaptureContext = { queryClient: QueryClient; uid: string; store: ValueStore };
 
@@ -56,11 +59,11 @@ function shownFor({ queryClient, uid, store }: CaptureContext) {
 }
 
 function withTimeout<T>(pending: Promise<T>, ms: number): Promise<T> {
-  let timer: number | undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
-    timer = window.setTimeout(() => reject(new Error(`No answer after ${ms / 1000} s`)), ms);
+    timer = setTimeout(() => reject(new Error(`No answer after ${ms / 1000} s`)), ms);
   });
-  return Promise.race([pending, timeout]).finally(() => window.clearTimeout(timer));
+  return Promise.race([pending, timeout]).finally(() => clearTimeout(timer));
 }
 
 function addValues(store: ValueStore, paragraphs: DraftParagraph[], noteId?: string): { placed: Placed[][]; created: TrackedValue[] } {
@@ -89,10 +92,38 @@ function comingUp(paragraphs: DraftParagraph[]): Detail[] {
   return [{ text: `in Coming up, ${days === 0 ? "today" : days === 1 ? "tomorrow" : `${days} days away`}` }];
 }
 
-export function saveDraft(context: CaptureContext, draft: NoteDraft): Outcome & { noteId: string } {
+export type PreviewedFiling = { wheres: Map<number, Where>; answers: Map<number, PlaceAnswer>; shape: string };
+
+export function shownFiling(previewed: PreviewedFiling, lines: KeepLine[]): PreviewedFiling {
+  const shown = new Set(lines.flatMap((line) => (line.kind === "filed" ? (line.also ?? [line.index]) : [])));
+  return { ...previewed, answers: new Map([...previewed.answers].filter(([index]) => shown.has(index))) };
+}
+
+function fileIntoCollections({ queryClient, uid, store }: CaptureContext, noteId: string, created: TrackedValue[], previewed: PreviewedFiling): () => void {
+  const undos: (() => void)[] = [];
+  let undone = false;
+  const services = createEditorServices({
+    queryClient,
+    uid,
+    noteId,
+    store,
+    valuesInNote: () => created.map((value) => value.id),
+    findsFormulas: false,
+    onPlaced: (undo) => (undone ? undo() : undos.push(undo)),
+    answers: { shape: previewed.shape, forValue: (valueId) => previewed.answers.get(created.findIndex((value) => value.id === valueId)) ?? NOT_PLACED },
+  });
+  for (const value of created) services.onNewFact?.(value);
+  return () => {
+    undone = true;
+    undos.reverse().forEach((undo) => undo());
+  };
+}
+
+export function saveDraft(context: CaptureContext, draft: NoteDraft, filing?: PreviewedFiling): Outcome & { noteId: string } {
   const { queryClient, uid, store } = context;
   const noteId = startNote(queryClient, uid, null, noteWith(draft.title));
   const { placed, created } = addValues(store, draft.paragraphs, noteId);
+  const unfile = filing ? fileIntoCollections(context, noteId, created, filing) : () => undefined;
   const blocks: Block[] = [{ t: "h", level: 1, c: draft.title ? [{ t: "text", text: draft.title }] : [] }, ...blocksFor(draft.paragraphs, placed)];
   const doc: NoteDoc = { v: 1, blocks: draft.paragraphs.length > 0 ? blocks : [...blocks, { t: "p", c: [] }] };
   queryClient.setQueryData(noteQuery(uid, noteId).queryKey, (current) => (current ? { ...current, doc, title: draft.title } : current));
@@ -105,6 +136,7 @@ export function saveDraft(context: CaptureContext, draft: NoteDraft): Outcome & 
     to: { note: noteId },
     details: comingUp(draft.paragraphs),
     undo: () => {
+      unfile();
       void writes.deleteNote(uid, noteId);
       created.forEach((value) => store.remove(value.id));
     },
@@ -264,6 +296,83 @@ const TIDY_TIMEOUT_MS = 25_000;
 export async function tidy(paste: string): Promise<NoteDraft> {
   const { tidyPaste } = await import("@/features/ai/capture");
   return (await withTimeout(tidyPaste(paste), TIDY_TIMEOUT_MS)).draft;
+}
+
+const SPOT_TIMEOUT_MS = 12_000;
+
+export type FilingShelf = Shelf & { rows?: Row[]; values?: StoredValue[] };
+
+export function filingShelf({ queryClient, uid, store }: CaptureContext): FilingShelf | undefined {
+  const collections = queryClient.getQueryData(collectionsQuery(uid).queryKey) ?? [];
+  const rows = queryClient.getQueryData(rowsQuery(uid).queryKey) ?? [];
+  return collections.length > 0 ? { ...shelfOf(collections, rows), rows, values: store.list() } : undefined;
+}
+
+type Placing = { placeable: boolean; occupant?: StoredValue; day?: string };
+
+function placing(answer: PlaceAnswer, shelf: FilingShelf, value: DraftValue, sentence: string): Placing {
+  const fact: StoredValue = { id: "", text: value.quote, ...factOf(value, sentence) };
+  const collection = answer.collection === null ? undefined : shelf.collections[answer.collection];
+  const field = collection && answer.field !== null ? collection.fields[answer.field] : undefined;
+  if (!collection || !field) return { placeable: true };
+  if (collection.key.by === "when") {
+    const placement = placeByDay(collection, fact, field.id, shelf.values ?? [], shelf.rows ?? []);
+    return { placeable: true, occupant: placement.occupant, day: placement.row.period };
+  }
+  const placement = answer.row && placeByName(collection, answer.row, shelf.options[answer.collection!] ?? [], fact, field.id, shelf.values ?? []);
+  return placement ? { placeable: true, occupant: placement.occupant } : { placeable: false };
+}
+
+function filedWhere(where: Where, answer: PlaceAnswer, { occupant, day }: Placing): Where {
+  if (where.at !== "collection" || where.day) return where;
+  if (!answer.sure || occupant) return { at: "note" };
+  return day ? { ...where, row: dayLabel(day) } : where;
+}
+
+export async function previewFiling(shelf: FilingShelf, draft: NoteDraft, today = new Date()): Promise<PreviewedFiling> {
+  const { placeValue } = await import("@/features/ai/place");
+  const values = valuesOf(draft);
+  const sentenceOf = draft.paragraphs.flatMap((paragraph) => paragraph.values.map(() => paragraph.text));
+  const collections = placeCollections(shelf);
+  const found = await Promise.allSettled(
+    filingCandidates(draft).map(async (index) => {
+      const value = values[index]!;
+      const given = await withTimeout(placeValue({ sentence: sentenceOf[index]!, item: { text: value.quote, kind: value.kind, name: value.name, about: value.about }, collections }), SPOT_TIMEOUT_MS);
+      const found = placing(given, shelf, value, sentenceOf[index]!);
+      const answer = found.placeable ? given : { ...given, sure: false };
+      return { index, answer, where: filedWhere(whereFrom(answer, shelf, value, today), answer, found) };
+    }),
+  );
+  const done = found.flatMap((result) => (result.status === "fulfilled" ? [result.value] : [])).sort((a, b) => a.index - b.index);
+  return {
+    wheres: new Map(done.map(({ index, where }) => [index, where])),
+    answers: new Map(done.map(({ index, answer }) => [index, answer])),
+    shape: placeShape(shelf.collections, shelf.options),
+  };
+}
+
+export async function spotFormulas(draft: NoteDraft): Promise<NoteDraft> {
+  const spots = spotsFor(draft);
+  if (spots.length === 0) return draft;
+  const { suggestFormula } = await import("@/features/ai/formula");
+  const values = valuesOf(draft);
+  const stored = storedOf(values);
+  const sentenceOf = draft.paragraphs.flatMap((paragraph) => paragraph.values.map(() => paragraph.text));
+  const asInput = (value: StoredValue) => ({ name: value.name ?? "value", text: value.text, number: quantityOf(value)!, seconds: value.amount === undefined });
+  const found = await Promise.allSettled(
+    spots.map(async ({ index, inputs }) => {
+      const shown = inputs.map((input) => stored[input]!);
+      const suggested = await withTimeout(suggestFormula({ sentence: sentenceOf[index]!, value: asInput(stored[index]!), inputs: shown.map(asInput) }), SPOT_TIMEOUT_MS);
+      return { index, formula: acceptFormula(suggested, quantityOf(stored[index]!)!, shown) };
+    }),
+  );
+  return found.reduce((next, result) => {
+    if (result.status === "rejected") {
+      console.warn("Dittle could not check a pasted value for a formula", result.reason);
+      return next;
+    }
+    return result.value.formula ? withSpotted(next, result.value.index, result.value.formula) : next;
+  }, draft);
 }
 
 export function rawDraft(entry: string): NoteDraft {
