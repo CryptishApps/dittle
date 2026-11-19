@@ -160,7 +160,7 @@ export function createEditorServices({ queryClient, uid, noteId, store, valuesIn
     const startedHere = named === undefined ? undefined : created.find((row) => row.collectionId === collection.id && row.label === named);
     const existing = startedHere ?? (result.row && "row" in result.row ? options[result.collection!]![result.row.row] : undefined);
     const pick = named !== undefined && !startedHere ? { label: named } : { row: existing };
-    if (!sentence && !byDay && fact.kind === "date" && !(existing && result.sure)) return { kind: "follows", fact, collection };
+    if (!known && !sentence && !byDay && fact.kind === "date" && !(existing && result.sure)) return { kind: "follows", fact, collection };
     const declined: Decision = { kind: "declined", fact, collection, pick };
     if (result.field === null || !result.sure) return declined;
     const field = collection.fields[result.field]!;

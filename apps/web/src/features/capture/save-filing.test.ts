@@ -246,6 +246,47 @@ describe("saving a pasted note files its values like a typed note", () => {
     });
   });
 
+  describe("a date the list files goes into the row it named", () => {
+    const trips: Collection = {
+      id: "trips",
+      name: "Trips",
+      rowLabel: "trip",
+      fields: [
+        { id: "cost", name: "Cost", kind: "money" },
+        { id: "date", name: "Date", kind: "date" },
+      ],
+      key: { by: "name" },
+      createdAt: 0,
+    };
+    const porto = { id: "trips.porto", collectionId: "trips", label: "Porto", createdAt: 1 };
+    const flying: DraftValue = { quote: "3 March", kind: "date", name: "date", about: "Lisbon", event: true, when: { on: "2027-03-03", grain: "day" }, formula: "", field: null };
+    const cost: DraftValue = { quote: "£500", kind: "money", name: "cost", about: "Porto", event: false, amount: 500, before: "£", after: "", formula: "", field: null };
+
+    const save = async (draft: NoteDraft) => {
+      byKind = { date: { collection: 0, field: 1, row: { label: "Lisbon" }, sure: true }, money: { collection: 0, field: 0, row: { row: 0 }, sure: true } };
+      const previewed = await previewFiling(shelfOf([trips], [porto]), draft, today);
+      const lines = keepLines(draft, new Map(), today, previewed.wheres);
+      const { queryClient, store } = context();
+      queryClient.setQueryData(["collections", "u1"], [trips]);
+      queryClient.setQueryData(["rows", "u1"], [porto]);
+      saveDraft({ queryClient, uid: "u1", store }, draft, shownFiling(previewed, lines));
+      await settle();
+      return placed.map((cell) => [cell.fieldId, cell.row.label]);
+    };
+
+    test("on its own", async () => {
+      expect(await save({ title: "Lisbon", paragraphs: [{ text: "Flying to Lisbon on 3 March.", values: [flying] }] })).toEqual([["date", "Lisbon"]]);
+    });
+
+    test("next to a value for another row", async () => {
+      const draft = { title: "Trips", paragraphs: [{ text: "Flying to Lisbon on 3 March.", values: [flying] }, { text: "Porto cost £500.", values: [cost] }] };
+      expect(await save(draft)).toEqual([
+        ["date", "Lisbon"],
+        ["cost", "Porto"],
+      ]);
+    });
+  });
+
   test("a preview made before the collections changed is not reused", async () => {
     answer = { collection: 0, field: 2, row: null, sure: false };
     const previewed = { wheres: new Map(), answers: new Map([[1, { collection: 0, field: 2, row: null, sure: true }]]), shape: JSON.stringify([["other"]]) };
