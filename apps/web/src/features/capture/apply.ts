@@ -101,7 +101,7 @@ export function shownFiling(previewed: PreviewedFiling, lines: KeepLine[]): Prev
   return { ...previewed, answers: new Map([...previewed.answers].filter(([index]) => shown.has(index))) };
 }
 
-function fileIntoCollections({ queryClient, uid, store }: CaptureContext, noteId: string, created: TrackedValue[], previewed?: PreviewedFiling): () => void {
+function fileIntoCollections({ queryClient, uid, store }: CaptureContext, noteId: string, created: TrackedValue[], previewed: PreviewedFiling): () => void {
   const undos: (() => void)[] = [];
   let undone = false;
   const services = createEditorServices({
@@ -112,7 +112,7 @@ function fileIntoCollections({ queryClient, uid, store }: CaptureContext, noteId
     valuesInNote: () => created.map((value) => value.id),
     findsFormulas: false,
     onPlaced: (undo) => (undone ? undo() : undos.push(undo)),
-    answers: previewed && { shape: previewed.shape, forValue: (valueId) => previewed.answers.get(created.findIndex((value) => value.id === valueId)) ?? NOT_FILED },
+    answers: { shape: previewed.shape, forValue: (valueId) => previewed.answers.get(created.findIndex((value) => value.id === valueId)) ?? NOT_FILED },
   });
   for (const value of created) services.onNewFact?.(value);
   return () => {
@@ -121,11 +121,11 @@ function fileIntoCollections({ queryClient, uid, store }: CaptureContext, noteId
   };
 }
 
-export function saveDraft(context: CaptureContext, draft: NoteDraft, { file = false, previewed }: { file?: boolean; previewed?: PreviewedFiling } = {}): Outcome & { noteId: string } {
+export function saveDraft(context: CaptureContext, draft: NoteDraft, filing?: PreviewedFiling): Outcome & { noteId: string } {
   const { queryClient, uid, store } = context;
   const noteId = startNote(queryClient, uid, null, noteWith(draft.title));
   const { placed, created } = addValues(store, draft.paragraphs, noteId);
-  const unfile = file ? fileIntoCollections(context, noteId, created, previewed) : () => undefined;
+  const unfile = filing ? fileIntoCollections(context, noteId, created, filing) : () => undefined;
   const blocks: Block[] = [{ t: "h", level: 1, c: draft.title ? [{ t: "text", text: draft.title }] : [] }, ...blocksFor(draft.paragraphs, placed)];
   const doc: NoteDoc = { v: 1, blocks: draft.paragraphs.length > 0 ? blocks : [...blocks, { t: "p", c: [] }] };
   queryClient.setQueryData(noteQuery(uid, noteId).queryKey, (current) => (current ? { ...current, doc, title: draft.title } : current));

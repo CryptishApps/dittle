@@ -84,7 +84,7 @@ export function PasteView({ paste, context, onSample, onClose, onSaved }: PasteV
   const save = (edit: boolean) => {
     if (!draft) return;
     const filing = previewed && shownFiling(previewed, keepLines(draft, tried, undefined, previewed.wheres));
-    const outcome = saveDraft(context, (tried.size > 0 && withTried(draft, tried)) || draft, { file: true, previewed: filing });
+    const outcome = saveDraft(context, (tried.size > 0 && withTried(draft, tried)) || draft, filing);
     onSaved(`${firstLine(paste.text)}…`, made.state === "failed" ? { ...outcome, details: [{ text: "Dittle couldn't tidy it, so it's saved as pasted" }] } : outcome, edit);
   };
 

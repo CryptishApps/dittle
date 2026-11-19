@@ -76,6 +76,12 @@ const chip: DraftValue = { quote: "52:41", kind: "duration", name: "chip_time", 
 const bib: DraftValue = { quote: "1482", kind: "number", name: "bib_number", about: "race", event: false, amount: 1482, before: "", after: "", formula: "", field: null };
 const race: NoteDraft = { title: "Richmond Park 10K", paragraphs: [{ text: "Bib 1482, chip time 52:41.", values: [bib, chip] }] };
 
+const today = new Date(2026, 10, 18);
+const shown = async (draft: NoteDraft) => {
+  const previewed = await previewFiling(shelfOf([runs], []), draft, today);
+  return shownFiling(previewed, keepLines(draft, new Map(), today, previewed.wheres));
+};
+
 const settle = async () => {
   for (let round = 0; round < 20; round += 1) await new Promise((resolve) => setTimeout(resolve, 0));
 };
@@ -98,7 +104,7 @@ beforeEach(() => {
 describe("saving a pasted note files its values like a typed note", () => {
   test("a race result's chip time lands in the Runs row for its day", async () => {
     const { store, ...rest } = context();
-    saveDraft({ ...rest, store }, race, { file: true });
+    saveDraft({ ...rest, store }, race, await shown(race));
     await settle();
     const time = store.list().find((value) => value.text === "52:41")!;
     expect(placed).toEqual([{ row: { id: "runs.2026-11-15", collectionId: "runs", label: "2026-11-15", period: "2026-11-15" }, newRow: true, valueId: time.id, fieldId: "time", replaces: undefined }]);
@@ -109,7 +115,7 @@ describe("saving a pasted note files its values like a typed note", () => {
     answer = { collection: 0, field: 2, row: null, sure: false };
     const { store, ...rest } = context();
     const previewed = { wheres: new Map(), answers: new Map([[1, { collection: 0, field: 2, row: null, sure: true }]]), shape: JSON.stringify([["runs"]]) };
-    saveDraft({ ...rest, store }, race, { file: true, previewed });
+    saveDraft({ ...rest, store }, race, previewed);
     await settle();
     expect(placed.map((cell) => cell.fieldId)).toEqual(["time"]);
     expect(asked).toEqual([]);
@@ -119,7 +125,7 @@ describe("saving a pasted note files its values like a typed note", () => {
     byKind = { number: { collection: 0, field: 1, row: null, sure: true } };
     const { store, ...rest } = context();
     const previewed = { wheres: new Map(), answers: new Map([[1, { collection: 0, field: 2, row: null, sure: true }]]), shape: JSON.stringify([["runs"]]) };
-    saveDraft({ ...rest, store }, race, { file: true, previewed });
+    saveDraft({ ...rest, store }, race, previewed);
     await settle();
     expect(modelCalls).toBe(0);
     expect(placed.map((cell) => store.get(cell.valueId)?.text)).toEqual(["52:41"]);
@@ -128,10 +134,10 @@ describe("saving a pasted note files its values like a typed note", () => {
   test("a second time for the same row and column asks on save, as the preview said, instead of replacing the first", async () => {
     const gun: DraftValue = { ...chip, quote: "53:10", name: "gun_time", seconds: 3190 };
     const both: NoteDraft = { title: "Richmond Park 10K", paragraphs: [{ text: "Chip time 52:41, gun time 53:10.", values: [chip, gun] }] };
-    const previewed = await previewFiling(shelfOf([runs], []), both, new Date(2026, 10, 18));
+    const previewed = await previewFiling(shelfOf([runs], []), both, today);
     expect([...previewed.answers.values()].map((item) => item.sure)).toEqual([true, false]);
     const { store, ...rest } = context();
-    saveDraft({ ...rest, store }, both, { file: true, previewed });
+    saveDraft({ ...rest, store }, both, previewed);
     await settle();
     expect(placed.map((cell) => store.get(cell.valueId)?.text)).toEqual(["52:41"]);
     expect(asked.length).toBe(1);
@@ -157,12 +163,12 @@ describe("saving a pasted note files its values like a typed note", () => {
     const cost: DraftValue = { quote: "£640", kind: "money", name: "cost", about: "Lisbon", event: false, amount: 640, before: "£", after: "", formula: "", field: null };
     const nights: DraftValue = { quote: "4", kind: "count", name: "nights", about: "Lisbon", event: false, amount: 4, before: "", after: " nights", formula: "", field: null };
     const lisbon: NoteDraft = { title: "Lisbon", paragraphs: [{ text: "£640 for 4 nights.", values: [cost, nights] }] };
-    const previewed = await previewFiling(shelfOf([trips], [porto]), lisbon, new Date(2026, 10, 18));
+    const previewed = await previewFiling(shelfOf([trips], [porto]), lisbon, today);
     modelCalls = 0;
     const { queryClient, store } = context();
     queryClient.setQueryData(["collections", "u1"], [trips]);
     queryClient.setQueryData(["rows", "u1"], [porto]);
-    saveDraft({ queryClient, uid: "u1", store }, lisbon, { file: true, previewed });
+    saveDraft({ queryClient, uid: "u1", store }, lisbon, previewed);
     await settle();
     expect(modelCalls).toBe(0);
     expect(placed.map((cell) => [cell.fieldId, cell.row.label, cell.newRow])).toEqual([
@@ -179,13 +185,13 @@ describe("saving a pasted note files its values like a typed note", () => {
     const values = [spend("£920", "Lisbon", 920), spend("£45", "Dishoom", 45), spend("£120", "shoes", 120)];
     values.forEach((value, index) => (byKind[value.quote] = { collection: index, field: 0, row: { label: value.about }, sure: true }));
     const spent: NoteDraft = { title: "Spent", paragraphs: [{ text: "Lisbon £920, Dishoom £45, shoes £120.", values }] };
-    const previewed = await previewFiling(shelfOf(shelves, []), spent, new Date(2026, 10, 18));
-    const lines = keepLines(spent, new Map(), new Date(2026, 10, 18), previewed.wheres).filter((line) => line.kind === "filed");
+    const previewed = await previewFiling(shelfOf(shelves, []), spent, today);
+    const lines = keepLines(spent, new Map(), today, previewed.wheres).filter((line) => line.kind === "filed");
     expect(lines.map((line) => line.label)).toEqual(["Trips · Lisbon", "Dinners · Dishoom"]);
     modelCalls = 0;
     const { queryClient, store } = context();
     queryClient.setQueryData(["collections", "u1"], shelves);
-    saveDraft({ queryClient, uid: "u1", store }, spent, { file: true, previewed: shownFiling(previewed, lines) });
+    saveDraft({ queryClient, uid: "u1", store }, spent, shownFiling(previewed, lines));
     await settle();
     expect(modelCalls).toBe(0);
     expect(placed.map((cell) => cell.row.collectionId)).toEqual(["trips", "dinners"]);
@@ -194,7 +200,7 @@ describe("saving a pasted note files its values like a typed note", () => {
   test("a preview made before the collections changed is not reused", async () => {
     answer = { collection: 0, field: 2, row: null, sure: false };
     const previewed = { wheres: new Map(), answers: new Map([[1, { collection: 0, field: 2, row: null, sure: true }]]), shape: JSON.stringify([["other"]]) };
-    saveDraft(context(), race, { file: true, previewed });
+    saveDraft(context(), race, previewed);
     await settle();
     expect(placed).toEqual([]);
     expect(asked).toEqual(["Add 52:41 to Runs?"]);
@@ -202,7 +208,7 @@ describe("saving a pasted note files its values like a typed note", () => {
 
   test("when the model is unsure it asks instead of filing", async () => {
     answer = { collection: 0, field: 2, row: null, sure: false };
-    saveDraft(context(), race, { file: true });
+    saveDraft(context(), race, await shown(race));
     await settle();
     expect(placed).toEqual([]);
     expect(asked).toEqual(["Add 52:41 to Runs?"]);
@@ -210,7 +216,7 @@ describe("saving a pasted note files its values like a typed note", () => {
 
   test("undo removes the note, its values and the cells it filed", async () => {
     const { store, ...rest } = context();
-    const saved = saveDraft({ ...rest, store }, race, { file: true });
+    const saved = saveDraft({ ...rest, store }, race, await shown(race));
     await settle();
     saved.undo();
     expect(unplaced).toEqual([placed[0]!.valueId]);
@@ -220,16 +226,18 @@ describe("saving a pasted note files its values like a typed note", () => {
 
   test("a cell filed after undo is taken straight back out", async () => {
     const { store, ...rest } = context();
-    const saved = saveDraft({ ...rest, store }, race, { file: true });
+    const saved = saveDraft({ ...rest, store }, race, await shown(race));
     saved.undo();
     await settle();
     expect(placed).toHaveLength(1);
     expect(unplaced).toEqual(placed.map((cell) => cell.valueId));
   });
 
-  test("without filing, nothing is placed", async () => {
+  test("saving before the list has shown where values go files nothing", async () => {
     saveDraft(context(), race);
     await settle();
+    expect(modelCalls).toBe(0);
     expect(placed).toEqual([]);
+    expect(asked).toEqual([]);
   });
 });
