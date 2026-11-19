@@ -246,6 +246,22 @@ describe("saving a pasted note files its values like a typed note", () => {
     });
   });
 
+  test("an unsure value save could not offer anywhere is left off the list", async () => {
+    const trips: Collection = { id: "trips", name: "Trips", rowLabel: "trip", fields: [{ id: "where", name: "Destination", kind: "text" }], key: { by: "name" }, createdAt: 0 };
+    const lisbon: DraftValue = { quote: "Lisbon", kind: "place", name: "destination", about: "trip", event: false, formula: "", field: null };
+    const draft: NoteDraft = { title: "Trip", paragraphs: [{ text: "Off to Lisbon.", values: [lisbon] }] };
+    byKind = { place: { collection: 0, field: 0, row: { label: "Lisbon" }, sure: false } };
+    const previewed = await previewFiling(shelfOf([trips], []), draft, today);
+    const lines = keepLines(draft, new Map(), today, previewed.wheres);
+    expect(lines).toEqual([]);
+    const { queryClient, store } = context();
+    queryClient.setQueryData(["collections", "u1"], [trips]);
+    saveDraft({ queryClient, uid: "u1", store }, draft, shownFiling(previewed, lines));
+    await settle();
+    expect(placed).toEqual([]);
+    expect(asked).toEqual([]);
+  });
+
   describe("a date the list files goes into the row it named", () => {
     const trips: Collection = {
       id: "trips",
